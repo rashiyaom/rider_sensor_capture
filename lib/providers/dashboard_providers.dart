@@ -111,7 +111,7 @@ class DashboardTelemetryNotifier extends StateNotifier<DashboardTelemetryState> 
 
   DashboardTelemetryNotifier(this.ref) : super(const DashboardTelemetryState()) {
     _initStream();
-    _startRenderTimer(const Duration(milliseconds: 66));
+    _startRenderTimer(const Duration(milliseconds: 125));
   }
 
   void _startRenderTimer(Duration interval) {
@@ -126,7 +126,7 @@ class DashboardTelemetryNotifier extends StateNotifier<DashboardTelemetryState> 
   void updatePowerMode(PowerMode mode) {
     switch (mode) {
       case PowerMode.normal:
-        _startRenderTimer(const Duration(milliseconds: 66)); // 15 FPS
+        _startRenderTimer(const Duration(milliseconds: 125)); // 8 FPS (smooth, low-CPU)
         break;
       case PowerMode.powerSaving:
         _startRenderTimer(const Duration(milliseconds: 1000)); // 1 FPS throttled

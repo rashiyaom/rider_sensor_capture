@@ -28,8 +28,10 @@ class DevicesScreen extends ConsumerStatefulWidget {
 class _DevicesScreenState extends ConsumerState<DevicesScreen> {
   bool _isScanning = false;
   final List<RawSensorData> _recentLogs = [];
+  final List<RawSensorData> _incomingLogBuffer = [];
   StreamSubscription<RawSensorData>? _rawLogSubscription;
   StreamSubscription<CameraDetectionPayload>? _cameraPayloadSub;
+  Timer? _logThrottleTimer;
 
   @override
   void initState() {
@@ -44,10 +46,16 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
   void _subscribeToRawData() {
     final manager = ref.read(bleConnectionManagerProvider);
     _rawLogSubscription = manager.rawDataStream.listen((data) {
-      if (mounted) {
+      _incomingLogBuffer.insert(0, data);
+      if (_incomingLogBuffer.length > 30) _incomingLogBuffer.removeLast();
+    });
+
+    // Throttled UI refresh to prevent high-frequency 50Hz frame drops
+    _logThrottleTimer = Timer.periodic(const Duration(milliseconds: 350), (_) {
+      if (_incomingLogBuffer.isNotEmpty && mounted) {
         setState(() {
-          _recentLogs.insert(0, data);
-          if (_recentLogs.length > 30) _recentLogs.removeLast();
+          _recentLogs.clear();
+          _recentLogs.addAll(_incomingLogBuffer);
         });
       }
     });
@@ -67,6 +75,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
   @override
   void dispose() {
+    _logThrottleTimer?.cancel();
     _rawLogSubscription?.cancel();
     _cameraPayloadSub?.cancel();
     super.dispose();
@@ -358,12 +367,14 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
   // ── 2. Three-Column Device Bento ──────────────────────────────────────────
   Widget _buildThreeColumnDeviceBento(int activeCount, int rows, int batteryPct) {
+    final formattedRows = rows > 1000 ? '${(rows / 1000).toStringAsFixed(1)}k' : '$rows';
+
     return Row(
       children: [
         Expanded(
           child: _buildBentoCard(
             icon: Icons.bluetooth_connected_rounded,
-            badge: '+0%',
+            badge: activeCount > 0 ? 'Active' : 'Idle',
             value: '$activeCount',
             label: 'connected',
           ),
@@ -372,8 +383,8 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
         Expanded(
           child: _buildBentoCard(
             icon: Icons.speed_rounded,
-            badge: '50Hz',
-            value: '20ms',
+            badge: activeCount > 0 ? '50Hz' : '0Hz',
+            value: activeCount > 0 ? '20ms' : '--',
             label: 'packet rate',
           ),
         ),
@@ -382,7 +393,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           child: _buildBentoCard(
             icon: Icons.battery_charging_full_rounded,
             badge: '$batteryPct%',
-            value: '${(rows / 1000).toStringAsFixed(1)}k',
+            value: formattedRows,
             label: 'seq rows',
           ),
         ),
@@ -731,8 +742,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
   // ── 6. Raw Data Terminal ──────────────────────────────────────────────────
   Widget _buildDebugConsole() {
-    return Container(
-      decoration: AppStyles.cardDecoration(),
+    return RepaintBoundary(
+      child: Container(
+        decoration: AppStyles.cardDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -780,8 +792,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildAlertsBanner(List<HealthAlert> alerts) {
     final healthService = ref.read(sessionHealthServiceProvider);

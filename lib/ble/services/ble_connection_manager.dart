@@ -333,20 +333,30 @@ class BleConnectionManager {
     BleDeviceModel model,
   ) async {
     try {
+      // Negotiate higher MTU for high-throughput multi-sensor telemetry
+      try {
+        await device.requestMtu(512);
+      } catch (_) {}
+
       final services = await device.discoverServices();
+      BluetoothCharacteristic? pmdControlChar;
+
       for (BluetoothService service in services) {
         for (BluetoothCharacteristic characteristic in service.characteristics) {
           final cUuid = characteristic.uuid.toString().toLowerCase();
+
+          if (cUuid.contains('fb005c81')) {
+            pmdControlChar = characteristic;
+          }
 
           // Subscriptions for HR & PMD Accelerometer / ESP32 custom characteristic
           if (cUuid.contains('2a37') ||
               cUuid.contains('ffe1') ||
               cUuid.contains('fb005c82')) {
             if (characteristic.properties.notify || characteristic.properties.indicate) {
-              await characteristic.setNotifyValue(true);
               _charNotificationSubscriptions[model.id + cUuid]?.cancel();
               _charNotificationSubscriptions[model.id + cUuid] =
-                  characteristic.lastValueStream.listen((valueBytes) {
+                  characteristic.onValueReceived.listen((valueBytes) {
                 if (valueBytes.isEmpty) return;
 
                 RawSensorData? parsedData;
@@ -383,9 +393,20 @@ class BleConnectionManager {
                   _rawDataController.add(parsedData);
                 }
               });
+
+              await characteristic.setNotifyValue(true);
             }
           }
         }
+      }
+
+      // If Polar PMD control point is present, request ACC stream
+      if (pmdControlChar != null) {
+        try {
+          await pmdControlChar.write([
+            0x02, 0x02, 0x00, 0x01, 0x34, 0x00, 0x01, 0x01, 0x10, 0x00, 0x02, 0x01, 0x08, 0x00
+          ]);
+        } catch (_) {}
       }
     } catch (_) {}
   }

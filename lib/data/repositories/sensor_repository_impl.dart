@@ -12,10 +12,39 @@ class SensorRepositoryImpl implements SensorRepository {
   DateTime? _lastWriteTime;
   int? _activeEventId;
 
+  int _totalRowCount = 0;
+  final Map<String, int> _deviceCounts = {};
+  bool _countsInitialized = false;
+
   SensorRepositoryImpl(this._db) {
+    _initCountersFromDb();
     _flushTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
       _flushBuffer();
     });
+  }
+
+  Future<void> _initCountersFromDb() async {
+    try {
+      final countExp = _db.sensorReadings.id.count();
+      final query = _db.selectOnly(_db.sensorReadings)..addColumns([countExp]);
+      final result = await query.map((row) => row.read(countExp)).getSingleOrNull();
+      _totalRowCount = result ?? 0;
+
+      final deviceCol = _db.sensorReadings.deviceId;
+      final devQuery = _db.selectOnly(_db.sensorReadings)
+        ..addColumns([deviceCol, countExp])
+        ..groupBy([deviceCol]);
+
+      final rows = await devQuery.get();
+      for (var row in rows) {
+        final dev = row.read(deviceCol);
+        final c = row.read(countExp);
+        if (dev != null && c != null) {
+          _deviceCounts[dev] = c;
+        }
+      }
+      _countsInitialized = true;
+    } catch (_) {}
   }
 
   @override
@@ -90,7 +119,11 @@ class SensorRepositoryImpl implements SensorRepository {
           rawPayload: Value(data.rawBytes.toString()),
         ),
       );
+
+      _deviceCounts[data.deviceId] = (_deviceCounts[data.deviceId] ?? 0) + 1;
     }
+
+    _totalRowCount += dataList.length;
 
     await _db.batch((batch) {
       batch.insertAll(_db.sensorReadings, companions);
@@ -150,14 +183,18 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Future<int> getTotalCount() async {
+    if (_countsInitialized) return _totalRowCount;
     final countExp = _db.sensorReadings.id.count();
     final query = _db.selectOnly(_db.sensorReadings)..addColumns([countExp]);
     final result = await query.map((row) => row.read(countExp)).getSingle();
-    return result ?? 0;
+    _totalRowCount = result ?? 0;
+    _countsInitialized = true;
+    return _totalRowCount;
   }
 
   @override
   Future<Map<String, int>> getCountPerDevice() async {
+    if (_countsInitialized) return Map.unmodifiable(_deviceCounts);
     final countExp = _db.sensorReadings.id.count();
     final deviceCol = _db.sensorReadings.deviceId;
 
@@ -166,15 +203,15 @@ class SensorRepositoryImpl implements SensorRepository {
       ..groupBy([deviceCol]);
 
     final rows = await query.get();
-    final counts = <String, int>{};
     for (var row in rows) {
       final dev = row.read(deviceCol);
       final c = row.read(countExp);
       if (dev != null && c != null) {
-        counts[dev] = c;
+        _deviceCounts[dev] = c;
       }
     }
-    return counts;
+    _countsInitialized = true;
+    return Map.unmodifiable(_deviceCounts);
   }
 
   @override

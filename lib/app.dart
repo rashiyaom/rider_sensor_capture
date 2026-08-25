@@ -9,6 +9,7 @@ import 'features/dashboard/presentation/dashboard_screen.dart';
 import 'features/devices/presentation/devices_screen.dart';
 import 'features/events/presentation/events_screen.dart';
 import 'features/export/presentation/export_screen.dart';
+import 'providers/db_providers.dart';
 
 class RideSensorCaptureApp extends StatelessWidget {
   const RideSensorCaptureApp({super.key});
@@ -26,14 +27,14 @@ class RideSensorCaptureApp extends StatelessWidget {
   }
 }
 
-class MainNavigationShell extends StatefulWidget {
+class MainNavigationShell extends ConsumerStatefulWidget {
   const MainNavigationShell({super.key});
 
   @override
-  State<MainNavigationShell> createState() => _MainNavigationShellState();
+  ConsumerState<MainNavigationShell> createState() => _MainNavigationShellState();
 }
 
-class _MainNavigationShellState extends State<MainNavigationShell> {
+class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   int _currentIndex = 0;
   bool _hasCheckedPermissions = false;
   AppPermissionStatus _permissionStatus = const AppPermissionStatus();
@@ -77,6 +78,9 @@ class _MainNavigationShellState extends State<MainNavigationShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Keep BLE-to-DB stream bridge active globally across all navigation tabs
+    ref.watch(bleToDbBridgeProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(

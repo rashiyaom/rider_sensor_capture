@@ -45,7 +45,7 @@ class DbWriteStats {
 
 final dbWriteStatsStreamProvider = StreamProvider.autoDispose<DbWriteStats>((ref) {
   final repo = ref.watch(sensorRepositoryProvider);
-  return Stream.periodic(const Duration(milliseconds: 500)).asyncMap((_) async {
+  return Stream.periodic(const Duration(milliseconds: 1000)).asyncMap((_) async {
     final total = await repo.getTotalCount();
     final counts = await repo.getCountPerDevice();
     final lastTime = await repo.getLastWriteTime();

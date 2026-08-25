@@ -9,7 +9,7 @@ class BleScanner {
       StreamController<List<BleDeviceModel>>.broadcast();
 
   StreamSubscription? _scanSubscription;
-  bool _demoMode = kIsWeb; // Automatically enable demo sensors on web
+  bool _demoMode = false;
 
   BleScanner() {
     refreshConnectedAndSystemDevices();

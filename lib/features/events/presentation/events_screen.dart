@@ -245,7 +245,7 @@ class EventsScreen extends ConsumerWidget {
         Expanded(
           child: _buildBentoCard(
             icon: Icons.vibration_rounded,
-            badge: '+0%',
+            badge: 'IMU',
             value: '$bumps',
             label: 'bumps',
           ),
@@ -254,7 +254,7 @@ class EventsScreen extends ConsumerWidget {
         Expanded(
           child: _buildBentoCard(
             icon: Icons.turn_right_rounded,
-            badge: '+2%',
+            badge: 'Gyro',
             value: '$turns',
             label: 'turns',
           ),

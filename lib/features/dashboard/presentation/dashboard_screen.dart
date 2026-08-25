@@ -21,19 +21,8 @@ class DashboardScreen extends ConsumerWidget {
     ref.watch(bleToDbBridgeProvider);
 
     final isPaused = ref.watch(dashboardPausedProvider);
-    final telemetry = ref.watch(dashboardTelemetryProvider);
-    final connectionStatesAsync = ref.watch(connectionStatesStreamProvider);
-    final connectionMap = connectionStatesAsync.value ?? {};
-    final batteryAsync = ref.watch(batteryInfoStreamProvider);
-    final battery = batteryAsync.value ?? const BatteryInfo();
     final alertsAsync = ref.watch(activeHealthAlertsProvider);
     final alerts = alertsAsync.value ?? [];
-    final dbStatsAsync = ref.watch(dbWriteStatsStreamProvider);
-    final dbStats = dbStatsAsync.value ?? const DbWriteStats();
-
-    final connectedCount = connectionMap.values
-        .where((d) => d.connectionState == BleConnectionState.connected)
-        .length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -46,7 +35,11 @@ class DashboardScreen extends ConsumerWidget {
                 'assets/images/app_logo.png',
                 width: 26,
                 height: 26,
-                errorBuilder: (_, _, _) => const Icon(Icons.show_chart_rounded, size: 22, color: AppColors.accentGreen),
+                errorBuilder: (_, _, _) => const Icon(
+                  Icons.show_chart_rounded,
+                  size: 22,
+                  color: AppColors.accentGreen,
+                ),
               ),
             ),
             const SizedBox(width: 10),
@@ -74,40 +67,40 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110), // Padding for floating dock
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── 1. Hero Card (Matching reference top card with dashed Push pill & big white button) ──
-            _buildHeroActionCard(context, ref, isPaused, connectedCount, battery),
+            // ── 1. Hero Card ──
+            const _HeroActionSection(),
 
             const SizedBox(height: 14),
 
-            // ── 2. Three-Column Stat Metric Bento (17 / 329 / 363.2k style) ──
-            _buildThreeColumnMetricBento(context, telemetry, dbStats),
+            // ── 2. Three-Column Stat Metric Bento ──
+            const _ThreeColumnMetricBentoSection(),
 
             const SizedBox(height: 14),
 
-            // ── 3. Session Continuity / Activity Heatmap Pill Grid (Last 30 days style) ──
-            _buildContinuityPillGrid(telemetry, dbStats, isPaused),
+            // ── 3. Session Continuity Grid ──
+            const _ContinuityPillGridSection(),
 
             const SizedBox(height: 14),
 
-            // ── 4. Split Two-Column Bento (Volume 8-week trend + Daily reps bar style) ──
-            _buildSplitBentoRow(context, telemetry, dbStats),
+            // ── 4. Split Two-Column Bento ──
+            const _SplitBentoSection(),
 
             const SizedBox(height: 14),
 
-            // ── 5. Detailed Telemetry Waveform Cards ──
-            _buildHeartRateWaveformCard(telemetry),
+            // ── 5. Waveform Cards ──
+            const _HeartRateWaveformSection(),
 
             const SizedBox(height: 14),
 
-            _buildAccelerometerWaveformCard(telemetry),
+            const _AccelerometerWaveformSection(),
 
             const SizedBox(height: 14),
 
-            _buildGyroscopeWaveformCard(telemetry),
+            const _GyroscopeWaveformSection(),
 
             if (alerts.isNotEmpty) ...[
               const SizedBox(height: 14),
@@ -119,14 +112,61 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  // ── 1. Hero Action Card ───────────────────────────────────────────────────
-  Widget _buildHeroActionCard(
+  static Widget _buildAlertsBanner(
     BuildContext context,
+    List<HealthAlert> alerts,
     WidgetRef ref,
-    bool isPaused,
-    int connectedCount,
-    BatteryInfo battery,
   ) {
+    final healthService = ref.read(sessionHealthServiceProvider);
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.accentAmberBg,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.accentAmber.withValues(alpha: 0.3)),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        children: alerts.map((alert) {
+          return Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: AppColors.accentAmber, size: 16),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${alert.title}: ${alert.message}',
+                  style: const TextStyle(color: AppColors.accentAmber, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 14, color: AppColors.textSecondary),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () => healthService.dismissAlert(alert.id),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ── 1. Hero Action Section ──────────────────────────────────────────────────
+class _HeroActionSection extends ConsumerWidget {
+  const _HeroActionSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isPaused = ref.watch(dashboardPausedProvider);
+    final connectionStatesAsync = ref.watch(connectionStatesStreamProvider);
+    final connectionMap = connectionStatesAsync.value ?? {};
+    final batteryAsync = ref.watch(batteryInfoStreamProvider);
+    final battery = batteryAsync.value ?? const BatteryInfo();
+
+    final connectedCount = connectionMap.values
+        .where((d) => d.connectionState == BleConnectionState.connected)
+        .length;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -150,7 +190,6 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  // Dashed outline capsule badge (like "Push" in reference)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
@@ -162,10 +201,12 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                     ),
                     child: Text(
-                      isPaused ? 'Paused' : 'Capture',
+                      isPaused
+                          ? 'Paused'
+                          : (connectedCount > 0 ? 'Live Capture' : 'Standby'),
                       style: const TextStyle(
                         color: AppColors.textPrimary,
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                       ),
@@ -173,7 +214,6 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              // Battery & WAL indicator pill
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
@@ -204,21 +244,27 @@ class DashboardScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Multi-BLE IMU • Voice Triggered • 50Hz',
-            style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
+          Text(
+            connectedCount > 0
+                ? '$connectedCount BLE sensor${connectedCount > 1 ? "s" : ""} streaming at 50Hz'
+                : 'No sensor connected · Connect BLE hardware in Devices tab',
+            style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
           ),
           const SizedBox(height: 14),
-          // Metadata Chips Row
           Row(
             children: [
-              _buildMiniChip(Icons.access_time_rounded, '~${battery.estimatedRideHoursRemaining.toStringAsFixed(1)}h est.'),
+              _buildMiniChip(
+                Icons.access_time_rounded,
+                '~${battery.estimatedRideHoursRemaining.toStringAsFixed(1)}h battery',
+              ),
               const SizedBox(width: 8),
-              _buildMiniChip(Icons.sensors_rounded, '$connectedCount sensors active'),
+              _buildMiniChip(
+                Icons.sensors_rounded,
+                '$connectedCount sensor${connectedCount != 1 ? "s" : ""} active',
+              ),
             ],
           ),
           const SizedBox(height: 18),
-          // Massive White Action Capsule Button (matching reference)
           SizedBox(
             width: double.infinity,
             height: 52,
@@ -286,121 +332,130 @@ class DashboardScreen extends ConsumerWidget {
       ),
     );
   }
+}
 
-  // ── 2. Three-Column Stat Metric Bento ─────────────────────────────────────
-  Widget _buildThreeColumnMetricBento(
-    BuildContext context,
-    DashboardTelemetryState telemetry,
-    DbWriteStats dbStats,
-  ) {
+// ── 2. Three-Column Stat Metric Bento Section ───────────────────────────────
+class _ThreeColumnMetricBentoSection extends ConsumerWidget {
+  const _ThreeColumnMetricBentoSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final telemetry = ref.watch(dashboardTelemetryProvider);
+    final dbStatsAsync = ref.watch(dbWriteStatsStreamProvider);
+    final dbStats = dbStatsAsync.value ?? const DbWriteStats();
+
     final hr = telemetry.latestHr;
-    final accelX = telemetry.latestAccelX ?? 0.0;
-    final accelY = telemetry.latestAccelY ?? 0.0;
-    final accelZ = telemetry.latestAccelZ ?? 9.8;
-    final mag = math.sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ) / 9.80665;
+    final accelX = telemetry.latestAccelX;
+    final accelY = telemetry.latestAccelY;
+    final accelZ = telemetry.latestAccelZ;
+
+    double? mag;
+    if (accelX != null && accelY != null && accelZ != null) {
+      mag = math.sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ) / 9.80665;
+    }
 
     final totalRows = dbStats.totalRows;
-    String formattedRows = totalRows > 1000 ? '${(totalRows / 1000).toStringAsFixed(1)}k' : '$totalRows';
-    if (totalRows == 0) formattedRows = '24.8k';
+    final formattedRows = totalRows > 1000
+        ? '${(totalRows / 1000).toStringAsFixed(1)}k'
+        : '$totalRows';
 
     return Row(
       children: [
         Expanded(
-          child: _buildBentoStatCard(
-            context: context,
+          child: _buildBentoCard(
             icon: Icons.favorite_rounded,
-            badge: '+0%',
-            value: hr != null ? '$hr' : '124',
+            badge: hr != null ? 'Live' : 'Off',
+            value: hr != null ? '$hr' : '--',
             unit: 'bpm',
             label: 'heart rate',
-            onTap: () => _showDetailBottomSheet(context, 'HEART RATE', '${hr ?? 124}', 'bpm', 'Continuous Polar Verity PPG cardiac monitoring with live beat-to-beat rhythm detection.'),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _buildBentoStatCard(
-            context: context,
+          child: _buildBentoCard(
             icon: Icons.speed_rounded,
-            badge: '50Hz',
-            value: mag.toStringAsFixed(1),
+            badge: mag != null ? '50Hz' : 'Idle',
+            value: mag != null ? mag.toStringAsFixed(1) : '--',
             unit: 'g',
             label: 'peak g-force',
-            onTap: () => _showDetailBottomSheet(context, 'G-FORCE DYNAMICS', mag.toStringAsFixed(2), 'g-units', 'Instantaneous 3-axis resultant acceleration calculated at 50Hz sampling rate.'),
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: _buildBentoStatCard(
-            context: context,
+          child: _buildBentoCard(
             icon: Icons.inventory_2_outlined,
-            badge: '+2%',
+            badge: 'SQLite',
             value: formattedRows,
             unit: 'rows',
             label: 'persisted',
-            onTap: () => _showDetailBottomSheet(context, 'DATASET VOLUME', formattedRows, 'records', 'Crash-safe SQLite WAL SQLite database storage with monotonic sequence IDs per sensor.'),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildBentoStatCard({
-    required BuildContext context,
+  Widget _buildBentoCard({
     required IconData icon,
     required String badge,
     required String value,
     required String unit,
     required String label,
-    required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        decoration: AppStyles.cardDecoration(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(icon, color: AppColors.textSecondary, size: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: AppColors.accentGreenBg,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    badge,
-                    style: AppStyles.badgeGreen,
-                  ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      decoration: AppStyles.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(icon, color: AppColors.textSecondary, size: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: AppColors.accentGreenBg,
+                  borderRadius: BorderRadius.circular(6),
                 ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              value,
-              style: AppStyles.heroNumber.copyWith(fontSize: 26),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: AppStyles.statLabel,
-            ),
-          ],
-        ),
+                child: Text(badge, style: AppStyles.badgeGreen),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            value,
+            style: AppStyles.heroNumber.copyWith(fontSize: 26),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: AppStyles.statLabel,
+          ),
+        ],
       ),
     );
   }
+}
 
-  // ── 3. Session Continuity / Activity Heatmap Grid ────────────────────────
-  Widget _buildContinuityPillGrid(
-    DashboardTelemetryState telemetry,
-    DbWriteStats dbStats,
-    bool isPaused,
-  ) {
+// ── 3. Session Continuity Grid Section ──────────────────────────────────────
+class _ContinuityPillGridSection extends ConsumerWidget {
+  const _ContinuityPillGridSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final telemetry = ref.watch(dashboardTelemetryProvider);
+    final isPaused = ref.watch(dashboardPausedProvider);
+    final connectionStatesAsync = ref.watch(connectionStatesStreamProvider);
+    final connectionMap = connectionStatesAsync.value ?? {};
+
+    final hasActiveConnection = connectionMap.values.any(
+      (d) => d.connectionState == BleConnectionState.connected,
+    );
+    final hasData = telemetry.latestAccelX != null || telemetry.latestHr != null;
+
+    final isStreaming = hasActiveConnection && !isPaused;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: AppStyles.cardDecoration(),
@@ -418,30 +473,41 @@ class DashboardScreen extends ConsumerWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              Row(
-                children: [
-                  Text(
-                    isPaused ? 'Paused · 0 FPS' : 'Live · 50Hz Ingest',
-                    style: const TextStyle(
-                      color: AppColors.accentGreen,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary, size: 16),
-                ],
+              Text(
+                isPaused
+                    ? 'Paused'
+                    : (isStreaming
+                        ? (hasData ? 'Live · 50Hz Ingest' : 'Connected · Ready')
+                        : 'Standby · No Sensor'),
+                style: TextStyle(
+                  color: isStreaming ? AppColors.accentGreen : AppColors.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
           Column(
             children: [
-              _buildPillRow([true, true, true, true, false, false, true, true, true, false]),
+              _buildPillRow(
+                isStreaming
+                    ? [true, true, true, true, true, true, true, true, true, true]
+                    : List.filled(10, false),
+              ),
               const SizedBox(height: 8),
-              _buildPillRow([true, true, false, true, true, false, true, true, true, false]),
+              _buildPillRow(
+                isStreaming
+                    ? [true, true, true, true, true, true, true, true, true, true]
+                    : List.filled(10, false),
+              ),
               const SizedBox(height: 8),
-              _buildPillRow([true, true, false, false, true, true, false, true, true, true], isCurrent: true),
+              _buildPillRow(
+                isStreaming
+                    ? [true, true, true, true, true, true, true, true, true, true]
+                    : List.filled(10, false),
+                isCurrent: isStreaming,
+              ),
             ],
           ),
         ],
@@ -462,7 +528,9 @@ class DashboardScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               color: isLatest
                   ? AppColors.primaryWhite
-                  : (isFilled ? const Color(0xFFE5E5EA) : Colors.white.withValues(alpha: 0.08)),
+                  : (isFilled
+                      ? const Color(0xFFE5E5EA)
+                      : Colors.white.withValues(alpha: 0.08)),
               borderRadius: BorderRadius.circular(7),
               border: isLatest
                   ? Border.all(color: AppColors.accentCyan, width: 2)
@@ -473,74 +541,82 @@ class DashboardScreen extends ConsumerWidget {
       }),
     );
   }
+}
 
-  // ── 4. Split Two-Column Bento Row ─────────────────────────────────────────
-  Widget _buildSplitBentoRow(
-    BuildContext context,
-    DashboardTelemetryState telemetry,
-    DbWriteStats dbStats,
-  ) {
+// ── 4. Split Two-Column Bento Section ───────────────────────────────────────
+class _SplitBentoSection extends ConsumerWidget {
+  const _SplitBentoSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final telemetry = ref.watch(dashboardTelemetryProvider);
+
     final accelX = telemetry.latestAccelX ?? 0.0;
     final accelY = telemetry.latestAccelY ?? 0.0;
-    final accelZ = telemetry.latestAccelZ ?? 9.8;
-    final mag = math.sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ);
+    final accelZ = telemetry.latestAccelZ ?? 0.0;
+    final hasAccel = telemetry.latestAccelX != null;
+
+    final mag = hasAccel
+        ? math.sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ)
+        : 0.0;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Left Bento: Smooth Area Trend (Volume 8-week trend style)
+        // Left Bento: Rolling Energy Trend
         Expanded(
-          child: GestureDetector(
-            onTap: () => _showDetailBottomSheet(
-              context,
-              'TOTAL VOLUME',
-              '${(dbStats.totalRows / 1000).toStringAsFixed(1)}k',
-              'samples',
-              'Roughly 21.4k per session. Continuous IMU and PPG packets aggregated seamlessly.',
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              height: 180,
-              decoration: AppStyles.cardDecoration(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: const [
-                      Icon(Icons.lock_outline_rounded, color: AppColors.textSecondary, size: 13),
-                      SizedBox(width: 4),
-                      Text('Energy Trend', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                  const Text('8-sec window', style: TextStyle(color: AppColors.textTertiary, fontSize: 10)),
-                  const SizedBox(height: 6),
-                  Text(
-                    '${(mag / 9.8).toStringAsFixed(2)}g',
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.5,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            height: 180,
+            decoration: AppStyles.cardDecoration(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.bolt_rounded, color: AppColors.accentCyan, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      'Motion Energy',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
+                  ],
+                ),
+                const Text('rolling buffer', style: TextStyle(color: AppColors.textTertiary, fontSize: 10)),
+                const SizedBox(height: 6),
+                Text(
+                  hasAccel ? '${(mag / 9.8).toStringAsFixed(2)}g' : '--',
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
                   ),
-                  const Spacer(),
-                  // Smooth Bezier Curve Canvas
-                  SizedBox(
+                ),
+                const Spacer(),
+                RepaintBoundary(
+                  child: SizedBox(
                     height: 54,
                     width: double.infinity,
                     child: CustomPaint(
-                      painter: _MiniSparklinePainter(),
+                      painter: _DynamicSparklinePainter(
+                        spots: telemetry.accelZSpots,
+                      ),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
 
         const SizedBox(width: 12),
 
-        // Right Bento: 3-Axis Motion Live Bars (Daily reps style)
+        // Right Bento: 3-Axis Motion Live Bars
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(16),
@@ -554,18 +630,28 @@ class DashboardScreen extends ConsumerWidget {
                   children: [
                     Row(
                       children: const [
-                        Icon(Icons.fitness_center_rounded, color: AppColors.textSecondary, size: 13),
+                        Icon(Icons.view_in_ar_rounded, color: AppColors.textSecondary, size: 14),
                         SizedBox(width: 4),
-                        Text('3-Axis Live', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
+                        Text(
+                          '3-Axis Live',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                       decoration: BoxDecoration(
-                        color: AppColors.accentGreenBg,
+                        color: hasAccel ? AppColors.accentGreenBg : AppColors.cardElevated,
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: const Text('+36%', style: AppStyles.badgeGreen),
+                      child: Text(
+                        hasAccel ? '50Hz' : 'Idle',
+                        style: hasAccel ? AppStyles.badgeGreen : AppStyles.statLabel,
+                      ),
                     ),
                   ],
                 ),
@@ -576,7 +662,7 @@ class DashboardScreen extends ConsumerWidget {
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(
-                      mag.toStringAsFixed(1),
+                      hasAccel ? mag.toStringAsFixed(1) : '--',
                       style: const TextStyle(
                         color: AppColors.textPrimary,
                         fontSize: 22,
@@ -584,18 +670,19 @@ class DashboardScreen extends ConsumerWidget {
                         letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    const Text('m/s²', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                    if (hasAccel) ...[
+                      const SizedBox(width: 4),
+                      const Text('m/s²', style: TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                    ],
                   ],
                 ),
                 const Spacer(),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildPillMeter('X', (accelX.abs() / 15.0).clamp(0.15, 1.0), accelX.toStringAsFixed(0)),
-                    _buildPillMeter('Y', (accelY.abs() / 15.0).clamp(0.15, 1.0), accelY.toStringAsFixed(0)),
-                    _buildPillMeter('Z', (accelZ.abs() / 15.0).clamp(0.15, 1.0), accelZ.toStringAsFixed(0)),
-                    _buildPillMeter('G', 0.65, '50'),
+                    _buildPillMeter('X', hasAccel ? (accelX.abs() / 15.0).clamp(0.05, 1.0) : 0.0, hasAccel ? accelX.toStringAsFixed(0) : '0'),
+                    _buildPillMeter('Y', hasAccel ? (accelY.abs() / 15.0).clamp(0.05, 1.0) : 0.0, hasAccel ? accelY.toStringAsFixed(0) : '0'),
+                    _buildPillMeter('Z', hasAccel ? (accelZ.abs() / 15.0).clamp(0.05, 1.0) : 0.0, hasAccel ? accelZ.toStringAsFixed(0) : '0'),
                   ],
                 ),
               ],
@@ -622,7 +709,7 @@ class DashboardScreen extends ConsumerWidget {
           alignment: Alignment.bottomCenter,
           child: Container(
             width: 14,
-            height: 38 * fillPct,
+            height: (38 * fillPct).clamp(2.0, 38.0),
             decoration: BoxDecoration(
               color: const Color(0xFFD1D1D6),
               borderRadius: BorderRadius.circular(7),
@@ -634,273 +721,219 @@ class DashboardScreen extends ConsumerWidget {
       ],
     );
   }
+}
 
-  // ── 5. Detailed Waveform Cards ────────────────────────────────────────────
-  Widget _buildHeartRateWaveformCard(DashboardTelemetryState state) {
-    final spots = state.hrSpots;
-    final latest = state.latestHr;
+// ── 5. Heart Rate Waveform Section ──────────────────────────────────────────
+class _HeartRateWaveformSection extends ConsumerWidget {
+  const _HeartRateWaveformSection();
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: AppStyles.cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: const [
-                  Icon(Icons.favorite_rounded, color: AppColors.accentRed, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'Polar Verity Heart Rate',
-                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
-                  ),
-                ],
-              ),
-              Text(
-                latest != null ? '$latest BPM' : '124 BPM',
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.3,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 130,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 30,
-                  getDrawingHorizontalLine: (_) => FlLine(
-                    color: Colors.white.withValues(alpha: 0.04),
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: const FlTitlesData(
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 28,
-                      interval: 40,
-                      getTitlesWidget: _buildLeftAxisTitle,
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final telemetry = ref.watch(dashboardTelemetryProvider);
+    final spots = telemetry.hrSpots;
+    final latest = telemetry.latestHr;
+
+    return RepaintBoundary(
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: AppStyles.cardDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.favorite_rounded, color: AppColors.accentRed, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Polar Verity Heart Rate',
+                      style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
                     ),
+                  ],
+                ),
+                Text(
+                  latest != null ? '$latest BPM' : '-- BPM',
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
                   ),
                 ),
-                borderData: FlBorderData(show: false),
-                minY: 50,
-                maxY: 190,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spots.isNotEmpty
-                        ? spots
-                        : const [FlSpot(0, 120), FlSpot(10, 128), FlSpot(20, 134), FlSpot(30, 126), FlSpot(40, 130)],
-                    isCurved: true,
-                    curveSmoothness: 0.3,
-                    color: AppColors.primaryWhite,
-                    barWidth: 2,
-                    dotData: const FlDotData(show: false),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white.withValues(alpha: 0.15),
-                          Colors.transparent,
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 130,
+              child: spots.isEmpty
+                  ? _buildEmptyWaveformPlaceholder('Awaiting Polar Verity Sense heart rate stream...')
+                  : LineChart(
+                      LineChartData(
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          horizontalInterval: 30,
+                          getDrawingHorizontalLine: (_) => FlLine(
+                            color: Colors.white.withValues(alpha: 0.04),
+                            strokeWidth: 1,
+                          ),
+                        ),
+                        titlesData: const FlTitlesData(
+                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 28,
+                              interval: 40,
+                              getTitlesWidget: _buildLeftAxisTitle,
+                            ),
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        minY: 40,
+                        maxY: 200,
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: spots,
+                            isCurved: true,
+                            curveSmoothness: 0.25,
+                            color: AppColors.primaryWhite,
+                            barWidth: 2,
+                            dotData: const FlDotData(show: false),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.15),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
+                      duration: Duration.zero, // Zero animation overhead for real-time streams
                     ),
-                  ),
-                ],
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+}
 
-  Widget _buildAccelerometerWaveformCard(DashboardTelemetryState state) {
-    final spotsX = state.accelXSpots;
-    final spotsY = state.accelYSpots;
-    final spotsZ = state.accelZSpots;
+// ── 6. Accelerometer Waveform Section ───────────────────────────────────────
+class _AccelerometerWaveformSection extends ConsumerWidget {
+  const _AccelerometerWaveformSection();
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: AppStyles.cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: const [
-                  Icon(Icons.vibration_rounded, color: AppColors.accentCyan, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'IMU Accelerometer (XYZ)',
-                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  _buildTraceLegend('X', AppColors.primaryWhite, state.latestAccelX),
-                  const SizedBox(width: 8),
-                  _buildTraceLegend('Y', AppColors.accentCyan, state.latestAccelY),
-                  const SizedBox(width: 8),
-                  _buildTraceLegend('Z', AppColors.textSecondary, state.latestAccelZ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 140,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 8,
-                  getDrawingHorizontalLine: (_) => FlLine(
-                    color: Colors.white.withValues(alpha: 0.04),
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: const FlTitlesData(
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 28,
-                      interval: 10,
-                      getTitlesWidget: _buildLeftAxisTitle,
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final telemetry = ref.watch(dashboardTelemetryProvider);
+    final spotsX = telemetry.accelXSpots;
+    final spotsY = telemetry.accelYSpots;
+    final spotsZ = telemetry.accelZSpots;
+
+    final hasData = spotsX.isNotEmpty;
+
+    return RepaintBoundary(
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: AppStyles.cardDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.vibration_rounded, color: AppColors.accentCyan, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'IMU Accelerometer (XYZ)',
+                      style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
                     ),
-                  ),
+                  ],
                 ),
-                borderData: FlBorderData(show: false),
-                minY: -15,
-                maxY: 20,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spotsX.isNotEmpty ? spotsX : const [FlSpot(0, 0), FlSpot(10, 2), FlSpot(20, -1), FlSpot(30, 0)],
-                    isCurved: false,
-                    color: AppColors.primaryWhite,
-                    barWidth: 1.5,
-                    dotData: const FlDotData(show: false),
-                  ),
-                  LineChartBarData(
-                    spots: spotsY.isNotEmpty ? spotsY : const [FlSpot(0, 1), FlSpot(10, -2), FlSpot(20, 2), FlSpot(30, 1)],
-                    isCurved: false,
-                    color: AppColors.accentCyan,
-                    barWidth: 1.5,
-                    dotData: const FlDotData(show: false),
-                  ),
-                  LineChartBarData(
-                    spots: spotsZ.isNotEmpty ? spotsZ : const [FlSpot(0, 9.8), FlSpot(10, 10.2), FlSpot(20, 9.6), FlSpot(30, 9.8)],
-                    isCurved: false,
-                    color: AppColors.textSecondary,
-                    barWidth: 1.5,
-                    dotData: const FlDotData(show: false),
-                  ),
-                ],
-              ),
+                Row(
+                  children: [
+                    _buildTraceLegend('X', AppColors.primaryWhite, telemetry.latestAccelX),
+                    const SizedBox(width: 8),
+                    _buildTraceLegend('Y', AppColors.accentCyan, telemetry.latestAccelY),
+                    const SizedBox(width: 8),
+                    _buildTraceLegend('Z', AppColors.textSecondary, telemetry.latestAccelZ),
+                  ],
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGyroscopeWaveformCard(DashboardTelemetryState state) {
-    final spotsX = state.gyroXSpots;
-    final spotsY = state.gyroYSpots;
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: AppStyles.cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Row(
-                children: [
-                  Icon(Icons.screen_rotation_alt_rounded, color: AppColors.textSecondary, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'Gyroscope Angular Velocity',
-                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
-                  ),
-                ],
-              ),
-              Text('rad/s', style: TextStyle(color: AppColors.textTertiary, fontSize: 11)),
-            ],
-          ),
-          const SizedBox(height: 14),
-          SizedBox(
-            height: 110,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  getDrawingHorizontalLine: (_) => FlLine(
-                    color: Colors.white.withValues(alpha: 0.04),
-                    strokeWidth: 1,
-                  ),
-                ),
-                titlesData: const FlTitlesData(
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: spotsX.isNotEmpty ? spotsX : const [FlSpot(0, 0), FlSpot(10, 0.4), FlSpot(20, -0.2), FlSpot(30, 0.1)],
-                    isCurved: false,
-                    color: AppColors.primaryWhite,
-                    barWidth: 1.2,
-                    dotData: const FlDotData(show: false),
-                  ),
-                  LineChartBarData(
-                    spots: spotsY.isNotEmpty ? spotsY : const [FlSpot(0, -0.1), FlSpot(10, 0.2), FlSpot(20, 0.1), FlSpot(30, -0.1)],
-                    isCurved: false,
-                    color: AppColors.textSecondary,
-                    barWidth: 1.2,
-                    dotData: const FlDotData(show: false),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 140,
+              child: !hasData
+                  ? _buildEmptyWaveformPlaceholder('Awaiting 3-axis accelerometer sensor stream...')
+                  : LineChart(
+                      LineChartData(
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          horizontalInterval: 8,
+                          getDrawingHorizontalLine: (_) => FlLine(
+                            color: Colors.white.withValues(alpha: 0.04),
+                            strokeWidth: 1,
+                          ),
+                        ),
+                        titlesData: const FlTitlesData(
+                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 28,
+                              interval: 10,
+                              getTitlesWidget: _buildLeftAxisTitle,
+                            ),
+                          ),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        minY: -20,
+                        maxY: 25,
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: spotsX,
+                            isCurved: false,
+                            color: AppColors.primaryWhite,
+                            barWidth: 1.5,
+                            dotData: const FlDotData(show: false),
+                          ),
+                          LineChartBarData(
+                            spots: spotsY,
+                            isCurved: false,
+                            color: AppColors.accentCyan,
+                            barWidth: 1.5,
+                            dotData: const FlDotData(show: false),
+                          ),
+                          LineChartBarData(
+                            spots: spotsZ,
+                            isCurved: false,
+                            color: AppColors.textSecondary,
+                            barWidth: 1.5,
+                            dotData: const FlDotData(show: false),
+                          ),
+                        ],
+                      ),
+                      duration: Duration.zero,
+                    ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    );
-  }
-
-  static Widget _buildLeftAxisTitle(double value, TitleMeta meta) {
-    return Text(
-      value.toInt().toString(),
-      style: const TextStyle(color: AppColors.textTertiary, fontSize: 9, fontWeight: FontWeight.w600),
     );
   }
 
@@ -921,167 +954,131 @@ class DashboardScreen extends ConsumerWidget {
       ],
     );
   }
+}
 
-  Widget _buildAlertsBanner(BuildContext context, List<HealthAlert> alerts, WidgetRef ref) {
-    final healthService = ref.read(sessionHealthServiceProvider);
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.accentAmberBg,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.accentAmber.withValues(alpha: 0.3)),
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        children: alerts.map((alert) {
-          return Row(
-            children: [
-              const Icon(Icons.warning_amber_rounded, color: AppColors.accentAmber, size: 16),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  '${alert.title}: ${alert.message}',
-                  style: const TextStyle(color: AppColors.accentAmber, fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, size: 14, color: AppColors.textSecondary),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () => healthService.dismissAlert(alert.id),
-              ),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
+// ── 7. Gyroscope Waveform Section ───────────────────────────────────────────
+class _GyroscopeWaveformSection extends ConsumerWidget {
+  const _GyroscopeWaveformSection();
 
-  // ── 6. Interactive Detail Bottom Sheet Modal (Matching Reference Image 2) ──
-  void _showDetailBottomSheet(
-    BuildContext context,
-    String tag,
-    String heroValue,
-    String unit,
-    String description,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
-          decoration: const BoxDecoration(
-            color: Color(0xFF16161A),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-            border: Border(top: BorderSide(color: Color(0xFF2C2C34), width: 1)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Drag Handle Pill
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'LAST 30 DAYS • $tag',
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const Icon(Icons.lock_outline_rounded, color: AppColors.textSecondary, size: 16),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    heroValue,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontSize: 44,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -1.2,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentGreenBg,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text('+2%', style: AppStyles.badgeGreen),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'total $unit',
-                style: const TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4),
-              ),
-              const SizedBox(height: 24),
-              // Interactive Smooth Curve Container (matching image 2)
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F0F12),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.cardBorder),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final telemetry = ref.watch(dashboardTelemetryProvider);
+    final spotsX = telemetry.gyroXSpots;
+    final spotsY = telemetry.gyroYSpots;
+
+    final hasData = spotsX.isNotEmpty;
+
+    return RepaintBoundary(
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: AppStyles.cardDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                Row(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: const [
-                        Text('8-week telemetry curve', style: TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
-                        Text('Peak: 109.7k', style: TextStyle(color: AppColors.primaryWhite, fontSize: 11, fontWeight: FontWeight.w700)),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 130,
-                      width: double.infinity,
-                      child: CustomPaint(
-                        painter: _ModalDetailChartPainter(),
-                      ),
+                    Icon(Icons.screen_rotation_alt_rounded, color: AppColors.textSecondary, size: 18),
+                    SizedBox(width: 8),
+                    Text(
+                      'Gyroscope Angular Velocity',
+                      style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-        );
-      },
+                Text('rad/s', style: TextStyle(color: AppColors.textTertiary, fontSize: 11)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 110,
+              child: !hasData
+                  ? _buildEmptyWaveformPlaceholder('Awaiting gyroscope telemetry...')
+                  : LineChart(
+                      LineChartData(
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          getDrawingHorizontalLine: (_) => FlLine(
+                            color: Colors.white.withValues(alpha: 0.04),
+                            strokeWidth: 1,
+                          ),
+                        ),
+                        titlesData: const FlTitlesData(
+                          rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: spotsX,
+                            isCurved: false,
+                            color: AppColors.primaryWhite,
+                            barWidth: 1.2,
+                            dotData: const FlDotData(show: false),
+                          ),
+                          LineChartBarData(
+                            spots: spotsY,
+                            isCurved: false,
+                            color: AppColors.textSecondary,
+                            barWidth: 1.2,
+                            dotData: const FlDotData(show: false),
+                          ),
+                        ],
+                      ),
+                      duration: Duration.zero,
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-// ── Custom Painter for Mini Sparkline ───────────────────────────────────────
-class _MiniSparklinePainter extends CustomPainter {
+// ── Shared Helpers ──────────────────────────────────────────────────────────
+Widget _buildEmptyWaveformPlaceholder(String message) {
+  return Container(
+    width: double.infinity,
+    decoration: BoxDecoration(
+      color: Colors.black26,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+    ),
+    child: Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.show_chart_rounded, size: 24, color: AppColors.textTertiary),
+          const SizedBox(height: 6),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildLeftAxisTitle(double value, TitleMeta meta) {
+  return Text(
+    value.toInt().toString(),
+    style: const TextStyle(color: AppColors.textTertiary, fontSize: 9, fontWeight: FontWeight.w600),
+  );
+}
+
+// ── Dynamic Sparkline Painter ───────────────────────────────────────────────
+class _DynamicSparklinePainter extends CustomPainter {
+  final List<FlSpot> spots;
+
+  _DynamicSparklinePainter({required this.spots});
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
@@ -1095,29 +1092,44 @@ class _MiniSparklinePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Colors.white.withValues(alpha: 0.25),
+          Colors.white.withValues(alpha: 0.2),
           Colors.transparent,
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
 
+    if (spots.length < 2) {
+      // Draw a subtle flat baseline when no data is received
+      canvas.drawLine(
+        Offset(0, size.height * 0.5),
+        Offset(size.width, size.height * 0.5),
+        paint..color = Colors.white.withValues(alpha: 0.15),
+      );
+      return;
+    }
+
     final path = Path();
-    path.moveTo(0, size.height * 0.7);
-    path.cubicTo(
-      size.width * 0.3,
-      size.height * 0.9,
-      size.width * 0.5,
-      size.height * 0.2,
-      size.width * 0.75,
-      size.height * 0.6,
-    );
-    path.cubicTo(
-      size.width * 0.88,
-      size.height * 0.8,
-      size.width * 0.95,
-      size.height * 0.1,
-      size.width,
-      size.height * 0.2,
-    );
+    final double minX = spots.first.x;
+    final double maxX = spots.last.x;
+    final double rangeX = (maxX - minX).abs() > 0.0001 ? (maxX - minX) : 1.0;
+
+    double minY = spots.map((s) => s.y).reduce(math.min);
+    double maxY = spots.map((s) => s.y).reduce(math.max);
+    if ((maxY - minY).abs() < 0.001) {
+      minY -= 1.0;
+      maxY += 1.0;
+    }
+
+    for (int i = 0; i < spots.length; i++) {
+      final s = spots[i];
+      final px = ((s.x - minX) / rangeX) * size.width;
+      final py = size.height - ((s.y - minY) / (maxY - minY)) * size.height;
+
+      if (i == 0) {
+        path.moveTo(px, py.clamp(0.0, size.height));
+      } else {
+        path.lineTo(px, py.clamp(0.0, size.height));
+      }
+    }
 
     final fillPath = Path.from(path)
       ..lineTo(size.width, size.height)
@@ -1129,78 +1141,5 @@ class _MiniSparklinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-// ── Custom Painter for Modal Detail Curve (Matching Image 2) ────────────────
-class _ModalDetailChartPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final strokePaint = Paint()
-      ..color = AppColors.primaryWhite
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5
-      ..strokeCap = StrokeCap.round;
-
-    final fillPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Colors.white.withValues(alpha: 0.28),
-          Colors.transparent,
-        ],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
-
-    final path = Path();
-    path.moveTo(0, size.height * 0.6);
-    path.cubicTo(
-      size.width * 0.25,
-      size.height * 0.85,
-      size.width * 0.38,
-      size.height * 0.15,
-      size.width * 0.5,
-      size.height * 0.25,
-    );
-    path.cubicTo(
-      size.width * 0.7,
-      size.height * 0.45,
-      size.width * 0.85,
-      size.height * 0.65,
-      size.width,
-      size.height * 0.1,
-    );
-
-    final fillPath = Path.from(path)
-      ..lineTo(size.width, size.height)
-      ..lineTo(0, size.height)
-      ..close();
-
-    canvas.drawPath(fillPath, fillPaint);
-    canvas.drawPath(path, strokePaint);
-
-    // Node dots
-    final dotPaint = Paint()..color = AppColors.primaryWhite;
-    final dotBorderPaint = Paint()
-      ..color = const Color(0xFF0F0F12)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-
-    final points = [
-      Offset(0, size.height * 0.6),
-      Offset(size.width * 0.25, size.height * 0.75),
-      Offset(size.width * 0.45, size.height * 0.2),
-      Offset(size.width * 0.65, size.height * 0.42),
-      Offset(size.width * 0.85, size.height * 0.62),
-      Offset(size.width, size.height * 0.1),
-    ];
-
-    for (final p in points) {
-      canvas.drawCircle(p, 4.5, dotPaint);
-      canvas.drawCircle(p, 4.5, dotBorderPaint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _DynamicSparklinePainter oldDelegate) => true;
 }

@@ -195,7 +195,7 @@ class ExportScreen extends ConsumerWidget {
         Expanded(
           child: _buildBentoCard(
             icon: Icons.storage_rounded,
-            badge: '+2%',
+            badge: 'SQLite',
             value: formattedRows,
             label: 'sensor rows',
           ),
