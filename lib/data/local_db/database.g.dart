@@ -1778,9 +1778,6 @@ class $CameraDetectionsTable extends CameraDetections
     true,
     type: DriftSqlType.int,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES event_records (id)',
-    ),
   );
   @override
   List<GeneratedColumn> get $columns => [
@@ -2645,31 +2642,6 @@ typedef $$EventRecordsTableUpdateCompanionBuilder =
       Value<String?> classification,
     });
 
-final class $$EventRecordsTableReferences
-    extends BaseReferences<_$AppDatabase, $EventRecordsTable, EventRecord> {
-  $$EventRecordsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static MultiTypedResultKey<$CameraDetectionsTable, List<CameraDetection>>
-  _cameraDetectionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
-    db.cameraDetections,
-    aliasName: 'event_records__id__camera_detections__linked_event_id',
-  );
-
-  $$CameraDetectionsTableProcessedTableManager get cameraDetectionsRefs {
-    final manager = $$CameraDetectionsTableTableManager(
-      $_db,
-      $_db.cameraDetections,
-    ).filter((f) => f.linkedEventId.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(
-      _cameraDetectionsRefsTable($_db),
-    );
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: cache),
-    );
-  }
-}
-
 class $$EventRecordsTableFilterComposer
     extends Composer<_$AppDatabase, $EventRecordsTable> {
   $$EventRecordsTableFilterComposer({
@@ -2743,31 +2715,6 @@ class $$EventRecordsTableFilterComposer
     column: $table.classification,
     builder: (column) => ColumnFilters(column),
   );
-
-  Expression<bool> cameraDetectionsRefs(
-    Expression<bool> Function($$CameraDetectionsTableFilterComposer f) f,
-  ) {
-    final $$CameraDetectionsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.cameraDetections,
-      getReferencedColumn: (t) => t.linkedEventId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$CameraDetectionsTableFilterComposer(
-            $db: $db,
-            $table: $db.cameraDetections,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$EventRecordsTableOrderingComposer
@@ -2908,31 +2855,6 @@ class $$EventRecordsTableAnnotationComposer
     column: $table.classification,
     builder: (column) => column,
   );
-
-  Expression<T> cameraDetectionsRefs<T extends Object>(
-    Expression<T> Function($$CameraDetectionsTableAnnotationComposer a) f,
-  ) {
-    final $$CameraDetectionsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.cameraDetections,
-      getReferencedColumn: (t) => t.linkedEventId,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$CameraDetectionsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.cameraDetections,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$EventRecordsTableTableManager
@@ -2946,9 +2868,12 @@ class $$EventRecordsTableTableManager
           $$EventRecordsTableAnnotationComposer,
           $$EventRecordsTableCreateCompanionBuilder,
           $$EventRecordsTableUpdateCompanionBuilder,
-          (EventRecord, $$EventRecordsTableReferences),
+          (
+            EventRecord,
+            BaseReferences<_$AppDatabase, $EventRecordsTable, EventRecord>,
+          ),
           EventRecord,
-          PrefetchHooks Function({bool cameraDetectionsRefs})
+          PrefetchHooks Function()
         > {
   $$EventRecordsTableTableManager(_$AppDatabase db, $EventRecordsTable table)
     : super(
@@ -3022,47 +2947,9 @@ class $$EventRecordsTableTableManager
                 classification: classification,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$EventRecordsTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({cameraDetectionsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (cameraDetectionsRefs) db.cameraDetections,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (cameraDetectionsRefs)
-                    await $_getPrefetchedData<
-                      EventRecord,
-                      $EventRecordsTable,
-                      CameraDetection
-                    >(
-                      currentTable: table,
-                      referencedTable: $$EventRecordsTableReferences
-                          ._cameraDetectionsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$EventRecordsTableReferences(
-                            db,
-                            table,
-                            p0,
-                          ).cameraDetectionsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where(
-                            (e) => e.linkedEventId == item.id,
-                          ),
-                      typedResults: items,
-                    ),
-                ];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -3077,9 +2964,12 @@ typedef $$EventRecordsTableProcessedTableManager =
       $$EventRecordsTableAnnotationComposer,
       $$EventRecordsTableCreateCompanionBuilder,
       $$EventRecordsTableUpdateCompanionBuilder,
-      (EventRecord, $$EventRecordsTableReferences),
+      (
+        EventRecord,
+        BaseReferences<_$AppDatabase, $EventRecordsTable, EventRecord>,
+      ),
       EventRecord,
-      PrefetchHooks Function({bool cameraDetectionsRefs})
+      PrefetchHooks Function()
     >;
 typedef $$CameraDetectionsTableCreateCompanionBuilder =
     CameraDetectionsCompanion Function({
@@ -3101,34 +2991,6 @@ typedef $$CameraDetectionsTableUpdateCompanionBuilder =
       Value<DateTime> receivedAtUtc,
       Value<int?> linkedEventId,
     });
-
-final class $$CameraDetectionsTableReferences
-    extends
-        BaseReferences<_$AppDatabase, $CameraDetectionsTable, CameraDetection> {
-  $$CameraDetectionsTableReferences(
-    super.$_db,
-    super.$_table,
-    super.$_typedResult,
-  );
-
-  static $EventRecordsTable _linkedEventIdTable(_$AppDatabase db) => db
-      .eventRecords
-      .createAlias('camera_detections__linked_event_id__event_records__id');
-
-  $$EventRecordsTableProcessedTableManager? get linkedEventId {
-    final $_column = $_itemColumn<int>('linked_event_id');
-    if ($_column == null) return null;
-    final manager = $$EventRecordsTableTableManager(
-      $_db,
-      $_db.eventRecords,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_linkedEventIdTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(
-      manager.$state.copyWith(prefetchedData: [item]),
-    );
-  }
-}
 
 class $$CameraDetectionsTableFilterComposer
     extends Composer<_$AppDatabase, $CameraDetectionsTable> {
@@ -3169,28 +3031,10 @@ class $$CameraDetectionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  $$EventRecordsTableFilterComposer get linkedEventId {
-    final $$EventRecordsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.linkedEventId,
-      referencedTable: $db.eventRecords,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EventRecordsTableFilterComposer(
-            $db: $db,
-            $table: $db.eventRecords,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
+  ColumnFilters<int> get linkedEventId => $composableBuilder(
+    column: $table.linkedEventId,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$CameraDetectionsTableOrderingComposer
@@ -3232,28 +3076,10 @@ class $$CameraDetectionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  $$EventRecordsTableOrderingComposer get linkedEventId {
-    final $$EventRecordsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.linkedEventId,
-      referencedTable: $db.eventRecords,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EventRecordsTableOrderingComposer(
-            $db: $db,
-            $table: $db.eventRecords,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
+  ColumnOrderings<int> get linkedEventId => $composableBuilder(
+    column: $table.linkedEventId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CameraDetectionsTableAnnotationComposer
@@ -3291,28 +3117,10 @@ class $$CameraDetectionsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  $$EventRecordsTableAnnotationComposer get linkedEventId {
-    final $$EventRecordsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.linkedEventId,
-      referencedTable: $db.eventRecords,
-      getReferencedColumn: (t) => t.id,
-      builder:
-          (
-            joinBuilder, {
-            $addJoinBuilderToRootComposer,
-            $removeJoinBuilderFromRootComposer,
-          }) => $$EventRecordsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.eventRecords,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer:
-                $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
+  GeneratedColumn<int> get linkedEventId => $composableBuilder(
+    column: $table.linkedEventId,
+    builder: (column) => column,
+  );
 }
 
 class $$CameraDetectionsTableTableManager
@@ -3326,9 +3134,16 @@ class $$CameraDetectionsTableTableManager
           $$CameraDetectionsTableAnnotationComposer,
           $$CameraDetectionsTableCreateCompanionBuilder,
           $$CameraDetectionsTableUpdateCompanionBuilder,
-          (CameraDetection, $$CameraDetectionsTableReferences),
+          (
+            CameraDetection,
+            BaseReferences<
+              _$AppDatabase,
+              $CameraDetectionsTable,
+              CameraDetection
+            >,
+          ),
           CameraDetection,
-          PrefetchHooks Function({bool linkedEventId})
+          PrefetchHooks Function()
         > {
   $$CameraDetectionsTableTableManager(
     _$AppDatabase db,
@@ -3380,52 +3195,9 @@ class $$CameraDetectionsTableTableManager
                 linkedEventId: linkedEventId,
               ),
           withReferenceMapper: (p0) => p0
-              .map(
-                (e) => (
-                  e.readTable(table),
-                  $$CameraDetectionsTableReferences(db, table, e),
-                ),
-              )
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({linkedEventId = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (linkedEventId) {
-                      state = state.withJoin(
-                        currentTable: table,
-                        currentColumn: table.linkedEventId,
-                        referencedTable: $$CameraDetectionsTableReferences
-                            ._linkedEventIdTable(db),
-                        referencedColumn: $$CameraDetectionsTableReferences
-                            ._linkedEventIdTable(db)
-                            .id,
-                      ) as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
+          prefetchHooksCallback: null,
         ),
       );
 }
@@ -3440,9 +3212,12 @@ typedef $$CameraDetectionsTableProcessedTableManager =
       $$CameraDetectionsTableAnnotationComposer,
       $$CameraDetectionsTableCreateCompanionBuilder,
       $$CameraDetectionsTableUpdateCompanionBuilder,
-      (CameraDetection, $$CameraDetectionsTableReferences),
+      (
+        CameraDetection,
+        BaseReferences<_$AppDatabase, $CameraDetectionsTable, CameraDetection>,
+      ),
       CameraDetection,
-      PrefetchHooks Function({bool linkedEventId})
+      PrefetchHooks Function()
     >;
 
 class $AppDatabaseManager {

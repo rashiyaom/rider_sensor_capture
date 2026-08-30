@@ -18,6 +18,12 @@ LazyDatabase constructDb() {
     final cachebase = (await getTemporaryDirectory()).path;
     sqlite3.tempDirectory = cachebase;
 
-    return NativeDatabase.createInBackground(file);
+    return NativeDatabase.createInBackground(
+      file,
+      setup: (rawDb) {
+        rawDb.execute('PRAGMA journal_mode=WAL;');
+        rawDb.execute('PRAGMA synchronous=NORMAL;');
+      },
+    );
   });
 }

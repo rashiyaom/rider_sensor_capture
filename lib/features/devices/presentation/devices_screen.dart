@@ -1,20 +1,15 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../ble/models/ble_device_model.dart';
 import '../../../ble/models/raw_sensor_data.dart';
 import '../../../ble/services/ble_permission_service.dart';
-import '../../../camera/camera_detection_model.dart';
-import '../../../camera/camera_ingest_server.dart';
 import '../../../core/services/battery_service.dart';
 import '../../../core/services/session_health_service.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../data/local_db/database.dart';
 import '../../../providers/battery_providers.dart';
 import '../../../providers/ble_providers.dart';
-import '../../../providers/camera_providers.dart';
 import '../../../providers/db_providers.dart';
 import '../../../providers/session_health_providers.dart';
 
@@ -27,10 +22,10 @@ class DevicesScreen extends ConsumerStatefulWidget {
 
 class _DevicesScreenState extends ConsumerState<DevicesScreen> {
   bool _isScanning = false;
+  String? _selectedTerminalDeviceId;
   final List<RawSensorData> _recentLogs = [];
   final List<RawSensorData> _incomingLogBuffer = [];
   StreamSubscription<RawSensorData>? _rawLogSubscription;
-  StreamSubscription<CameraDetectionPayload>? _cameraPayloadSub;
   Timer? _logThrottleTimer;
 
   @override
@@ -38,7 +33,6 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     super.initState();
     _subscribeToRawData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _autoStartCameraServer();
       ref.read(bleScannerProvider).refreshConnectedAndSystemDevices();
     });
   }
@@ -47,11 +41,11 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     final manager = ref.read(bleConnectionManagerProvider);
     _rawLogSubscription = manager.rawDataStream.listen((data) {
       _incomingLogBuffer.insert(0, data);
-      if (_incomingLogBuffer.length > 30) _incomingLogBuffer.removeLast();
+      if (_incomingLogBuffer.length > 50) _incomingLogBuffer.removeLast();
     });
 
     // Throttled UI refresh to prevent high-frequency 50Hz frame drops
-    _logThrottleTimer = Timer.periodic(const Duration(milliseconds: 350), (_) {
+    _logThrottleTimer = Timer.periodic(const Duration(milliseconds: 300), (_) {
       if (_incomingLogBuffer.isNotEmpty && mounted) {
         setState(() {
           _recentLogs.clear();
@@ -61,23 +55,10 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     });
   }
 
-  Future<void> _autoStartCameraServer() async {
-    final server = ref.read(cameraIngestServerProvider);
-    if (!server.isRunning) {
-      await server.start();
-    }
-    _cameraPayloadSub = server.detectionStream.listen((payload) {
-      if (mounted) {
-        setState(() {});
-      }
-    });
-  }
-
   @override
   void dispose() {
     _logThrottleTimer?.cancel();
     _rawLogSubscription?.cancel();
-    _cameraPayloadSub?.cancel();
     super.dispose();
   }
 
@@ -114,16 +95,6 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     }
   }
 
-  Future<void> _toggleCameraServer() async {
-    final server = ref.read(cameraIngestServerProvider);
-    if (server.isRunning) {
-      await server.stop();
-    } else {
-      await server.start();
-    }
-    setState(() {});
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.watch(bleToDbBridgeProvider);
@@ -131,8 +102,6 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     final discoveredAsync = ref.watch(discoveredDevicesStreamProvider);
     final connectionStatesAsync = ref.watch(connectionStatesStreamProvider);
     final dbStatsAsync = ref.watch(dbWriteStatsStreamProvider);
-    final cameraStatusAsync = ref.watch(cameraServerStatusProvider);
-    final cameraDetectionsAsync = ref.watch(recentCameraDetectionsProvider);
     final batteryAsync = ref.watch(batteryInfoStreamProvider);
     final alertsAsync = ref.watch(activeHealthAlertsProvider);
 
@@ -140,8 +109,6 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     final discoveredDevices = discoveredAsync.value ?? [];
     final connectionMap = connectionStatesAsync.value ?? {};
     final dbStats = dbStatsAsync.value ?? const DbWriteStats();
-    final cameraStatus = cameraStatusAsync.value ?? const CameraServerStatus();
-    final cameraDetections = cameraDetectionsAsync.value ?? [];
     final battery = batteryAsync.value ?? const BatteryInfo();
     final alerts = alertsAsync.value ?? [];
 
@@ -227,18 +194,27 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
 
             const SizedBox(height: 18),
 
-            // ── 5. AI Camera Ingest Server Section ──
-            _buildCameraServerCard(cameraStatus, cameraDetections),
-
-            const SizedBox(height: 18),
-
-            // ── 6. Raw Data Terminal ──
+            // ── 5. Raw Data Terminal ──
             _buildDebugConsole(),
 
             if (alerts.isNotEmpty) ...[
               const SizedBox(height: 14),
               _buildAlertsBanner(alerts),
             ],
+
+            // ── Footer branding ──
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                'made by rashiyaom',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -644,157 +620,258 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     );
   }
 
-  // ── 5. AI Camera Server Card ──────────────────────────────────────────────
-  Widget _buildCameraServerCard(CameraServerStatus status, List<CameraDetection> detections) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: AppStyles.cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+  // ── 5. Raw Data Terminal ──────────────────────────────────────────────────
+  Widget _buildDebugConsole() {
+    final connectionStatesAsync = ref.watch(connectionStatesStreamProvider);
+    final connectionMap = connectionStatesAsync.value ?? {};
+
+    // Get connected device IDs + any distinct devices in recent logs
+    final availableDeviceIds = <String>{};
+    for (var d in connectionMap.values) {
+      if (d.connectionState == BleConnectionState.connected) {
+        availableDeviceIds.add(d.id);
+      }
+    }
+    for (var l in _recentLogs) {
+      availableDeviceIds.add(l.deviceId);
+    }
+
+    final filteredLogs = _selectedTerminalDeviceId == null
+        ? _recentLogs
+        : _recentLogs.where((l) => l.deviceId == _selectedTerminalDeviceId).toList();
+
+    return RepaintBoundary(
+      child: Container(
+        decoration: AppStyles.cardDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: status.isRunning ? AppColors.accentGreenBg : AppColors.cardElevated,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Icon(
-                      Icons.videocam_rounded,
-                      color: status.isRunning ? AppColors.accentGreen : AppColors.textSecondary,
-                      size: 18,
-                    ),
+                  Row(
+                    children: const [
+                      Icon(Icons.terminal_rounded, size: 16, color: AppColors.accentGreen),
+                      SizedBox(width: 8),
+                      Text(
+                        'Live Ingest Terminal',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'AI Camera Ingest Server',
-                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
+                  Row(
+                    children: [
+                      Text(
+                        '${filteredLogs.length} frames',
+                        style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _incomingLogBuffer.clear();
+                            _recentLogs.clear();
+                          });
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.cardElevated,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.cardBorder),
+                          ),
+                          child: const Text('Clear', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: _toggleCameraServer,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: status.isRunning ? AppColors.accentRedBg : AppColors.accentGreenBg,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: status.isRunning ? AppColors.accentRed.withValues(alpha: 0.3) : AppColors.accentGreen.withValues(alpha: 0.3),
+            ),
+
+            // Device Filter Chips Bar for Live Ingest
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildTerminalFilterChip(
+                      label: 'All Devices',
+                      isSelected: _selectedTerminalDeviceId == null,
+                      onTap: () => setState(() => _selectedTerminalDeviceId = null),
                     ),
-                  ),
-                  child: Text(
-                    status.isRunning ? 'Stop' : 'Start',
-                    style: TextStyle(
-                      color: status.isRunning ? AppColors.accentRed : AppColors.accentGreen,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                    ...availableDeviceIds.map((devId) {
+                      final name = connectionMap[devId]?.name ??
+                          _recentLogs.firstWhere((l) => l.deviceId == devId, orElse: () => _recentLogs.first).deviceName;
+                      final isWatch = devId.toLowerCase().contains('watch') || devId.toLowerCase().contains('esp');
+                      final isSelected = _selectedTerminalDeviceId == devId;
+                      return _buildTerminalFilterChip(
+                        label: '${isWatch ? "⌚" : "💓"} ${name.isNotEmpty ? name : devId}',
+                        isSelected: isSelected,
+                        onTap: () => setState(() => _selectedTerminalDeviceId = devId),
+                      );
+                    }),
+                  ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.black45,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.cardBorder),
             ),
-            child: Row(
-              children: [
-                const Icon(Icons.link_rounded, color: AppColors.textSecondary, size: 16),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    status.isRunning
-                        ? 'http://${status.addressLabel}/camera-event'
-                        : 'Server inactive',
-                    style: const TextStyle(fontFamily: 'monospace', color: AppColors.textPrimary, fontSize: 11),
-                  ),
-                ),
-                if (status.isRunning)
-                  IconButton(
-                    icon: const Icon(Icons.copy_rounded, size: 14, color: AppColors.textSecondary),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: 'http://${status.addressLabel}/camera-event'));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Endpoint copied to clipboard')),
-                      );
-                    },
-                  ),
-              ],
+
+            const SizedBox(height: 6),
+
+            // Terminal Screen
+            Container(
+              height: 180,
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: Color(0xFF070709),
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
+              ),
+              child: filteredLogs.isEmpty
+                  ? Center(
+                      child: Text(
+                        _selectedTerminalDeviceId != null
+                            ? 'No incoming frames for selected device.'
+                            : 'No frames yet. Connect ESP32-Watch or Polar sensor to view 50Hz binary stream.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: AppColors.textTertiary, fontSize: 11),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: filteredLogs.length,
+                      itemBuilder: (context, index) {
+                        final log = filteredLogs[index];
+                        final isWatch = log.deviceType == DeviceType.watch;
+                        final timeStr = '${log.timestamp.hour.toString().padLeft(2, "0")}:'
+                            '${log.timestamp.minute.toString().padLeft(2, "0")}:'
+                            '${log.timestamp.second.toString().padLeft(2, "0")}.'
+                            '${(log.timestamp.millisecond ~/ 10).toString().padLeft(2, "0")}';
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    timeStr,
+                                    style: const TextStyle(
+                                      fontFamily: 'monospace',
+                                      fontSize: 10,
+                                      color: AppColors.textTertiary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                    decoration: BoxDecoration(
+                                      color: isWatch ? AppColors.accentCyanBg : AppColors.accentGreenBg,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      log.deviceName.isNotEmpty ? log.deviceName : log.deviceId,
+                                      style: TextStyle(
+                                        color: isWatch ? AppColors.accentCyan : AppColors.accentGreen,
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  if (log.heartRate != null)
+                                    Container(
+                                      margin: const EdgeInsets.only(right: 4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.accentRedBg,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '❤️ ${log.heartRate} BPM',
+                                        style: const TextStyle(color: AppColors.accentRed, fontSize: 9, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  if (log.accelX != null && log.accelY != null && log.accelZ != null) ...[
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.cardElevated,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        'X:${log.accelX!.toStringAsFixed(1)} Y:${log.accelY!.toStringAsFixed(1)} Z:${log.accelZ!.toStringAsFixed(1)}',
+                                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 9, fontFamily: 'monospace'),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              SelectableText(
+                                'HEX: ${log.rawHex} (${log.rawBytes.length}B)',
+                                style: const TextStyle(
+                                  fontFamily: 'monospace',
+                                  fontSize: 9.5,
+                                  color: Color(0xFF9E9EA7),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  // ── 6. Raw Data Terminal ──────────────────────────────────────────────────
-  Widget _buildDebugConsole() {
-    return RepaintBoundary(
-      child: Container(
-        decoration: AppStyles.cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Live Ingest Terminal', style: TextStyle(color: AppColors.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-                Text('${_recentLogs.length} frames', style: const TextStyle(color: AppColors.textTertiary, fontSize: 11)),
-              ],
+  Widget _buildTerminalFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.accentGreen : AppColors.cardElevated,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? AppColors.accentGreen : AppColors.cardBorder,
             ),
           ),
-          Container(
-            height: 140,
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF070709),
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.black : AppColors.textSecondary,
+              fontSize: 10,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
             ),
-            child: _recentLogs.isEmpty
-                ? const Center(
-                    child: Text('No frames yet. Connect a sensor to view stream.', style: TextStyle(color: AppColors.textTertiary, fontSize: 11)),
-                  )
-                : ListView.builder(
-                    itemCount: _recentLogs.length,
-                    itemBuilder: (context, index) {
-                      final log = _recentLogs[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 1.5),
-                        child: Text(
-                          log.toString(),
-                          style: TextStyle(
-                            fontFamily: 'monospace',
-                            fontSize: 10,
-                            color: log.deviceType == DeviceType.verityBand
-                                ? AppColors.accentGreen
-                                : AppColors.accentCyan,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
           ),
-        ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
 
   Widget _buildAlertsBanner(List<HealthAlert> alerts) {
     final healthService = ref.read(sessionHealthServiceProvider);

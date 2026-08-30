@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:drift/drift.dart';
 import '../local_db/database.dart';
 import '../../ble/models/raw_sensor_data.dart';
+import '../../providers/db_providers.dart';
 import 'sensor_repository.dart';
 
 class SensorRepositoryImpl implements SensorRepository {
@@ -16,11 +17,26 @@ class SensorRepositoryImpl implements SensorRepository {
   final Map<String, int> _deviceCounts = {};
   bool _countsInitialized = false;
 
+  final StreamController<DbWriteStats> _statsController =
+      StreamController<DbWriteStats>.broadcast();
+
   SensorRepositoryImpl(this._db) {
     _initCountersFromDb();
     _flushTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
       _flushBuffer();
     });
+  }
+
+  void _emitStats() {
+    if (!_statsController.isClosed) {
+      _statsController.add(
+        DbWriteStats(
+          totalRows: _totalRowCount,
+          deviceCounts: Map.unmodifiable(_deviceCounts),
+          lastWriteTime: _lastWriteTime,
+        ),
+      );
+    }
   }
 
   Future<void> _initCountersFromDb() async {
@@ -44,7 +60,18 @@ class SensorRepositoryImpl implements SensorRepository {
         }
       }
       _countsInitialized = true;
+      _emitStats();
     } catch (_) {}
+  }
+
+  @override
+  Stream<DbWriteStats> watchStats() async* {
+    yield DbWriteStats(
+      totalRows: _totalRowCount,
+      deviceCounts: Map.unmodifiable(_deviceCounts),
+      lastWriteTime: _lastWriteTime,
+    );
+    yield* _statsController.stream;
   }
 
   @override
@@ -124,12 +151,13 @@ class SensorRepositoryImpl implements SensorRepository {
     }
 
     _totalRowCount += dataList.length;
+    _lastWriteTime = DateTime.now();
 
     await _db.batch((batch) {
       batch.insertAll(_db.sensorReadings, companions);
     });
 
-    _lastWriteTime = DateTime.now();
+    _emitStats();
   }
 
   Future<void> _flushBuffer() async {
@@ -237,8 +265,32 @@ class SensorRepositoryImpl implements SensorRepository {
   }
 
   @override
+  Future<void> deleteAllReadings() async {
+    await _db.delete(_db.sensorReadings).go();
+    _totalRowCount = 0;
+    _deviceCounts.clear();
+    _sequenceCounters.clear();
+    _lastWriteTime = null;
+    _countsInitialized = true;
+    _emitStats();
+  }
+
+  @override
+  Future<void> deleteEvent(int eventId) async {
+    await (_db.delete(_db.sensorReadings)
+          ..where((t) => t.eventId.equals(eventId)))
+        .go();
+    await (_db.delete(_db.eventRecords)
+          ..where((t) => t.id.equals(eventId)))
+        .go();
+    // Recount totals from DB after deletion
+    await _initCountersFromDb();
+  }
+
+  @override
   void dispose() {
     _flushTimer?.cancel();
     _flushBuffer();
+    _statsController.close();
   }
 }

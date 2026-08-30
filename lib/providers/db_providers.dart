@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/local_db/database.dart';
 import '../data/repositories/sensor_repository.dart';
@@ -30,7 +29,7 @@ final bleToDbBridgeProvider = Provider<void>((ref) {
   });
 });
 
-// Periodic write statistics provider
+// Real-time write statistics model
 class DbWriteStats {
   final int totalRows;
   final Map<String, int> deviceCounts;
@@ -43,16 +42,8 @@ class DbWriteStats {
   });
 }
 
+/// Real-time SQLite statistics stream updating instantly on every batch insert
 final dbWriteStatsStreamProvider = StreamProvider.autoDispose<DbWriteStats>((ref) {
   final repo = ref.watch(sensorRepositoryProvider);
-  return Stream.periodic(const Duration(milliseconds: 1000)).asyncMap((_) async {
-    final total = await repo.getTotalCount();
-    final counts = await repo.getCountPerDevice();
-    final lastTime = await repo.getLastWriteTime();
-    return DbWriteStats(
-      totalRows: total,
-      deviceCounts: counts,
-      lastWriteTime: lastTime,
-    );
-  });
+  return repo.watchStats();
 });

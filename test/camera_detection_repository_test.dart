@@ -6,6 +6,7 @@ import 'package:ride_sensor_capture/camera/camera_detection_repository.dart';
 import 'package:ride_sensor_capture/data/local_db/database.dart';
 import 'package:ride_sensor_capture/data/repositories/sensor_repository.dart';
 import 'package:ride_sensor_capture/ble/models/raw_sensor_data.dart';
+import 'package:ride_sensor_capture/providers/db_providers.dart';
 
 /// Simple stub that lets tests control activeEventId.
 class _StubSensorRepository implements SensorRepository {
@@ -47,6 +48,12 @@ class _StubSensorRepository implements SensorRepository {
   Future<void> updateEventRecord(EventRecord event) async {}
   @override
   Stream<List<EventRecord>> watchAllEvents() => const Stream.empty();
+  @override
+  Stream<DbWriteStats> watchStats() => const Stream.empty();
+  @override
+  Future<void> deleteAllReadings() async {}
+  @override
+  Future<void> deleteEvent(int eventId) async {}
   @override
   void dispose() {}
 }

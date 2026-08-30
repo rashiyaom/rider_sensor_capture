@@ -16,8 +16,16 @@ abstract class ExportRepository {
     required ExportMode mode,
   });
 
-  /// Build CSV string for sensor readings (with event parameters attached)
+  /// Build CSV string for sensor readings (optionally filtered to a specific deviceId)
   Future<String> buildSensorCsvExport({
+    DateTime? startUtc,
+    DateTime? endUtc,
+    required ExportMode mode,
+    String? deviceId,
+  });
+
+  /// Build separate CSV strings for each individual sensor device
+  Future<Map<String, String>> buildPerSensorCsvExports({
     DateTime? startUtc,
     DateTime? endUtc,
     required ExportMode mode,
@@ -36,6 +44,7 @@ abstract class ExportRepository {
     DateTime? endUtc,
     required ExportFormat format,
     required ExportMode mode,
+    bool includePerSensorFiles = true,
   });
 
   /// Invoke native share sheet using share_plus

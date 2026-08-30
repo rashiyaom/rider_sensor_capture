@@ -9,8 +9,13 @@ import 'ble_providers.dart';
 // Dashboard paused state provider
 final dashboardPausedProvider = StateProvider<bool>((ref) => false);
 
+// Selected device for live dashboard: null = Cumulative Multi-Sensor, or specific deviceId string
+final dashboardSelectedDeviceIdProvider = StateProvider<String?>((ref) => null);
+
 // Data structure for the rolling telemetry window
 class DashboardTelemetryState {
+  final String? selectedDeviceId;
+  final String selectedDeviceName;
   final List<FlSpot> hrSpots;
   final List<FlSpot> accelXSpots;
   final List<FlSpot> accelYSpots;
@@ -28,6 +33,8 @@ class DashboardTelemetryState {
   final double? latestGyroZ;
 
   const DashboardTelemetryState({
+    this.selectedDeviceId,
+    this.selectedDeviceName = 'Cumulative All Sensors',
     this.hrSpots = const [],
     this.accelXSpots = const [],
     this.accelYSpots = const [],
@@ -45,6 +52,8 @@ class DashboardTelemetryState {
   });
 
   DashboardTelemetryState copyWith({
+    String? selectedDeviceId,
+    String? selectedDeviceName,
     List<FlSpot>? hrSpots,
     List<FlSpot>? accelXSpots,
     List<FlSpot>? accelYSpots,
@@ -61,6 +70,8 @@ class DashboardTelemetryState {
     double? latestGyroZ,
   }) {
     return DashboardTelemetryState(
+      selectedDeviceId: selectedDeviceId ?? this.selectedDeviceId,
+      selectedDeviceName: selectedDeviceName ?? this.selectedDeviceName,
       hrSpots: hrSpots ?? this.hrSpots,
       accelXSpots: accelXSpots ?? this.accelXSpots,
       accelYSpots: accelYSpots ?? this.accelYSpots,
@@ -79,6 +90,26 @@ class DashboardTelemetryState {
   }
 }
 
+class _DeviceTelemetryBuffer {
+  final List<FlSpot> hr = [];
+  final List<FlSpot> accelX = [];
+  final List<FlSpot> accelY = [];
+  final List<FlSpot> accelZ = [];
+  final List<FlSpot> gyroX = [];
+  final List<FlSpot> gyroY = [];
+  final List<FlSpot> gyroZ = [];
+  int hrTick = 0;
+  int motionTick = 0;
+  int? latestHr;
+  double? latestAccelX;
+  double? latestAccelY;
+  double? latestAccelZ;
+  double? latestGyroX;
+  double? latestGyroY;
+  double? latestGyroZ;
+  String deviceName = '';
+}
+
 // Bounded sliding buffer implementation with power-aware throttled chart updates
 class DashboardTelemetryNotifier extends StateNotifier<DashboardTelemetryState> {
   final Ref ref;
@@ -88,24 +119,8 @@ class DashboardTelemetryNotifier extends StateNotifier<DashboardTelemetryState> 
   static const int maxHrPoints = 60;
   static const int maxMotionPoints = 120;
 
-  final List<FlSpot> _hrBuffer = [];
-  final List<FlSpot> _accelXBuffer = [];
-  final List<FlSpot> _accelYBuffer = [];
-  final List<FlSpot> _accelZBuffer = [];
-  final List<FlSpot> _gyroXBuffer = [];
-  final List<FlSpot> _gyroYBuffer = [];
-  final List<FlSpot> _gyroZBuffer = [];
-
-  int _hrTick = 0;
-  int _motionTick = 0;
-
-  int? _latestHr;
-  double? _latestAccelX;
-  double? _latestAccelY;
-  double? _latestAccelZ;
-  double? _latestGyroX;
-  double? _latestGyroY;
-  double? _latestGyroZ;
+  final _DeviceTelemetryBuffer _cumulativeBuffer = _DeviceTelemetryBuffer();
+  final Map<String, _DeviceTelemetryBuffer> _deviceBuffers = {};
 
   bool _dirty = false;
 
@@ -143,32 +158,54 @@ class DashboardTelemetryNotifier extends StateNotifier<DashboardTelemetryState> 
       final isPaused = ref.read(dashboardPausedProvider);
       if (isPaused) return;
 
+      final devBuf = _deviceBuffers.putIfAbsent(data.deviceId, () => _DeviceTelemetryBuffer());
+      devBuf.deviceName = data.deviceName;
+
+      // Update Device-Specific Buffer
       if (data.heartRate != null) {
-        _latestHr = data.heartRate;
-        _hrBuffer.add(FlSpot(_hrTick.toDouble(), data.heartRate!.toDouble()));
-        _hrTick++;
-        if (_hrBuffer.length > maxHrPoints) {
-          _hrBuffer.removeAt(0);
-        }
+        devBuf.latestHr = data.heartRate;
+        devBuf.hr.add(FlSpot(devBuf.hrTick.toDouble(), data.heartRate!.toDouble()));
+        devBuf.hrTick++;
+        if (devBuf.hr.length > maxHrPoints) devBuf.hr.removeAt(0);
+
+        _cumulativeBuffer.latestHr = data.heartRate;
+        _cumulativeBuffer.hr.add(FlSpot(_cumulativeBuffer.hrTick.toDouble(), data.heartRate!.toDouble()));
+        _cumulativeBuffer.hrTick++;
+        if (_cumulativeBuffer.hr.length > maxHrPoints) _cumulativeBuffer.hr.removeAt(0);
         _dirty = true;
       }
 
       if (data.accelX != null && data.accelY != null && data.accelZ != null) {
-        _latestAccelX = data.accelX;
-        _latestAccelY = data.accelY;
-        _latestAccelZ = data.accelZ;
+        devBuf.latestAccelX = data.accelX;
+        devBuf.latestAccelY = data.accelY;
+        devBuf.latestAccelZ = data.accelZ;
 
-        final t = _motionTick.toDouble();
-        _accelXBuffer.add(FlSpot(t, data.accelX!));
-        _accelYBuffer.add(FlSpot(t, data.accelY!));
-        _accelZBuffer.add(FlSpot(t, data.accelZ!));
-
-        _motionTick++;
-        if (_accelXBuffer.length > maxMotionPoints) {
-          _accelXBuffer.removeAt(0);
-          _accelYBuffer.removeAt(0);
-          _accelZBuffer.removeAt(0);
+        final t = devBuf.motionTick.toDouble();
+        devBuf.accelX.add(FlSpot(t, data.accelX!));
+        devBuf.accelY.add(FlSpot(t, data.accelY!));
+        devBuf.accelZ.add(FlSpot(t, data.accelZ!));
+        devBuf.motionTick++;
+        if (devBuf.accelX.length > maxMotionPoints) {
+          devBuf.accelX.removeAt(0);
+          devBuf.accelY.removeAt(0);
+          devBuf.accelZ.removeAt(0);
         }
+
+        _cumulativeBuffer.latestAccelX = data.accelX;
+        _cumulativeBuffer.latestAccelY = data.accelY;
+        _cumulativeBuffer.latestAccelZ = data.accelZ;
+
+        final cumT = _cumulativeBuffer.motionTick.toDouble();
+        _cumulativeBuffer.accelX.add(FlSpot(cumT, data.accelX!));
+        _cumulativeBuffer.accelY.add(FlSpot(cumT, data.accelY!));
+        _cumulativeBuffer.accelZ.add(FlSpot(cumT, data.accelZ!));
+        _cumulativeBuffer.motionTick++;
+        if (_cumulativeBuffer.accelX.length > maxMotionPoints) {
+          _cumulativeBuffer.accelX.removeAt(0);
+          _cumulativeBuffer.accelY.removeAt(0);
+          _cumulativeBuffer.accelZ.removeAt(0);
+        }
+
         _dirty = true;
       }
     });
@@ -178,42 +215,77 @@ class DashboardTelemetryNotifier extends StateNotifier<DashboardTelemetryState> 
     if (!_dirty) return;
     _dirty = false;
 
+    final selectedId = ref.read(dashboardSelectedDeviceIdProvider);
+    final _DeviceTelemetryBuffer target;
+    final String label;
+
+    if (selectedId != null && _deviceBuffers.containsKey(selectedId)) {
+      target = _deviceBuffers[selectedId]!;
+      label = target.deviceName.isNotEmpty ? target.deviceName : selectedId;
+    } else {
+      target = _cumulativeBuffer;
+      label = 'Cumulative All Sensors';
+    }
+
     state = DashboardTelemetryState(
-      hrSpots: List.unmodifiable(_hrBuffer),
-      accelXSpots: List.unmodifiable(_accelXBuffer),
-      accelYSpots: List.unmodifiable(_accelYBuffer),
-      accelZSpots: List.unmodifiable(_accelZBuffer),
-      gyroXSpots: List.unmodifiable(_gyroXBuffer),
-      gyroYSpots: List.unmodifiable(_gyroYBuffer),
-      gyroZSpots: List.unmodifiable(_gyroZBuffer),
-      latestHr: _latestHr,
-      latestAccelX: _latestAccelX,
-      latestAccelY: _latestAccelY,
-      latestAccelZ: _latestAccelZ,
-      latestGyroX: _latestGyroX,
-      latestGyroY: _latestGyroY,
-      latestGyroZ: _latestGyroZ,
+      selectedDeviceId: selectedId,
+      selectedDeviceName: label,
+      hrSpots: List.unmodifiable(target.hr),
+      accelXSpots: List.unmodifiable(target.accelX),
+      accelYSpots: List.unmodifiable(target.accelY),
+      accelZSpots: List.unmodifiable(target.accelZ),
+      gyroXSpots: List.unmodifiable(target.gyroX),
+      gyroYSpots: List.unmodifiable(target.gyroY),
+      gyroZSpots: List.unmodifiable(target.gyroZ),
+      latestHr: target.latestHr,
+      latestAccelX: target.latestAccelX,
+      latestAccelY: target.latestAccelY,
+      latestAccelZ: target.latestAccelZ,
+      latestGyroX: target.latestGyroX,
+      latestGyroY: target.latestGyroY,
+      latestGyroZ: target.latestGyroZ,
     );
   }
 
+  void triggerRefresh() {
+    _dirty = true;
+    _flushToState();
+  }
+
   void reset() {
-    _hrBuffer.clear();
-    _accelXBuffer.clear();
-    _accelYBuffer.clear();
-    _accelZBuffer.clear();
-    _gyroXBuffer.clear();
-    _gyroYBuffer.clear();
-    _gyroZBuffer.clear();
-    _hrTick = 0;
-    _motionTick = 0;
-    _latestHr = null;
-    _latestAccelX = null;
-    _latestAccelY = null;
-    _latestAccelZ = null;
-    _latestGyroX = null;
-    _latestGyroY = null;
-    _latestGyroZ = null;
-    state = const DashboardTelemetryState();
+    _cumulativeBuffer.hr.clear();
+    _cumulativeBuffer.accelX.clear();
+    _cumulativeBuffer.accelY.clear();
+    _cumulativeBuffer.accelZ.clear();
+    _cumulativeBuffer.gyroX.clear();
+    _cumulativeBuffer.gyroY.clear();
+    _cumulativeBuffer.gyroZ.clear();
+    _cumulativeBuffer.hrTick = 0;
+    _cumulativeBuffer.motionTick = 0;
+    _cumulativeBuffer.latestHr = null;
+    _cumulativeBuffer.latestAccelX = null;
+    _cumulativeBuffer.latestAccelY = null;
+    _cumulativeBuffer.latestAccelZ = null;
+
+    for (var buf in _deviceBuffers.values) {
+      buf.hr.clear();
+      buf.accelX.clear();
+      buf.accelY.clear();
+      buf.accelZ.clear();
+      buf.gyroX.clear();
+      buf.gyroY.clear();
+      buf.gyroZ.clear();
+      buf.hrTick = 0;
+      buf.motionTick = 0;
+      buf.latestHr = null;
+      buf.latestAccelX = null;
+      buf.latestAccelY = null;
+      buf.latestAccelZ = null;
+    }
+
+    state = DashboardTelemetryState(
+      selectedDeviceId: ref.read(dashboardSelectedDeviceIdProvider),
+    );
   }
 
   @override
@@ -229,6 +301,9 @@ final dashboardTelemetryProvider =
   final notifier = DashboardTelemetryNotifier(ref);
   ref.listen<PowerMode>(currentPowerModeProvider, (_, next) {
     notifier.updatePowerMode(next);
+  });
+  ref.listen<String?>(dashboardSelectedDeviceIdProvider, (_, _) {
+    notifier.triggerRefresh();
   });
   return notifier;
 });

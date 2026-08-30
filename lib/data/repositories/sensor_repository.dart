@@ -1,5 +1,6 @@
 import '../local_db/database.dart';
 import '../../ble/models/raw_sensor_data.dart';
+import '../../providers/db_providers.dart';
 
 abstract class SensorRepository {
   void setActiveEventId(int? eventId);
@@ -16,10 +17,19 @@ abstract class SensorRepository {
   Future<DateTime?> getLastWriteTime();
   Future<int> getLastSequenceNoForDevice(String deviceId);
 
+  /// Real-time live SQLite database write and row count statistics
+  Stream<DbWriteStats> watchStats();
+
   // Event persistence methods
   Future<int> createEventRecord(EventRecordsCompanion event);
   Future<void> updateEventRecord(EventRecord event);
   Stream<List<EventRecord>> watchAllEvents();
+
+  /// Delete all sensor readings (Clear Ride Telemetry)
+  Future<void> deleteAllReadings();
+
+  /// Delete a single event record and its associated sensor readings
+  Future<void> deleteEvent(int eventId);
 
   void dispose();
 }

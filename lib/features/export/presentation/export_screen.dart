@@ -62,7 +62,21 @@ class ExportScreen extends ConsumerWidget {
             const SizedBox(height: 18),
 
             // ── 5. Saved Export History ──
-            _buildSavedExportsSection(context, savedFilesAsync, exportController),
+            _buildSavedExportsSection(context, savedFilesAsync, exportController, ref),
+
+            // ── Footer branding ──
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                'made by rashiyaom',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -212,10 +226,10 @@ class ExportScreen extends ConsumerWidget {
         const SizedBox(width: 10),
         Expanded(
           child: _buildBentoCard(
-            icon: Icons.videocam_rounded,
-            badge: 'AI Cam',
-            value: '${summary.cameraDetectionCount}',
-            label: 'detections',
+            icon: Icons.layers_rounded,
+            badge: 'Sheets',
+            value: 'Multi',
+            label: 'per-sensor',
           ),
         ),
       ],
@@ -311,6 +325,27 @@ class ExportScreen extends ConsumerWidget {
                 child: _buildFormatPill('Both Formats', filter.format == ExportFormat.both, () => notifier.setFormat(ExportFormat.both)),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.cardElevated,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.cardBorder),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.accentGreen),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Exports both Cumulative Consolidated Sheet + Individual CSV data sheet for each sensor (ESP32-Watch, Polar, etc.) formatted for Excel & ML pipelines.',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 10.5, height: 1.3),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -427,6 +462,7 @@ class ExportScreen extends ConsumerWidget {
     BuildContext context,
     AsyncValue<List<File>> savedFilesAsync,
     ExportController controller,
+    WidgetRef ref,
   ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,7 +497,7 @@ class ExportScreen extends ConsumerWidget {
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   decoration: AppStyles.cardDecoration(),
                   child: Row(
                     children: [
@@ -489,9 +525,55 @@ class ExportScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
+                      // Preview Button
+                      IconButton(
+                        icon: const Icon(Icons.visibility_outlined, size: 18, color: AppColors.accentCyan),
+                        tooltip: 'Preview dataset',
+                        onPressed: () => _showFilePreview(context, file),
+                      ),
+                      // Share Button
                       IconButton(
                         icon: const Icon(Icons.share_rounded, size: 16, color: AppColors.textSecondary),
+                        tooltip: 'Share file',
                         onPressed: () => controller.reShareFiles([file]),
+                      ),
+                      // Delete Archive Button
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.accentRed),
+                        tooltip: 'Delete archive',
+                        onPressed: () async {
+                          final confirmed = await showDialog<bool>(
+                            context: context,
+                            builder: (_) => AlertDialog(
+                              backgroundColor: AppColors.card,
+                              title: const Text('Delete File?', style: TextStyle(color: AppColors.textPrimary)),
+                              content: Text('Permanently delete "$name"?', style: const TextStyle(color: AppColors.textSecondary)),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, false),
+                                  child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text('Delete', style: TextStyle(color: AppColors.accentRed, fontWeight: FontWeight.bold)),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirmed == true) {
+                            try {
+                              if (file.existsSync()) {
+                                file.deleteSync();
+                              }
+                              ref.invalidate(savedExportFilesProvider);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text('Deleted $name')),
+                                );
+                              }
+                            } catch (_) {}
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -505,4 +587,93 @@ class ExportScreen extends ConsumerWidget {
       ],
     );
   }
+
+  void _showFilePreview(BuildContext context, File file) {
+    final name = file.path.split('/').last;
+    String previewText = '';
+    try {
+      final lines = file.readAsLinesSync();
+      previewText = lines.take(25).join('\n');
+      if (lines.length > 25) {
+        previewText += '\n\n... [${lines.length - 25} more lines in dataset]';
+      }
+    } catch (_) {
+      previewText = 'Unable to preview binary or compressed file content.';
+    }
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          builder: (_, scrollController) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.cardBorder,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const Icon(Icons.table_view_rounded, size: 18, color: AppColors.accentGreen),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          name,
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF070709),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.cardBorder),
+                      ),
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        scrollDirection: Axis.vertical,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SelectableText(
+                            previewText,
+                            style: const TextStyle(fontFamily: 'monospace', fontSize: 11, color: Color(0xFFD1D1D6), height: 1.4),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
+

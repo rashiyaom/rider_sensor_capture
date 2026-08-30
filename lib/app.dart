@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -46,6 +47,11 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     ExportScreen(),
   ];
 
+  void navigateTo(int index) {
+    HapticFeedback.lightImpact();
+    setState(() => _currentIndex = index);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -91,7 +97,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
             children: _screens,
           ),
 
-          // Missing Permission Warning Banner at Top (if any permissions were permanently denied or missed)
+          // Missing Permission Warning Banner at Top
           if (_hasCheckedPermissions && _permissionStatus.isCriticalMissing)
             Positioned(
               top: MediaQuery.of(context).padding.top + 8,
@@ -100,13 +106,28 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
               child: _buildPermissionWarningBanner(),
             ),
 
-          // Floating Glassmorphic Pill Dock (matching the reference UI)
+          // Floating Glassmorphic Pill Dock + rashiyaom branding
           Positioned(
             left: 0,
             right: 0,
-            bottom: 24,
-            child: Center(
-              child: _buildFloatingDock(),
+            bottom: 16,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(child: _buildFloatingDock()),
+                const SizedBox(height: 5),
+                // ── rashiyaom branding watermark ──
+                Text(
+                  'made by rashiyaom',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.20),
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 1.0,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -256,6 +277,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
 
     return GestureDetector(
       onTap: () {
+        HapticFeedback.lightImpact();
         setState(() {
           _currentIndex = index;
         });
@@ -299,5 +321,20 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
         ),
       ),
     );
+  }
+}
+
+/// Utility class to navigate from child widgets to a specific tab
+class AppNavigator {
+  /// Navigate to Devices tab (index 1) from any descendant widget
+  static void goToDevices(BuildContext context) {
+    final state = context.findAncestorStateOfType<_MainNavigationShellState>();
+    state?.navigateTo(1);
+  }
+
+  /// Navigate to a specific tab index from any descendant widget
+  static void goTo(BuildContext context, int index) {
+    final state = context.findAncestorStateOfType<_MainNavigationShellState>();
+    state?.navigateTo(index);
   }
 }

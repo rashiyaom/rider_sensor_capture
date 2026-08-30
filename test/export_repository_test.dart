@@ -191,4 +191,17 @@ void main() {
     expect(lines[1], contains('esp32-cam-01'));
     expect(lines[1], contains('pothole'));
   });
+
+  test('buildPerSensorCsvExports generates separate CSV data sheets per distinct device', () async {
+    final perSensorMap = await repo.buildPerSensorCsvExports(
+      mode: ExportMode.fullRawSession,
+    );
+
+    expect(perSensorMap.containsKey('dev-watch-1'), isTrue);
+    final watchCsv = perSensorMap['dev-watch-1']!;
+    final lines = watchCsv.trim().split('\n');
+    expect(lines.length, 4); // 1 header + 3 readings
+    expect(lines[0], contains('reading_id,timestamp_utc,sequence_no'));
+    expect(lines[1], contains('dev-watch-1'));
+  });
 }

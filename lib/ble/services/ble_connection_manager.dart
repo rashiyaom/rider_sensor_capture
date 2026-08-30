@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../models/ble_device_model.dart';
 import '../models/raw_sensor_data.dart';
@@ -18,7 +19,6 @@ class BleConnectionManager {
   final Map<String, int> _deviceRetryCounts = {};
   final Map<String, Timer?> _deviceReconnectTimers = {};
   final Map<String, Timer?> _simulatedDeviceTimers = {};
-
 
   Timer? _healthCheckTimer;
 
@@ -40,6 +40,7 @@ class BleConnectionManager {
   Map<String, BleDeviceModel> get currentDeviceStates =>
       Map.unmodifiable(_deviceModelsMap);
 
+  /// 1500ms link health monitor measuring packet gap intervals
   void _startHealthMonitor() {
     _healthCheckTimer?.cancel();
     _healthCheckTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) {
@@ -151,23 +152,24 @@ class BleConnectionManager {
     );
 
     int simTick = 0;
-    _simulatedDeviceTimers[deviceId] = Timer.periodic(const Duration(milliseconds: 50), (_) {
+    // 50Hz simulated telemetry packet emission (20ms interval)
+    _simulatedDeviceTimers[deviceId] = Timer.periodic(const Duration(milliseconds: 20), (_) {
       simTick++;
       final now = DateTime.now();
       RawSensorData data;
 
       if (model.type == DeviceType.verityBand) {
-        final hr = (125 + math.sin(simTick / 15.0) * 15).round();
-        final accelX = math.sin(simTick * 0.08) * 0.5;
-        final accelY = math.cos(simTick * 0.12) * 0.4;
-        final accelZ = 9.8 + math.sin(simTick * 0.2) * 0.7;
+        final hr = (125 + math.sin(simTick / 30.0) * 15).round();
+        final accelX = math.sin(simTick * 0.04) * 0.5;
+        final accelY = math.cos(simTick * 0.06) * 0.4;
+        final accelZ = 9.8 + math.sin(simTick * 0.1) * 0.7;
 
         data = RawSensorData(
           deviceId: deviceId,
           deviceName: model.name,
           deviceType: DeviceType.verityBand,
           timestamp: now,
-          heartRate: (simTick % 10 == 0) ? hr : null,
+          heartRate: (simTick % 50 == 0) ? hr : null,
           accelX: accelX,
           accelY: accelY,
           accelZ: accelZ,
@@ -175,19 +177,29 @@ class BleConnectionManager {
           rawBytes: [0x00, hr, (accelX * 100).toInt() & 0xFF],
         );
       } else {
-        final accelX = math.sin(simTick * 0.15) * 1.8;
-        final accelY = math.cos(simTick * 0.18) * 1.4;
-        final accelZ = 9.8 + math.sin(simTick * 0.1) * 1.1;
+        final hr = (74 + math.sin(simTick * 0.02) * 6).round();
+        final accelX = math.sin(simTick * 0.08) * 1.8;
+        final accelY = math.cos(simTick * 0.09) * 1.4;
+        final accelZ = 9.8 + math.sin(simTick * 0.05) * 1.1;
+
+        // Construct exact 13-byte Little-Endian binary payload
+        final byteData = ByteData(13);
+        byteData.setUint8(0, hr);
+        byteData.setFloat32(1, accelX, Endian.little);
+        byteData.setFloat32(5, accelY, Endian.little);
+        byteData.setFloat32(9, accelZ, Endian.little);
+        final rawPayload = byteData.buffer.asUint8List();
 
         data = RawSensorData(
           deviceId: deviceId,
           deviceName: model.name,
           deviceType: DeviceType.watch,
           timestamp: now,
+          heartRate: hr,
           accelX: accelX,
           accelY: accelY,
           accelZ: accelZ,
-          rawBytes: [0xAA, 0x55, (accelX * 100).toInt() & 0xFF],
+          rawBytes: rawPayload,
         );
       }
 
@@ -268,7 +280,6 @@ class BleConnectionManager {
     }
   }
 
-
   void _cancelReconnectTimer(String deviceId) {
     _deviceReconnectTimers[deviceId]?.cancel();
     _deviceReconnectTimers[deviceId] = null;
@@ -333,7 +344,7 @@ class BleConnectionManager {
     BleDeviceModel model,
   ) async {
     try {
-      // Negotiate higher MTU for high-throughput multi-sensor telemetry
+      // 1. Request 512 MTU for high-throughput 50Hz IMU stream
       try {
         await device.requestMtu(512);
       } catch (_) {}
@@ -349,7 +360,7 @@ class BleConnectionManager {
             pmdControlChar = characteristic;
           }
 
-          // Subscriptions for HR & PMD Accelerometer / ESP32 custom characteristic
+          // Subscriptions for HR & PMD Accelerometer / ESP32 custom characteristic (0xFFE1)
           if (cUuid.contains('2a37') ||
               cUuid.contains('ffe1') ||
               cUuid.contains('fb005c82')) {
@@ -394,6 +405,7 @@ class BleConnectionManager {
                 }
               });
 
+              // Subscribe to characteristic notifications via CCCD 0x2902
               await characteristic.setNotifyValue(true);
             }
           }

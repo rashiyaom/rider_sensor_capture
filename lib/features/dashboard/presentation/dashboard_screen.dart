@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../app.dart';
 import '../../../ble/models/ble_device_model.dart';
 import '../../../core/services/battery_service.dart';
 import '../../../core/services/session_health_service.dart';
@@ -47,6 +50,12 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
         actions: [
+          // Start/Stop Ride Session
+          IconButton(
+            icon: const Icon(Icons.flag_rounded),
+            tooltip: 'Session management',
+            onPressed: () => _showSessionManagementSheet(context, ref),
+          ),
           IconButton(
             icon: Icon(
               isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
@@ -54,6 +63,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
             tooltip: isPaused ? 'Resume live stream' : 'Pause live stream',
             onPressed: () {
+              HapticFeedback.lightImpact();
               ref.read(dashboardPausedProvider.notifier).state = !isPaused;
             },
           ),
@@ -71,7 +81,10 @@ class DashboardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── 1. Hero Card ──
+            // ── 0. Device Selector Bar (Cumulative vs Individual Sensors) ──
+            const _DashboardDeviceSelectorSection(),
+
+            // ── 1. Hero Card (or Zero-State CTA if no devices) ──
             const _HeroActionSection(),
 
             const SizedBox(height: 14),
@@ -81,7 +94,7 @@ class DashboardScreen extends ConsumerWidget {
 
             const SizedBox(height: 14),
 
-            // ── 3. Session Continuity Grid ──
+            // ── 3. Session Continuity Grid (Real Packet Rate) ──
             const _ContinuityPillGridSection(),
 
             const SizedBox(height: 14),
@@ -106,6 +119,172 @@ class DashboardScreen extends ConsumerWidget {
               const SizedBox(height: 14),
               _buildAlertsBanner(context, alerts, ref),
             ],
+
+            // ── Footer branding ──
+            const SizedBox(height: 20),
+            Center(
+              child: Text(
+                'made by rashiyaom',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.12),
+                  fontSize: 10,
+                  fontStyle: FontStyle.italic,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static Future<void> _showSessionManagementSheet(BuildContext context, WidgetRef ref) async {
+    final dbStats = ref.read(dbWriteStatsStreamProvider).value ?? const DbWriteStats();
+
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Ride Session Management',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${dbStats.totalRows} sensor readings stored',
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              // Reset Chart Buffers
+              _buildSheetAction(
+                icon: Icons.refresh_rounded,
+                label: 'Reset Live Chart Buffers',
+                subtitle: 'Clears in-memory waveforms only — SQLite data stays',
+                color: AppColors.accentCyan,
+                onTap: () {
+                  ref.read(dashboardTelemetryProvider.notifier).reset();
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('✅ Live chart buffers cleared')),
+                  );
+                },
+              ),
+              const SizedBox(height: 10),
+              // Clear All Telemetry
+              _buildSheetAction(
+                icon: Icons.delete_sweep_rounded,
+                label: 'Clear All Telemetry Data',
+                subtitle: 'Permanently deletes ALL sensor readings from SQLite',
+                color: AppColors.accentRed,
+                isDestructive: true,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final confirmed = await showDialog<bool>(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      backgroundColor: AppColors.card,
+                      title: const Text('Clear All Telemetry?', style: TextStyle(color: AppColors.textPrimary)),
+                      content: const Text(
+                        'This will permanently delete all sensor readings from SQLite. This action cannot be undone.',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Delete All', style: TextStyle(color: AppColors.accentRed, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirmed == true) {
+                    await ref.read(sensorRepositoryProvider).deleteAllReadings();
+                    ref.read(dashboardTelemetryProvider.notifier).reset();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('🗑 All telemetry data cleared')),
+                      );
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 10),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  static Widget _buildSheetAction({
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 18),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: TextStyle(color: isDestructive ? AppColors.accentRed : AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14)),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: color, size: 18),
           ],
         ),
       ),
@@ -151,13 +330,105 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-// ── 1. Hero Action Section ──────────────────────────────────────────────────
-class _HeroActionSection extends ConsumerWidget {
-  const _HeroActionSection();
+
+// ── 0. Device Selector Bar (Cumulative vs Individual Sensors) ──────────────
+class _DashboardDeviceSelectorSection extends ConsumerWidget {
+  const _DashboardDeviceSelectorSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final selectedId = ref.watch(dashboardSelectedDeviceIdProvider);
+    final connectionStatesAsync = ref.watch(connectionStatesStreamProvider);
+    final connectionMap = connectionStatesAsync.value ?? {};
+
+    final activeDevices = connectionMap.values
+        .where((d) =>
+            d.connectionState == BleConnectionState.connected ||
+            d.connectionState == BleConnectionState.connecting ||
+            d.connectionState == BleConnectionState.reconnecting)
+        .toList();
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 14),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildDeviceChip(
+              label: '📊 Cumulative (All Sensors)',
+              isSelected: selectedId == null,
+              onTap: () {
+                ref.read(dashboardSelectedDeviceIdProvider.notifier).state = null;
+              },
+            ),
+            ...activeDevices.map((dev) {
+              final isSelected = selectedId == dev.id;
+              final icon = dev.type == DeviceType.watch ? '⌚' : '💓';
+              return _buildDeviceChip(
+                label: '$icon ${dev.name.isNotEmpty ? dev.name : dev.id}',
+                isSelected: isSelected,
+                onTap: () {
+                  ref.read(dashboardSelectedDeviceIdProvider.notifier).state = dev.id;
+                },
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeviceChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primaryWhite : AppColors.card,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? AppColors.primaryWhite : AppColors.cardBorder,
+              width: 1.2,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.black : AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── 1. Hero Action Section ──────────────────────────────────────────────────
+class _HeroActionSection extends ConsumerStatefulWidget {
+  const _HeroActionSection();
+
+  @override
+  ConsumerState<_HeroActionSection> createState() => _HeroActionSectionState();
+}
+
+class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
+  bool _showInfoGuide = false;
+
+  @override
+  Widget build(BuildContext context) {
     final isPaused = ref.watch(dashboardPausedProvider);
+    final telemetry = ref.watch(dashboardTelemetryProvider);
+    final selectedId = telemetry.selectedDeviceId;
     final connectionStatesAsync = ref.watch(connectionStatesStreamProvider);
     final connectionMap = connectionStatesAsync.value ?? {};
     final batteryAsync = ref.watch(batteryInfoStreamProvider);
@@ -166,6 +437,139 @@ class _HeroActionSection extends ConsumerWidget {
     final connectedCount = connectionMap.values
         .where((d) => d.connectionState == BleConnectionState.connected)
         .length;
+
+    // ── Zero-State Onboarding CTA ──
+    if (connectedCount == 0) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: AppStyles.cardDecoration(
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.accentCyanBg,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.sensors_rounded, color: AppColors.accentCyan, size: 22),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'No Sensors Connected',
+                        style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: -0.3),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Connect your ESP32-Watch or Polar Verity to start streaming',
+                        style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Collapsible Info / Setup Guide Toggle
+            GestureDetector(
+              onTap: () => setState(() => _showInfoGuide = !_showInfoGuide),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                decoration: BoxDecoration(
+                  color: AppColors.cardElevated,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _showInfoGuide ? AppColors.accentCyan.withValues(alpha: 0.4) : AppColors.cardBorder),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, size: 15, color: AppColors.accentCyan),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Quick Setup Instructions',
+                        style: TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Icon(
+                      _showInfoGuide ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            if (_showInfoGuide) ...[
+              const SizedBox(height: 14),
+              _buildSetupStep(num: '1', title: 'Connect BLE Hardware', desc: 'Tap Devices tab, scan for ESP32-S3 Watch or Polar Verity Sense.', color: AppColors.accentCyan),
+              const SizedBox(height: 10),
+              _buildSetupStep(num: '2', title: 'Start Riding & Streaming', desc: 'Once connected, 50Hz IMU + PPG telemetry appears live on this dashboard.', color: AppColors.accentGreen),
+              const SizedBox(height: 10),
+              _buildSetupStep(num: '3', title: 'Label Events & Export', desc: 'Tag bumps, turns, and brakes in Events tab, then export labeled CSV/JSON.', color: AppColors.accentAmber),
+            ],
+
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              height: 52,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryWhite,
+                  foregroundColor: Colors.black,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                ),
+                onPressed: () => AppNavigator.goToDevices(context),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.bluetooth_searching_rounded, color: Colors.black, size: 20),
+                    SizedBox(width: 10),
+                    Text('Scan & Connect Hardware', style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: -0.2)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.accentAmberBg,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.accentAmber.withValues(alpha: 0.2)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.bolt_rounded, color: AppColors.accentAmber, size: 14),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Tip: Enable Demo Mode in Devices tab to simulate live data without hardware.',
+                      style: TextStyle(color: AppColors.accentAmber, fontSize: 10.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // ── Live Connected Hero ──
+    final isSpecificConnected = selectedId != null &&
+        connectionMap[selectedId]?.connectionState == BleConnectionState.connected;
 
     return Container(
       width: double.infinity,
@@ -178,49 +582,39 @@ class _HeroActionSection extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Session Ingest',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selectedId != null ? 'Dedicated Telemetry' : 'Session Ingest',
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        width: 1.2,
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.2),
+                      ),
+                      child: Text(
+                        isPaused
+                            ? 'Paused'
+                            : (selectedId != null
+                                ? (isSpecificConnected ? telemetry.selectedDeviceName : 'Sensor Standby')
+                                : (connectedCount > 0 ? 'Live Cumulative' : 'Standby')),
+                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    child: Text(
-                      isPaused
-                          ? 'Paused'
-                          : (connectedCount > 0 ? 'Live Capture' : 'Standby'),
-                      style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.cardElevated,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.cardBorder),
-                ),
+                decoration: BoxDecoration(color: AppColors.cardElevated, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.cardBorder)),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -232,35 +626,36 @@ class _HeroActionSection extends ConsumerWidget {
                     const SizedBox(width: 4),
                     Text(
                       '${battery.batteryLevel}%',
-                      style: TextStyle(
-                        color: battery.isLowBattery ? AppColors.accentAmber : AppColors.accentGreen,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: TextStyle(color: battery.isLowBattery ? AppColors.accentAmber : AppColors.accentGreen, fontSize: 11, fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
-            connectedCount > 0
-                ? '$connectedCount BLE sensor${connectedCount > 1 ? "s" : ""} streaming at 50Hz'
-                : 'No sensor connected · Connect BLE hardware in Devices tab',
+            selectedId != null
+                ? (isSpecificConnected
+                    ? 'Streaming 50Hz binary telemetry from ${telemetry.selectedDeviceName}'
+                    : 'Target sensor disconnected or waiting for BLE connect')
+                : (connectedCount > 0
+                    ? '$connectedCount BLE sensor${connectedCount > 1 ? "s" : ""} streaming simultaneously at 50Hz'
+                    : 'No sensor connected · Connect BLE hardware in Devices tab'),
             style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
           ),
           const SizedBox(height: 14),
-          Row(
+          // Wrap ensures no horizontal overflow on narrow screens
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              _buildMiniChip(
-                Icons.access_time_rounded,
-                '~${battery.estimatedRideHoursRemaining.toStringAsFixed(1)}h battery',
-              ),
-              const SizedBox(width: 8),
+              _buildMiniChip(Icons.access_time_rounded, '~${battery.estimatedRideHoursRemaining.toStringAsFixed(1)}h battery'),
               _buildMiniChip(
                 Icons.sensors_rounded,
-                '$connectedCount sensor${connectedCount != 1 ? "s" : ""} active',
+                selectedId != null
+                    ? (isSpecificConnected ? '1 sensor active' : 'Offline')
+                    : '$connectedCount sensor${connectedCount != 1 ? "s" : ""} active',
               ),
             ],
           ),
@@ -273,30 +668,17 @@ class _HeroActionSection extends ConsumerWidget {
                 backgroundColor: AppColors.primaryWhite,
                 foregroundColor: Colors.black,
                 elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(26),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
               ),
-              onPressed: () {
-                ref.read(dashboardPausedProvider.notifier).state = !isPaused;
-              },
+              onPressed: () => ref.read(dashboardPausedProvider.notifier).state = !isPaused,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                    color: Colors.black,
-                    size: 22,
-                  ),
+                  Icon(isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, color: Colors.black, size: 22),
                   const SizedBox(width: 8),
                   Text(
                     isPaused ? 'Resume Telemetry' : 'Pause Live Stream',
-                    style: const TextStyle(
-                      color: Colors.black,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2,
-                    ),
+                    style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: -0.2),
                   ),
                 ],
               ),
@@ -307,27 +689,40 @@ class _HeroActionSection extends ConsumerWidget {
     );
   }
 
+  Widget _buildSetupStep({required String num, required String title, required String desc, required Color color}) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22, height: 22, alignment: Alignment.center,
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle, border: Border.all(color: color.withValues(alpha: 0.3))),
+          child: Text(num, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 2),
+              Text(desc, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, height: 1.3)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMiniChip(IconData icon, String label) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.cardElevated,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
+      decoration: BoxDecoration(color: AppColors.cardElevated, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.cardBorder)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: AppColors.textSecondary, size: 13),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontWeight: FontWeight.w600)),
         ],
       ),
     );
@@ -354,10 +749,14 @@ class _ThreeColumnMetricBentoSection extends ConsumerWidget {
       mag = math.sqrt(accelX * accelX + accelY * accelY + accelZ * accelZ) / 9.80665;
     }
 
-    final totalRows = dbStats.totalRows;
-    final formattedRows = totalRows > 1000
-        ? '${(totalRows / 1000).toStringAsFixed(1)}k'
-        : '$totalRows';
+    final selectedId = telemetry.selectedDeviceId;
+    final int rowsCount = selectedId != null
+        ? (dbStats.deviceCounts[selectedId] ?? 0)
+        : dbStats.totalRows;
+
+    final formattedRows = rowsCount > 1000
+        ? '${(rowsCount / 1000).toStringAsFixed(1)}k'
+        : '$rowsCount';
 
     return Row(
       children: [
@@ -384,10 +783,10 @@ class _ThreeColumnMetricBentoSection extends ConsumerWidget {
         Expanded(
           child: _buildBentoCard(
             icon: Icons.inventory_2_outlined,
-            badge: 'SQLite',
+            badge: 'Live SQLite',
             value: formattedRows,
             unit: 'rows',
-            label: 'persisted',
+            label: selectedId != null ? 'sensor rows' : 'persisted rows',
           ),
         ),
       ],
@@ -438,13 +837,59 @@ class _ThreeColumnMetricBentoSection extends ConsumerWidget {
   }
 }
 
-// ── 3. Session Continuity Grid Section ──────────────────────────────────────
-class _ContinuityPillGridSection extends ConsumerWidget {
+// ── 3. Session Continuity Grid Section (Real Packet Rate) ────────────────────
+class _ContinuityPillGridSection extends ConsumerStatefulWidget {
   const _ContinuityPillGridSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final telemetry = ref.watch(dashboardTelemetryProvider);
+  ConsumerState<_ContinuityPillGridSection> createState() => _ContinuityPillGridSectionState();
+}
+
+class _ContinuityPillGridSectionState extends ConsumerState<_ContinuityPillGridSection> {
+  static const int _numPills = 30;
+  static const int _windowMs = 200; // each pill = 200ms window
+  final List<bool> _pillStates = List.filled(_numPills, false);
+  DateTime? _lastPacketTime;
+  Timer? _uiTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTracking();
+  }
+
+  void _startTracking() {
+    // Subscribe to raw data stream to track real packets
+    final manager = ref.read(bleConnectionManagerProvider);
+    manager.rawDataStream.listen((_) {
+      _lastPacketTime = DateTime.now();
+    });
+
+    // Update pill grid every 200ms based on actual packet arrivals
+    _uiTimer = Timer.periodic(const Duration(milliseconds: _windowMs), (_) {
+      if (!mounted) return;
+      final now = DateTime.now();
+      final receivedInWindow = _lastPacketTime != null &&
+          now.difference(_lastPacketTime!).inMilliseconds <= _windowMs * 2;
+
+      setState(() {
+        // Shift all pills left, append new state at the end
+        for (int i = 0; i < _numPills - 1; i++) {
+          _pillStates[i] = _pillStates[i + 1];
+        }
+        _pillStates[_numPills - 1] = receivedInWindow;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _uiTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final isPaused = ref.watch(dashboardPausedProvider);
     final connectionStatesAsync = ref.watch(connectionStatesStreamProvider);
     final connectionMap = connectionStatesAsync.value ?? {};
@@ -452,9 +897,9 @@ class _ContinuityPillGridSection extends ConsumerWidget {
     final hasActiveConnection = connectionMap.values.any(
       (d) => d.connectionState == BleConnectionState.connected,
     );
-    final hasData = telemetry.latestAccelX != null || telemetry.latestHr != null;
 
-    final isStreaming = hasActiveConnection && !isPaused;
+    final greenCount = _pillStates.where((p) => p).length;
+    final pct = _numPills > 0 ? (greenCount / _numPills * 100).toStringAsFixed(0) : '0';
 
     return Container(
       padding: const EdgeInsets.all(18),
@@ -466,21 +911,17 @@ class _ContinuityPillGridSection extends ConsumerWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Telemetry Continuity',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
+                'Packet Continuity',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
               ),
               Text(
                 isPaused
                     ? 'Paused'
-                    : (isStreaming
-                        ? (hasData ? 'Live · 50Hz Ingest' : 'Connected · Ready')
+                    : (hasActiveConnection
+                        ? '$pct% delivery · ${greenCount * 5}Hz est.'
                         : 'Standby · No Sensor'),
                 style: TextStyle(
-                  color: isStreaming ? AppColors.accentGreen : AppColors.textSecondary,
+                  color: hasActiveConnection && !isPaused ? AppColors.accentGreen : AppColors.textSecondary,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -490,24 +931,11 @@ class _ContinuityPillGridSection extends ConsumerWidget {
           const SizedBox(height: 16),
           Column(
             children: [
-              _buildPillRow(
-                isStreaming
-                    ? [true, true, true, true, true, true, true, true, true, true]
-                    : List.filled(10, false),
-              ),
+              _buildPillRow(_pillStates.sublist(0, 10)),
               const SizedBox(height: 8),
-              _buildPillRow(
-                isStreaming
-                    ? [true, true, true, true, true, true, true, true, true, true]
-                    : List.filled(10, false),
-              ),
+              _buildPillRow(_pillStates.sublist(10, 20)),
               const SizedBox(height: 8),
-              _buildPillRow(
-                isStreaming
-                    ? [true, true, true, true, true, true, true, true, true, true]
-                    : List.filled(10, false),
-                isCurrent: isStreaming,
-              ),
+              _buildPillRow(_pillStates.sublist(20, 30), isLatestRow: true),
             ],
           ),
         ],
@@ -515,21 +943,22 @@ class _ContinuityPillGridSection extends ConsumerWidget {
     );
   }
 
-  Widget _buildPillRow(List<bool> states, {bool isCurrent = false}) {
+  Widget _buildPillRow(List<bool> states, {bool isLatestRow = false}) {
     return Row(
       children: List.generate(states.length, (index) {
         final isFilled = states[index];
-        final isLatest = isCurrent && index == states.length - 1;
+        final isLatest = isLatestRow && index == states.length - 1;
 
         return Expanded(
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
             margin: const EdgeInsets.symmetric(horizontal: 2.5),
             height: 14,
             decoration: BoxDecoration(
               color: isLatest
                   ? AppColors.primaryWhite
                   : (isFilled
-                      ? const Color(0xFFE5E5EA)
+                      ? AppColors.accentGreen
                       : Colors.white.withValues(alpha: 0.08)),
               borderRadius: BorderRadius.circular(7),
               border: isLatest
@@ -543,7 +972,9 @@ class _ContinuityPillGridSection extends ConsumerWidget {
   }
 }
 
+
 // ── 4. Split Two-Column Bento Section ───────────────────────────────────────
+
 class _SplitBentoSection extends ConsumerWidget {
   const _SplitBentoSection();
 

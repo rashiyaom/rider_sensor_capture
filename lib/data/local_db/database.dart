@@ -26,5 +26,9 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(cameraDetections);
           }
         },
+        beforeOpen: (details) async {
+          await customStatement('PRAGMA journal_mode=WAL;');
+          await customStatement('PRAGMA synchronous=NORMAL;');
+        },
       );
 }

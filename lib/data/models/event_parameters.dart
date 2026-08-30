@@ -126,8 +126,10 @@ class EventParameters {
   final BumpParameters? bump;
   final SpeedParameters? speed;
   final TurnParameters? turn;
+  final double? gpsLat;
+  final double? gpsLng;
 
-  const EventParameters({this.bump, this.speed, this.turn});
+  const EventParameters({this.bump, this.speed, this.turn, this.gpsLat, this.gpsLng});
 
   String get summary {
     if (bump != null) return bump!.summary;
@@ -141,6 +143,8 @@ class EventParameters {
     if (bump != null) map['bump'] = bump!.toJson();
     if (speed != null) map['speed'] = speed!.toJson();
     if (turn != null) map['turn'] = turn!.toJson();
+    if (gpsLat != null) map['gpsLat'] = gpsLat;
+    if (gpsLng != null) map['gpsLng'] = gpsLng;
     return jsonEncode(map);
   }
 
@@ -152,6 +156,8 @@ class EventParameters {
         bump: map['bump'] != null ? BumpParameters.fromJson(map['bump']) : null,
         speed: map['speed'] != null ? SpeedParameters.fromJson(map['speed']) : null,
         turn: map['turn'] != null ? TurnParameters.fromJson(map['turn']) : null,
+        gpsLat: (map['gpsLat'] as num?)?.toDouble(),
+        gpsLng: (map['gpsLng'] as num?)?.toDouble(),
       );
     } catch (_) {
       return null;

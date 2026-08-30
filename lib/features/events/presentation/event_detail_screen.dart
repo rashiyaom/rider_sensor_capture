@@ -1,12 +1,13 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../data/local_db/database.dart';
 import '../../../data/models/event_parameters.dart';
-import '../../../providers/camera_providers.dart';
 import '../../../providers/db_providers.dart';
 
 class EventDetailScreen extends ConsumerWidget {
@@ -37,6 +38,40 @@ class EventDetailScreen extends ConsumerWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text('${event.eventType.toUpperCase()} #${event.id}'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.accentRed),
+            tooltip: 'Delete event',
+            onPressed: () async {
+              HapticFeedback.mediumImpact();
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (_) => AlertDialog(
+                  backgroundColor: AppColors.card,
+                  title: const Text('Delete Event?', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800)),
+                  content: const Text(
+                    'This will permanently delete this event and all associated sensor readings. This cannot be undone.',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: const Text('Delete', style: TextStyle(color: AppColors.accentRed, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true && context.mounted) {
+                await ref.read(sensorRepositoryProvider).deleteEvent(event.id);
+                if (context.mounted) Navigator.pop(context);
+              }
+            },
+          ),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
@@ -125,6 +160,41 @@ class EventDetailScreen extends ConsumerWidget {
 
           const SizedBox(height: 14),
 
+          // ── Open in Maps Button (if GPS available) ──
+          if (params?.gpsLat != null && params?.gpsLng != null)
+            GestureDetector(
+              onTap: () => _openInMaps(params),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: AppStyles.cardDecoration(
+                  border: Border.all(color: AppColors.accentCyan.withValues(alpha: 0.3)),
+                  backgroundColor: AppColors.accentCyanBg,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.map_rounded, color: AppColors.accentCyan, size: 18),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Open Event Location in Maps', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${params!.gpsLat!.toStringAsFixed(6)}, ${params.gpsLng!.toStringAsFixed(6)}',
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontFamily: 'monospace'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.open_in_new_rounded, color: AppColors.accentCyan, size: 16),
+                  ],
+                ),
+              ),
+            ),
+
+          const SizedBox(height: 14),
+
           // ── Raw Signal Trace Chart ──
           Container(
             padding: const EdgeInsets.all(20),
@@ -207,9 +277,6 @@ class EventDetailScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: 14),
-
-          // ── Camera Detections Card ──
-          _buildCameraDetectionsCard(ref),
         ],
       ),
     );
@@ -282,57 +349,6 @@ class EventDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCameraDetectionsCard(WidgetRef ref) {
-    final detectionsAsync = ref.watch(cameraDetectionsForEventProvider(event.id));
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: AppStyles.cardDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Linked Camera Detections',
-            style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
-          ),
-          const SizedBox(height: 12),
-          detectionsAsync.when(
-            data: (detections) {
-              if (detections.isEmpty) {
-                return const Text(
-                  'No camera detections linked to this event.',
-                  style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
-                );
-              }
-              return Column(
-                children: detections.map((d) {
-                  final confPct = (d.confidence * 100).toStringAsFixed(1);
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.cardElevated,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        Text(d.eventClass.toUpperCase(), style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
-                        const Spacer(),
-                        Text('$confPct% conf', style: const TextStyle(color: AppColors.accentGreen, fontSize: 11, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryWhite)),
-            error: (err, _) => Text('Error: $err', style: const TextStyle(color: AppColors.accentRed)),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildDot(Color color, String label) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -342,5 +358,17 @@ class EventDetailScreen extends ConsumerWidget {
         Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
       ],
     );
+  }
+
+  /// Opens external maps if GPS coords are available in event metadata
+  static Future<void> _openInMaps(EventParameters? params) async {
+    final lat = params?.gpsLat;
+    final lng = params?.gpsLng;
+    if (lat == null || lng == null) return;
+
+    final uri = Uri.parse('https://maps.google.com/?q=$lat,$lng');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }

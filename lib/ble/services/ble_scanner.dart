@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../models/ble_device_model.dart';
+import '../parsers/esp32_watch_parser.dart';
 
 class BleScanner {
   final Map<String, BleDeviceModel> _discoveredDevicesMap = {};
@@ -50,12 +51,27 @@ class BleScanner {
     );
     _discoveredDevicesMap['sim_watch_1'] = BleDeviceModel(
       id: 'sim_watch_1',
-      name: 'ESP32-S3 Watch [Demo]',
+      name: '${Esp32WatchParser.esp32DeviceName} [Demo]',
       type: DeviceType.watch,
       rssi: -64,
       lastSeen: now,
     );
     _notifyListeners();
+  }
+
+  /// Helper to check if a device has a real, identifiable name
+  static bool isValidNamedDevice(String? name) {
+    if (name == null) return false;
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return false;
+    final lower = trimmed.toLowerCase();
+    if (lower == 'unknown' ||
+        lower == 'unknown device' ||
+        lower == 'null' ||
+        lower == 'n/a') {
+      return false;
+    }
+    return true;
   }
 
   Future<void> refreshConnectedAndSystemDevices() async {
@@ -65,7 +81,10 @@ class BleScanner {
         for (final device in FlutterBluePlus.connectedDevices) {
           final deviceName = device.platformName.isNotEmpty
               ? device.platformName
-              : (device.advName.isNotEmpty ? device.advName : 'Connected Device');
+              : (device.advName.isNotEmpty ? device.advName : '');
+
+          if (!isValidNamedDevice(deviceName)) continue;
+
           final deviceId = device.remoteId.str;
           final type = BleDeviceModel.inferDeviceType(deviceName);
 
@@ -81,11 +100,16 @@ class BleScanner {
 
         // 2. Query system bonded/connected devices
         try {
-          final systemDevices = await FlutterBluePlus.systemDevices([]);
+          final systemDevices = await FlutterBluePlus.systemDevices([
+            Guid(Esp32WatchParser.esp32ServiceUuid),
+          ]);
           for (final device in systemDevices) {
             final deviceName = device.platformName.isNotEmpty
                 ? device.platformName
-                : (device.advName.isNotEmpty ? device.advName : 'System BLE Device');
+                : (device.advName.isNotEmpty ? device.advName : '');
+
+            if (!isValidNamedDevice(deviceName)) continue;
+
             final deviceId = device.remoteId.str;
             final type = BleDeviceModel.inferDeviceType(deviceName);
 
@@ -120,14 +144,21 @@ class BleScanner {
     if (kIsWeb) return;
 
     try {
-      await FlutterBluePlus.startScan(timeout: timeout);
+      await FlutterBluePlus.startScan(
+        timeout: timeout,
+      );
       _scanSubscription = FlutterBluePlus.scanResults.listen((results) {
         for (ScanResult r in results) {
           final deviceName = r.device.platformName.isNotEmpty
               ? r.device.platformName
               : (r.advertisementData.advName.isNotEmpty
                   ? r.advertisementData.advName
-                  : 'Unknown Device');
+                  : '');
+
+          // Strictly filter out any devices without a real, human-readable name
+          if (!isValidNamedDevice(deviceName)) {
+            continue;
+          }
 
           final deviceId = r.device.remoteId.str;
           final type = BleDeviceModel.inferDeviceType(deviceName);
@@ -161,5 +192,3 @@ class BleScanner {
     _discoveredDevicesController.close();
   }
 }
-
-

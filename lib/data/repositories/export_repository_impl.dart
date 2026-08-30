@@ -284,42 +284,92 @@ class ExportRepositoryImpl implements ExportRepository {
     DateTime? startUtc,
     DateTime? endUtc,
     required ExportMode mode,
+    String? deviceId,
   }) async {
     final events = await _fetchEventsInRange(startUtc, endUtc);
     final eventMap = <int, EventRecord>{for (var e in events) e.id: e};
     final eventIds = eventMap.keys.toSet();
 
-    List<SensorReading> readings;
+    var query = _db.select(_db.sensorReadings);
+
     if (mode == ExportMode.eventsOnly) {
       if (eventIds.isEmpty) {
-        readings = [];
-      } else {
-        readings = await (_db.select(_db.sensorReadings)
-              ..where((t) => t.eventId.isIn(eventIds))
-              ..orderBy([
-                (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
-                (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
-              ]))
-            .get();
+        return _buildEmptyCsvHeader();
       }
-    } else {
-      var query = _db.select(_db.sensorReadings);
-      if (startUtc != null) {
-        query = query..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
-      }
-      if (endUtc != null) {
-        query = query..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
-      }
-      readings = await (query
-            ..orderBy([
-              (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
-              (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
-            ]))
-          .get();
+      query = query..where((t) => t.eventId.isIn(eventIds));
     }
 
+    if (startUtc != null) {
+      query = query..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
+    }
+    if (endUtc != null) {
+      query = query..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
+    }
+    if (deviceId != null && deviceId.isNotEmpty) {
+      query = query..where((t) => t.deviceId.equals(deviceId));
+    }
+
+    final readings = await (query
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
+            (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
+          ]))
+        .get();
+
+    return _generateCsvFromReadings(readings, eventMap);
+  }
+
+  @override
+  Future<Map<String, String>> buildPerSensorCsvExports({
+    DateTime? startUtc,
+    DateTime? endUtc,
+    required ExportMode mode,
+  }) async {
+    final events = await _fetchEventsInRange(startUtc, endUtc);
+    final eventMap = <int, EventRecord>{for (var e in events) e.id: e};
+    final eventIds = eventMap.keys.toSet();
+
+    var query = _db.select(_db.sensorReadings);
+    if (mode == ExportMode.eventsOnly) {
+      if (eventIds.isEmpty) return {};
+      query = query..where((t) => t.eventId.isIn(eventIds));
+    }
+    if (startUtc != null) {
+      query = query..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
+    }
+    if (endUtc != null) {
+      query = query..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
+    }
+
+    final allReadings = await (query
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
+            (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
+          ]))
+        .get();
+
+    final readingsByDevice = <String, List<SensorReading>>{};
+    for (final r in allReadings) {
+      readingsByDevice.putIfAbsent(r.deviceId, () => []).add(r);
+    }
+
+    final result = <String, String>{};
+    for (final entry in readingsByDevice.entries) {
+      result[entry.key] = _generateCsvFromReadings(entry.value, eventMap);
+    }
+
+    return result;
+  }
+
+  String _buildEmptyCsvHeader() {
+    return 'reading_id,timestamp_utc,sequence_no,device_id,device_type,sensor_type,'
+        'heart_rate,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,ppi_ms,'
+        'event_id,event_type,event_classification,event_peak_metric,event_trigger_phrase,event_start_lat,event_start_lng,param_summary\n';
+  }
+
+  String _generateCsvFromReadings(List<SensorReading> readings, Map<int, EventRecord> eventMap) {
     final buffer = StringBuffer();
-    // CSV Header
+    // Clean CSV Header for Excel / ML Telemetry Ingest
     buffer.writeln(
       'reading_id,timestamp_utc,sequence_no,device_id,device_type,sensor_type,'
       'heart_rate,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,ppi_ms,'
@@ -432,6 +482,7 @@ class ExportRepositoryImpl implements ExportRepository {
     DateTime? endUtc,
     required ExportFormat format,
     required ExportMode mode,
+    bool includePerSensorFiles = true,
   }) async {
     final docsDir = await getApplicationDocumentsDirectory();
     final exportDir = Directory(p.join(docsDir.path, 'exports'));
@@ -442,23 +493,37 @@ class ExportRepositoryImpl implements ExportRepository {
     final timestampStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
     final createdFiles = <File>[];
 
+    // 1. JSON Export
     if (format == ExportFormat.json || format == ExportFormat.both) {
       final jsonMap = await buildJsonExport(startUtc: startUtc, endUtc: endUtc, mode: mode);
       final jsonString = const JsonEncoder.withIndent('  ').convert(jsonMap);
-      final jsonFile = File(p.join(exportDir.path, 'ride_dataset_$timestampStr.json'));
+      final jsonFile = File(p.join(exportDir.path, 'ride_dataset_cumulative_$timestampStr.json'));
       await jsonFile.writeAsString(jsonString);
       createdFiles.add(jsonFile);
     }
 
+    // 2. CSV Exports (Cumulative + Per-Sensor Sheets)
     if (format == ExportFormat.csv || format == ExportFormat.both) {
+      // 2a. Consolidated Cumulative CSV
       final sensorCsv = await buildSensorCsvExport(startUtc: startUtc, endUtc: endUtc, mode: mode);
-      final sensorFile = File(p.join(exportDir.path, 'ride_sensor_readings_$timestampStr.csv'));
+      final sensorFile = File(p.join(exportDir.path, 'ride_sensor_readings_cumulative_$timestampStr.csv'));
       await sensorFile.writeAsString(sensorCsv);
       createdFiles.add(sensorFile);
 
+      // 2b. Separate Per-Sensor CSV Data Sheets
+      if (includePerSensorFiles) {
+        final perSensorMap = await buildPerSensorCsvExports(startUtc: startUtc, endUtc: endUtc, mode: mode);
+        for (final entry in perSensorMap.entries) {
+          final sanitizedDevId = entry.key.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+          final devFile = File(p.join(exportDir.path, 'sensor_${sanitizedDevId}_$timestampStr.csv'));
+          await devFile.writeAsString(entry.value);
+          createdFiles.add(devFile);
+        }
+      }
+
+      // 2c. Camera Detections CSV
       final cameraCsv = await buildCameraCsvExport(startUtc: startUtc, endUtc: endUtc, mode: mode);
       if (cameraCsv.split('\n').length > 2) {
-        // Only create camera CSV if there are detection rows
         final cameraFile = File(p.join(exportDir.path, 'ride_camera_detections_$timestampStr.csv'));
         await cameraFile.writeAsString(cameraCsv);
         createdFiles.add(cameraFile);
