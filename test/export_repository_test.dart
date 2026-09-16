@@ -173,7 +173,7 @@ void main() {
     final lines = csv.trim().split('\n');
     expect(lines.length, 3); // 1 header line + 2 reading rows
 
-    expect(lines[0], contains('reading_id,timestamp_utc,sequence_no'));
+    expect(lines[0], contains('reading_id,timestamp_iso8601,timestamp_local'));
     expect(lines[0], contains('event_type,event_classification'));
     expect(lines[1], contains('dev-watch-1'));
     expect(lines[1], contains('bump'));
@@ -201,7 +201,58 @@ void main() {
     final watchCsv = perSensorMap['dev-watch-1']!;
     final lines = watchCsv.trim().split('\n');
     expect(lines.length, 4); // 1 header + 3 readings
-    expect(lines[0], contains('reading_id,timestamp_utc,sequence_no'));
+    expect(lines[0], contains('reading_id,timestamp_iso8601,timestamp_local'));
     expect(lines[1], contains('dev-watch-1'));
+  });
+
+  test('exportTripCsv and exportTripJson produce complete journey datasets with GPS route points', () async {
+    final now = DateTime.now().toUtc();
+    final tripId = await db.into(db.trips).insert(
+      TripsCompanion.insert(
+        riderName: const Value('Om'),
+        startTimeUtc: now.subtract(const Duration(minutes: 10)),
+        endTimeUtc: Value(now),
+        durationSeconds: const Value(600),
+        distanceMeters: const Value(3500.0),
+        avgSpeedKmh: const Value(21.0),
+        peakSpeedKmh: const Value(34.2),
+        startLat: const Value(19.0760),
+        startLng: const Value(72.8777),
+        endLat: const Value(19.0800),
+        endLng: const Value(72.8850),
+        routeCoordinatesJson: const Value('[{"lat":19.0760,"lng":72.8777},{"lat":19.0800,"lng":72.8850}]'),
+      ),
+    );
+
+    // Tag sensor reading with tripId
+    await db.into(db.sensorReadings).insert(
+      SensorReadingsCompanion.insert(
+        deviceId: 'dev-watch-1',
+        deviceType: 'watch',
+        sequenceNo: 10,
+        timestampUtc: now.subtract(const Duration(minutes: 5)),
+        sensorType: 'imu',
+        tripId: Value(tripId),
+        accelX: const Value(0.3),
+        accelY: const Value(-0.1),
+        accelZ: const Value(9.8),
+      ),
+    );
+
+    final tripCsv = await repo.exportTripCsv(tripId);
+    final csvLines = tripCsv.trim().split('\n');
+    expect(csvLines.length, 2); // Header + 1 reading
+    expect(csvLines[0], contains('reading_id,timestamp_iso8601,timestamp_local,timestamp_epoch_ms'));
+    expect(csvLines[1], contains('$tripId'));
+
+    final tripJson = await repo.exportTripJson(tripId);
+    expect(tripJson['trip_id'], tripId);
+    expect(tripJson['rider_name'], 'Om');
+    expect(tripJson['distance_meters'], 3500.0);
+    expect(tripJson['avg_speed_kmh'], 21.0);
+    final routePoints = tripJson['gps_route_breadcrumbs'] as List<dynamic>;
+    expect(routePoints.length, 2);
+    final readings = tripJson['sensor_readings'] as List<dynamic>;
+    expect(readings.length, 1);
   });
 }

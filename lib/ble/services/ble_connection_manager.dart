@@ -28,6 +28,11 @@ class BleConnectionManager {
   final StreamController<RawSensorData> _rawDataController =
       StreamController<RawSensorData>.broadcast();
 
+  final StreamController<List<int>> _watchCommandController =
+      StreamController<List<int>>.broadcast();
+
+  BluetoothCharacteristic? _esp32RxCharacteristic;
+
   BleConnectionManager() {
     _startHealthMonitor();
   }
@@ -37,8 +42,29 @@ class BleConnectionManager {
 
   Stream<RawSensorData> get rawDataStream => _rawDataController.stream;
 
+  Stream<List<int>> get watchCommandStream => _watchCommandController.stream;
+
+  bool get isWatchConnected => _esp32RxCharacteristic != null;
+
   Map<String, BleDeviceModel> get currentDeviceStates =>
       Map.unmodifiable(_deviceModelsMap);
+
+  Future<bool> writeToWatch(List<int> bytes) async {
+    if (_esp32RxCharacteristic != null) {
+      try {
+        await _esp32RxCharacteristic!.write(bytes, withoutResponse: true);
+        return true;
+      } catch (_) {
+        try {
+          await _esp32RxCharacteristic!.write(bytes, withoutResponse: false);
+          return true;
+        } catch (_) {
+          return false;
+        }
+      }
+    }
+    return false;
+  }
 
   /// 1500ms link health monitor measuring packet gap intervals
   void _startHealthMonitor() {
@@ -177,17 +203,22 @@ class BleConnectionManager {
           rawBytes: [0x00, hr, (accelX * 100).toInt() & 0xFF],
         );
       } else {
-        final hr = (74 + math.sin(simTick * 0.02) * 6).round();
         final accelX = math.sin(simTick * 0.08) * 1.8;
         final accelY = math.cos(simTick * 0.09) * 1.4;
-        final accelZ = 9.8 + math.sin(simTick * 0.05) * 1.1;
+        final accelZ = 9.80665 + math.sin(simTick * 0.05) * 1.1;
+        final gyroX = math.sin(simTick * 0.05) * 12.0;
+        final gyroY = math.cos(simTick * 0.07) * 8.0;
+        final gyroZ = math.sin(simTick * 0.03) * 45.0;
 
-        // Construct exact 13-byte Little-Endian binary payload
-        final byteData = ByteData(13);
-        byteData.setUint8(0, hr);
-        byteData.setFloat32(1, accelX, Endian.little);
-        byteData.setFloat32(5, accelY, Endian.little);
-        byteData.setFloat32(9, accelZ, Endian.little);
+        // Construct standard 28-byte Little-Endian binary payload (timestamp + 6 floats)
+        final byteData = ByteData(28);
+        byteData.setUint32(0, simTick * 20, Endian.little);
+        byteData.setFloat32(4, accelX, Endian.little);
+        byteData.setFloat32(8, accelY, Endian.little);
+        byteData.setFloat32(12, accelZ, Endian.little);
+        byteData.setFloat32(16, gyroX, Endian.little);
+        byteData.setFloat32(20, gyroY, Endian.little);
+        byteData.setFloat32(24, gyroZ, Endian.little);
         final rawPayload = byteData.buffer.asUint8List();
 
         data = RawSensorData(
@@ -195,10 +226,13 @@ class BleConnectionManager {
           deviceName: model.name,
           deviceType: DeviceType.watch,
           timestamp: now,
-          heartRate: hr,
+          heartRate: null, // Watch is a 6-axis IMU, not a HR band
           accelX: accelX,
           accelY: accelY,
           accelZ: accelZ,
+          gyroX: gyroX,
+          gyroY: gyroY,
+          gyroZ: gyroZ,
           rawBytes: rawPayload,
         );
       }
@@ -360,10 +394,33 @@ class BleConnectionManager {
             pmdControlChar = characteristic;
           }
 
-          // Subscriptions for HR & PMD Accelerometer / ESP32 custom characteristic (0xFFE1)
-          if (cUuid.contains('2a37') ||
-              cUuid.contains('ffe1') ||
-              cUuid.contains('fb005c82')) {
+          final sUuid = service.uuid.toString().toLowerCase();
+          final isPolarHr = cUuid.contains('2a37');
+          final isPolarPmd = cUuid.contains('fb005c82');
+          final isEsp32Data = cUuid.contains('ffe1');
+          final isEsp32Rx = cUuid.contains('ffe2');
+          final isEsp32Ctrl = cUuid.contains('ffe3');
+          final isEsp32Fallback = sUuid.contains('ffe0') && !isPolarHr && !isPolarPmd && !isEsp32Rx && !isEsp32Ctrl;
+
+          if (isEsp32Rx) {
+            _esp32RxCharacteristic = characteristic;
+          }
+
+          if (isEsp32Ctrl) {
+            if (characteristic.properties.notify || characteristic.properties.indicate) {
+              _charNotificationSubscriptions[model.id + cUuid]?.cancel();
+              _charNotificationSubscriptions[model.id + cUuid] =
+                  characteristic.onValueReceived.listen((valueBytes) {
+                if (valueBytes.isNotEmpty) {
+                  _watchCommandController.add(valueBytes);
+                }
+              });
+              await characteristic.setNotifyValue(true);
+            }
+          }
+
+          // Subscriptions for HR & PMD Accelerometer / ESP32 custom characteristic (0xFFE1 or 0xFFE0 service)
+          if (isPolarHr || isPolarPmd || isEsp32Data || isEsp32Fallback) {
             if (characteristic.properties.notify || characteristic.properties.indicate) {
               _charNotificationSubscriptions[model.id + cUuid]?.cancel();
               _charNotificationSubscriptions[model.id + cUuid] =
@@ -371,19 +428,19 @@ class BleConnectionManager {
                 if (valueBytes.isEmpty) return;
 
                 RawSensorData? parsedData;
-                if (cUuid.contains('2a37')) {
+                if (isPolarHr) {
                   parsedData = PolarVerityParser.parseHeartRate(
                     model.id,
                     model.name,
                     valueBytes,
                   );
-                } else if (cUuid.contains('fb005c82')) {
+                } else if (isPolarPmd) {
                   parsedData = PolarVerityParser.parsePmdAccel(
                     model.id,
                     model.name,
                     valueBytes,
                   );
-                } else if (cUuid.contains('ffe1')) {
+                } else if (isEsp32Data || isEsp32Fallback) {
                   parsedData = Esp32WatchParser.parseEsp32Payload(
                     model.id,
                     model.name,

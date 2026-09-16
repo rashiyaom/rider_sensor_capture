@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import '../../../ble/models/ble_device_model.dart';
 import '../../../ble/models/raw_sensor_data.dart';
@@ -78,6 +79,21 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       return;
     }
 
+    try {
+      final adapterState = await FlutterBluePlus.adapterState.first;
+      if (adapterState != BluetoothAdapterState.on) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ Bluetooth is turned OFF. Please enable Bluetooth on your phone to scan.'),
+              backgroundColor: AppColors.accentAmber,
+            ),
+          );
+        }
+        return;
+      }
+    } catch (_) {}
+
     final scanner = ref.read(bleScannerProvider);
     if (_isScanning) {
       await scanner.stopScan();
@@ -93,6 +109,60 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
         });
       }
     }
+  }
+
+  Future<void> _handleDeviceConnect(BleDeviceModel device) async {
+    try {
+      final adapterState = await FlutterBluePlus.adapterState.first;
+      if (adapterState != BluetoothAdapterState.on) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('⚠️ Bluetooth is turned OFF. Please enable Bluetooth to connect to sensors.'),
+              backgroundColor: AppColors.accentAmber,
+            ),
+          );
+        }
+        return;
+      }
+    } catch (_) {}
+
+    // Validate device type if unknown
+    if (device.type == DeviceType.unknown) {
+      if (!mounted) return;
+      final shouldConnect = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Unknown Sensor Device', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+          content: Text(
+            'The device "${device.name}" does not match a verified ESP32-S3 Watch or Polar IMU sensor.\n\nDo you still wish to attempt connection?',
+            style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryWhite,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Connect Anyway', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldConnect != true) return;
+    }
+
+    final manager = ref.read(bleConnectionManagerProvider);
+    manager.connectToDevice(device);
   }
 
   @override
@@ -526,12 +596,58 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                   ),
                   onPressed: connState == BleConnectionState.connecting
                       ? null
-                      : () => manager.connectToDevice(device),
+                      : () => _handleDeviceConnect(device),
                   child: Text(
                     connState == BleConnectionState.connecting ? '...' : 'Connect',
                     style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
                   ),
                 ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          // ── Device Mount Location Pairing Selector (§3) ──
+          Row(
+            children: [
+              const Text(
+                'MOUNT:',
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildMountChip(
+                device.id,
+                'fork',
+                'Fork',
+                (ref.watch(deviceMountLocationMapProvider)[device.id] ??
+                        (device.type == DeviceType.verityBand
+                            ? 'forearm'
+                            : (device.name.toUpperCase().contains('FOOT') ? 'footboard' : 'fork'))) ==
+                    'fork',
+              ),
+              const SizedBox(width: 6),
+              _buildMountChip(
+                device.id,
+                'footboard',
+                'Footboard',
+                (ref.watch(deviceMountLocationMapProvider)[device.id] ??
+                        (device.type == DeviceType.verityBand
+                            ? 'forearm'
+                            : (device.name.toUpperCase().contains('FOOT') ? 'footboard' : 'fork'))) ==
+                    'footboard',
+              ),
+              if (device.type == DeviceType.verityBand) ...[
+                const SizedBox(width: 6),
+                _buildMountChip(
+                  device.id,
+                  'forearm',
+                  'Forearm',
+                  (ref.watch(deviceMountLocationMapProvider)[device.id] ?? 'forearm') == 'forearm',
+                ),
+              ],
             ],
           ),
           if (isConnected) ...[
@@ -561,6 +677,33 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildMountChip(String deviceId, String locKey, String label, bool isSelected) {
+    return InkWell(
+      onTap: () {
+        ref.read(deviceMountLocationMapProvider.notifier).update((m) => {...m, deviceId: locKey});
+      },
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.accentCyanBg : AppColors.cardElevated,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: isSelected ? AppColors.accentCyan : AppColors.cardBorder,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? AppColors.accentCyan : AppColors.textSecondary,
+            fontSize: 10,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

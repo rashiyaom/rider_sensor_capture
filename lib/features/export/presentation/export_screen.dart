@@ -340,9 +340,57 @@ class ExportScreen extends ConsumerWidget {
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Exports both Cumulative Consolidated Sheet + Individual CSV data sheet for each sensor (ESP32-Watch, Polar, etc.) formatted for Excel & ML pipelines.',
+                    'Exports 3 ML training sheets (sensor timeseries, event records, trip summary) plus full JSON structure.',
                     style: TextStyle(color: AppColors.textSecondary, fontSize: 10.5, height: 1.3),
                   ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: filter.onlyCrossConfirmed ? AppColors.accentGreenBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: filter.onlyCrossConfirmed ? AppColors.accentGreen : AppColors.cardBorder,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.verified_outlined,
+                      size: 18,
+                      color: filter.onlyCrossConfirmed ? AppColors.accentGreen : AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Only Cross-Confirmed Events',
+                          style: TextStyle(
+                            color: filter.onlyCrossConfirmed ? AppColors.accentGreen : AppColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12,
+                          ),
+                        ),
+                        const Text(
+                          'Excludes single-sensor noise / unverified spikes',
+                          style: TextStyle(color: AppColors.textSecondary, fontSize: 10),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Switch.adaptive(
+                  value: filter.onlyCrossConfirmed,
+                  activeTrackColor: AppColors.accentGreen,
+                  onChanged: (val) => notifier.setOnlyCrossConfirmed(val),
                 ),
               ],
             ),

@@ -11,6 +11,7 @@ import '../../providers/ble_providers.dart';
 import '../../voice/voice_command_config.dart';
 import '../../voice/voice_command_listener.dart';
 import '../../ble/models/raw_sensor_data.dart';
+import '../../core/utils/angular_units.dart';
 import 'parameter_engine.dart';
 
 enum RecordingState {
@@ -87,7 +88,7 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
   Timer? _elapsedTimer;
   Timer? _autoHaltTimer;
 
-  static const double gravityBaseline = 9.81;
+  static const double gravityBaseline = AngularUnits.standardGravity;
   static const double motionThreshold = 1.8;
   static const Duration calmSettlingDuration = Duration(milliseconds: 2500);
   static const Duration maxRecordingDuration = Duration(seconds: 30);
@@ -192,6 +193,7 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       startGpsLng: drift.Value(startPos?.longitude),
       status: 'active',
       triggerPhrase: drift.Value(triggerPhrase ?? 'manual'),
+      tripId: drift.Value(repo.activeTripId),
     );
 
     final eventId = await repo.createEventRecord(companion);
@@ -296,6 +298,13 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
         computedParameters: computedParams.toJsonString(),
         peakMetric: peakVal,
         classification: classVal,
+        crossConfirmed: computedParams.crossConfirmed,
+        forkFootLagMs: computedParams.forkFootLagMs,
+        hrSpikeConfirmed: computedParams.hrSpikeConfirmed,
+        hrDeltaAtEvent: computedParams.hrDeltaAtEvent,
+        jerkPeakMagnitude: computedParams.bump?.jerkPeakMagnitude ?? computedParams.speed?.jerkPeakMagnitude,
+        gpsSpeedAtEventKmh: computedParams.gpsSpeedKmh,
+        gpsHeadingChangeDeg: computedParams.turn?.gpsHeadingDeltaDeg,
       );
 
       await repo.updateEventRecord(updatedEvent);

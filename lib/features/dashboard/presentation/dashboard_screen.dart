@@ -12,9 +12,13 @@ import '../../../core/services/session_health_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../providers/battery_providers.dart';
 import '../../../providers/ble_providers.dart';
+import '../../../data/local_db/database.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/db_providers.dart';
 import '../../../providers/session_health_providers.dart';
+import '../../trips/trip_controller.dart';
+import '../../trips/presentation/trips_history_screen.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -50,11 +54,16 @@ class DashboardScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          // Start/Stop Ride Session
+          // Journey Log Book & History
           IconButton(
-            icon: const Icon(Icons.flag_rounded),
-            tooltip: 'Session management',
-            onPressed: () => _showSessionManagementSheet(context, ref),
+            icon: const Icon(Icons.history_edu_rounded),
+            tooltip: 'Journey Log Book',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TripsHistoryScreen()),
+              );
+            },
           ),
           IconButton(
             icon: Icon(
@@ -68,11 +77,9 @@ class DashboardScreen extends ConsumerWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.refresh_rounded),
-            tooltip: 'Clear telemetry buffers',
-            onPressed: () {
-              ref.read(dashboardTelemetryProvider.notifier).reset();
-            },
+            icon: const Icon(Icons.tune_rounded),
+            tooltip: 'Data management',
+            onPressed: () => _showSessionManagementSheet(context, ref),
           ),
         ],
       ),
@@ -570,11 +577,16 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
     // ── Live Connected Hero ──
     final isSpecificConnected = selectedId != null &&
         connectionMap[selectedId]?.connectionState == BleConnectionState.connected;
+    final tripState = ref.watch(tripControllerProvider);
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
-      decoration: AppStyles.cardDecoration(),
+      decoration: AppStyles.cardDecoration(
+        border: tripState.isJourneyActive
+            ? Border.all(color: AppColors.accentRed.withValues(alpha: 0.6), width: 1.5)
+            : null,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -587,24 +599,44 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      selectedId != null ? 'Dedicated Telemetry' : 'Session Ingest',
-                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+                      tripState.isJourneyActive
+                          ? 'Active Journey · ${tripState.riderName}'
+                          : (selectedId != null ? 'Dedicated Telemetry' : 'Session Ingest'),
+                      style: TextStyle(
+                        color: tripState.isJourneyActive ? AppColors.accentRed : AppColors.textSecondary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
+                        color: tripState.isJourneyActive
+                            ? AppColors.accentRedBg
+                            : Colors.white.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.2),
+                        border: Border.all(
+                          color: tripState.isJourneyActive
+                              ? AppColors.accentRed.withValues(alpha: 0.6)
+                              : Colors.white.withValues(alpha: 0.3),
+                          width: 1.2,
+                        ),
                       ),
                       child: Text(
-                        isPaused
-                            ? 'Paused'
-                            : (selectedId != null
-                                ? (isSpecificConnected ? telemetry.selectedDeviceName : 'Sensor Standby')
-                                : (connectedCount > 0 ? 'Live Cumulative' : 'Standby')),
-                        style: const TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                        tripState.isJourneyActive
+                            ? '● JOURNEY  ${tripState.formattedElapsed}'
+                            : (isPaused
+                                ? 'Paused'
+                                : (selectedId != null
+                                    ? (isSpecificConnected ? telemetry.selectedDeviceName : 'Sensor Standby')
+                                    : (connectedCount > 0 ? 'Live Cumulative' : 'Standby'))),
+                        style: TextStyle(
+                          color: tripState.isJourneyActive ? AppColors.accentRed : AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -635,13 +667,15 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
           ),
           const SizedBox(height: 8),
           Text(
-            selectedId != null
-                ? (isSpecificConnected
-                    ? 'Streaming 50Hz binary telemetry from ${telemetry.selectedDeviceName}'
-                    : 'Target sensor disconnected or waiting for BLE connect')
-                : (connectedCount > 0
-                    ? '$connectedCount BLE sensor${connectedCount > 1 ? "s" : ""} streaming simultaneously at 50Hz'
-                    : 'No sensor connected · Connect BLE hardware in Devices tab'),
+            tripState.isJourneyActive
+                ? 'Distance: ${tripState.formattedDistanceKm} km  •  Speed: ${tripState.currentSpeedKmh.toStringAsFixed(1)} km/h  •  ${tripState.sensorRowsCount} rows'
+                : (selectedId != null
+                    ? (isSpecificConnected
+                        ? 'Streaming live preview from ${telemetry.selectedDeviceName} · Tap Start Journey to record'
+                        : 'Target sensor disconnected or waiting for BLE connect')
+                    : (connectedCount > 0
+                        ? '$connectedCount BLE sensor${connectedCount > 1 ? "s" : ""} connected · Tap Start Journey to record with GPS'
+                        : 'No sensor connected · Connect BLE hardware in Devices tab')),
             style: const TextStyle(color: AppColors.textTertiary, fontSize: 12),
           ),
           const SizedBox(height: 14),
@@ -651,39 +685,246 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
             runSpacing: 6,
             children: [
               _buildMiniChip(Icons.access_time_rounded, '~${battery.estimatedRideHoursRemaining.toStringAsFixed(1)}h battery'),
-              _buildMiniChip(
-                Icons.sensors_rounded,
-                selectedId != null
-                    ? (isSpecificConnected ? '1 sensor active' : 'Offline')
-                    : '$connectedCount sensor${connectedCount != 1 ? "s" : ""} active',
-              ),
+              if (tripState.isJourneyActive) ...[
+                _buildMiniChip(Icons.route_rounded, '${tripState.formattedDistanceKm} km'),
+                _buildMiniChip(Icons.speed_rounded, 'Peak ${tripState.peakSpeedKmh.toStringAsFixed(1)} km/h'),
+                _buildMiniChip(Icons.save_rounded, '${tripState.sensorRowsCount} rows'),
+              ] else
+                _buildMiniChip(
+                  Icons.sensors_rounded,
+                  selectedId != null
+                      ? (isSpecificConnected ? '1 sensor active' : 'Offline')
+                      : '$connectedCount sensor${connectedCount != 1 ? "s" : ""} active',
+                ),
             ],
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryWhite,
-                foregroundColor: Colors.black,
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
-              ),
-              onPressed: () => ref.read(dashboardPausedProvider.notifier).state = !isPaused,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, color: Colors.black, size: 22),
-                  const SizedBox(width: 8),
-                  Text(
-                    isPaused ? 'Resume Telemetry' : 'Pause Live Stream',
-                    style: const TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.w800, letterSpacing: -0.2),
+          // ── Start / End Journey Action Button ──
+          Row(
+            children: [
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: tripState.isJourneyActive ? AppColors.accentRed : AppColors.primaryWhite,
+                      foregroundColor: tripState.isJourneyActive ? Colors.white : Colors.black,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                    ),
+                    onPressed: () async {
+                      if (tripState.isJourneyActive) {
+                        final completed = await ref.read(tripControllerProvider.notifier).endJourney();
+                        if (completed != null && context.mounted) {
+                          _showJourneyCompletedDialog(context, completed);
+                        }
+                      } else {
+                        _promptAndStartJourney(context, ref);
+                      }
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          tripState.isJourneyActive ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                          color: tripState.isJourneyActive ? Colors.white : Colors.black,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          tripState.isJourneyActive ? 'End & Save Journey' : 'Start Journey',
+                          style: TextStyle(
+                            color: tripState.isJourneyActive ? Colors.white : Colors.black,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Container(
+                height: 52,
+                width: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.cardElevated,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.cardBorder),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                    color: AppColors.textPrimary,
+                    size: 22,
+                  ),
+                  tooltip: isPaused ? 'Resume live chart' : 'Pause live chart',
+                  onPressed: () => ref.read(dashboardPausedProvider.notifier).state = !isPaused,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _promptAndStartJourney(BuildContext context, WidgetRef ref) {
+    final nameController = TextEditingController(text: ref.read(tripControllerProvider).riderName);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Text('Start New Journey', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Enter Rider / Subject Name for this journey:',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: nameController,
+              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+              decoration: InputDecoration(
+                hintText: 'e.g. Ramesh, Priya, Rider 1',
+                hintStyle: const TextStyle(color: AppColors.textTertiary),
+                filled: true,
+                fillColor: AppColors.cardElevated,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accentCyan)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               ),
             ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 6,
+              children: ['Rider 1', 'Ramesh', 'Priya', 'Demo'].map((name) {
+                return ActionChip(
+                  label: Text(name, style: const TextStyle(fontSize: 11, color: AppColors.textPrimary)),
+                  backgroundColor: AppColors.cardElevated,
+                  side: const BorderSide(color: AppColors.cardBorder),
+                  onPressed: () => nameController.text = name,
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
           ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryWhite,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            ),
+            onPressed: () {
+              final chosenName = nameController.text.trim();
+              Navigator.pop(ctx);
+              ref.read(tripControllerProvider.notifier).startJourney(
+                    riderName: chosenName.isEmpty ? 'Rider' : chosenName,
+                  );
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('🚀 Journey started for ${chosenName.isEmpty ? "Rider" : chosenName}! Recording GPS & 50Hz telemetry.'),
+                  backgroundColor: AppColors.accentGreen,
+                ),
+              );
+            },
+            child: const Text('Begin Journey', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showJourneyCompletedDialog(BuildContext context, Trip trip) {
+    final durationMins = (trip.durationSeconds / 60.0).toStringAsFixed(1);
+    final distanceKm = (trip.distanceMeters / 1000.0).toStringAsFixed(2);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, color: AppColors.accentGreen, size: 24),
+            const SizedBox(width: 8),
+            const Text('Journey Saved!', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Rider: ${trip.riderName}  •  Journey #${trip.id}', style: const TextStyle(color: AppColors.accentCyan, fontWeight: FontWeight.w700, fontSize: 13)),
+            const SizedBox(height: 12),
+            _buildDialogRow('Duration', '$durationMins min'),
+            _buildDialogRow('Distance', '$distanceKm km'),
+            _buildDialogRow('Avg Speed', trip.avgSpeedKmh != null ? '${trip.avgSpeedKmh!.toStringAsFixed(1)} km/h' : '--'),
+            _buildDialogRow('Peak Speed', trip.peakSpeedKmh != null ? '${trip.peakSpeedKmh!.toStringAsFixed(1)} km/h' : '--'),
+            _buildDialogRow('Sensor Rows', '${trip.totalSensorRows} rows recorded'),
+            _buildDialogRow('Labeled Events', '${trip.totalEventsCount} events'),
+            const SizedBox(height: 12),
+            if (trip.startLat != null && trip.startLng != null)
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF3C3C44)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  minimumSize: const Size(double.infinity, 38),
+                ),
+                icon: const Icon(Icons.map_rounded, size: 16, color: AppColors.accentCyan),
+                label: const Text('Open Location on Google Maps', style: TextStyle(color: AppColors.textPrimary, fontSize: 12)),
+                onPressed: () {
+                  final uri = Uri.parse('https://maps.google.com/?q=${trip.startLat},${trip.startLng}');
+                  launchUrl(uri, mode: LaunchMode.externalApplication);
+                },
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const TripsHistoryScreen()),
+              );
+            },
+            child: const Text('View in Log Book', style: TextStyle(color: AppColors.accentCyan, fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryWhite,
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildDialogRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          Text(value, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -762,11 +1003,23 @@ class _ThreeColumnMetricBentoSection extends ConsumerWidget {
       children: [
         Expanded(
           child: _buildBentoCard(
-            icon: Icons.favorite_rounded,
-            badge: hr != null ? 'Live' : 'Off',
-            value: hr != null ? '$hr' : '--',
-            unit: 'bpm',
-            label: 'heart rate',
+            icon: hr != null
+                ? Icons.favorite_rounded
+                : (telemetry.latestGyroZ != null ? Icons.rotate_right_rounded : Icons.favorite_rounded),
+            badge: hr != null
+                ? 'Live'
+                : (telemetry.latestGyroZ != null ? '50Hz' : 'Standby'),
+            value: hr != null
+                ? '$hr'
+                : (telemetry.latestGyroZ != null
+                    ? telemetry.latestGyroZ!.abs().toStringAsFixed(0)
+                    : '--'),
+            unit: hr != null
+                ? 'bpm'
+                : (telemetry.latestGyroZ != null ? 'dps' : 'bpm'),
+            label: hr != null
+                ? 'heart rate'
+                : (telemetry.latestGyroZ != null ? 'angular rate' : 'heart rate'),
           ),
         ),
         const SizedBox(width: 10),

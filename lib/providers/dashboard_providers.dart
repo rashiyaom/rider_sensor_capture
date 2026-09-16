@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../ble/models/raw_sensor_data.dart';
 import '../core/services/battery_service.dart';
+import '../data/services/signal_filter_service.dart';
 import 'battery_providers.dart';
 import 'ble_providers.dart';
 
@@ -107,6 +108,15 @@ class _DeviceTelemetryBuffer {
   double? latestGyroX;
   double? latestGyroY;
   double? latestGyroZ;
+
+  // Cosmetic causal EMA states for live chart display (Section 5)
+  double? emaAccelX;
+  double? emaAccelY;
+  double? emaAccelZ;
+  double? emaGyroX;
+  double? emaGyroY;
+  double? emaGyroZ;
+
   String deviceName = '';
 }
 
@@ -176,14 +186,29 @@ class DashboardTelemetryNotifier extends StateNotifier<DashboardTelemetryState> 
       }
 
       if (data.accelX != null && data.accelY != null && data.accelZ != null) {
+        // Raw values for numeric tile display
         devBuf.latestAccelX = data.accelX;
         devBuf.latestAccelY = data.accelY;
         devBuf.latestAccelZ = data.accelZ;
 
+        // Cosmetic Causal EMA filtering for 8 FPS chart display only (Section 5 / Section 4f)
+        devBuf.emaAccelX = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.accelX!,
+          previousFilteredValue: devBuf.emaAccelX,
+        );
+        devBuf.emaAccelY = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.accelY!,
+          previousFilteredValue: devBuf.emaAccelY,
+        );
+        devBuf.emaAccelZ = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.accelZ!,
+          previousFilteredValue: devBuf.emaAccelZ,
+        );
+
         final t = devBuf.motionTick.toDouble();
-        devBuf.accelX.add(FlSpot(t, data.accelX!));
-        devBuf.accelY.add(FlSpot(t, data.accelY!));
-        devBuf.accelZ.add(FlSpot(t, data.accelZ!));
+        devBuf.accelX.add(FlSpot(t, devBuf.emaAccelX!));
+        devBuf.accelY.add(FlSpot(t, devBuf.emaAccelY!));
+        devBuf.accelZ.add(FlSpot(t, devBuf.emaAccelZ!));
         devBuf.motionTick++;
         if (devBuf.accelX.length > maxMotionPoints) {
           devBuf.accelX.removeAt(0);
@@ -195,15 +220,88 @@ class DashboardTelemetryNotifier extends StateNotifier<DashboardTelemetryState> 
         _cumulativeBuffer.latestAccelY = data.accelY;
         _cumulativeBuffer.latestAccelZ = data.accelZ;
 
+        _cumulativeBuffer.emaAccelX = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.accelX!,
+          previousFilteredValue: _cumulativeBuffer.emaAccelX,
+        );
+        _cumulativeBuffer.emaAccelY = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.accelY!,
+          previousFilteredValue: _cumulativeBuffer.emaAccelY,
+        );
+        _cumulativeBuffer.emaAccelZ = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.accelZ!,
+          previousFilteredValue: _cumulativeBuffer.emaAccelZ,
+        );
+
         final cumT = _cumulativeBuffer.motionTick.toDouble();
-        _cumulativeBuffer.accelX.add(FlSpot(cumT, data.accelX!));
-        _cumulativeBuffer.accelY.add(FlSpot(cumT, data.accelY!));
-        _cumulativeBuffer.accelZ.add(FlSpot(cumT, data.accelZ!));
+        _cumulativeBuffer.accelX.add(FlSpot(cumT, _cumulativeBuffer.emaAccelX!));
+        _cumulativeBuffer.accelY.add(FlSpot(cumT, _cumulativeBuffer.emaAccelY!));
+        _cumulativeBuffer.accelZ.add(FlSpot(cumT, _cumulativeBuffer.emaAccelZ!));
         _cumulativeBuffer.motionTick++;
         if (_cumulativeBuffer.accelX.length > maxMotionPoints) {
           _cumulativeBuffer.accelX.removeAt(0);
           _cumulativeBuffer.accelY.removeAt(0);
           _cumulativeBuffer.accelZ.removeAt(0);
+        }
+
+        _dirty = true;
+      }
+
+      if (data.gyroX != null && data.gyroY != null && data.gyroZ != null) {
+        // Raw values for numeric tile display
+        devBuf.latestGyroX = data.gyroX;
+        devBuf.latestGyroY = data.gyroY;
+        devBuf.latestGyroZ = data.gyroZ;
+
+        // Cosmetic Causal EMA filtering for 8 FPS chart display only (Section 5 / Section 4f)
+        devBuf.emaGyroX = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.gyroX!,
+          previousFilteredValue: devBuf.emaGyroX,
+        );
+        devBuf.emaGyroY = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.gyroY!,
+          previousFilteredValue: devBuf.emaGyroY,
+        );
+        devBuf.emaGyroZ = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.gyroZ!,
+          previousFilteredValue: devBuf.emaGyroZ,
+        );
+
+        final gt = devBuf.motionTick.toDouble();
+        devBuf.gyroX.add(FlSpot(gt, devBuf.emaGyroX!));
+        devBuf.gyroY.add(FlSpot(gt, devBuf.emaGyroY!));
+        devBuf.gyroZ.add(FlSpot(gt, devBuf.emaGyroZ!));
+        if (devBuf.gyroX.length > maxMotionPoints) {
+          devBuf.gyroX.removeAt(0);
+          devBuf.gyroY.removeAt(0);
+          devBuf.gyroZ.removeAt(0);
+        }
+
+        _cumulativeBuffer.latestGyroX = data.gyroX;
+        _cumulativeBuffer.latestGyroY = data.gyroY;
+        _cumulativeBuffer.latestGyroZ = data.gyroZ;
+
+        _cumulativeBuffer.emaGyroX = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.gyroX!,
+          previousFilteredValue: _cumulativeBuffer.emaGyroX,
+        );
+        _cumulativeBuffer.emaGyroY = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.gyroY!,
+          previousFilteredValue: _cumulativeBuffer.emaGyroY,
+        );
+        _cumulativeBuffer.emaGyroZ = SignalFilterService.applyDashboardCausalEma(
+          currentValue: data.gyroZ!,
+          previousFilteredValue: _cumulativeBuffer.emaGyroZ,
+        );
+
+        final cumGt = _cumulativeBuffer.motionTick.toDouble();
+        _cumulativeBuffer.gyroX.add(FlSpot(cumGt, _cumulativeBuffer.emaGyroX!));
+        _cumulativeBuffer.gyroY.add(FlSpot(cumGt, _cumulativeBuffer.emaGyroY!));
+        _cumulativeBuffer.gyroZ.add(FlSpot(cumGt, _cumulativeBuffer.emaGyroZ!));
+        if (_cumulativeBuffer.gyroX.length > maxMotionPoints) {
+          _cumulativeBuffer.gyroX.removeAt(0);
+          _cumulativeBuffer.gyroY.removeAt(0);
+          _cumulativeBuffer.gyroZ.removeAt(0);
         }
 
         _dirty = true;

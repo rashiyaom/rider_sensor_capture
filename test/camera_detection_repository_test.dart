@@ -51,9 +51,29 @@ class _StubSensorRepository implements SensorRepository {
   @override
   Stream<DbWriteStats> watchStats() => const Stream.empty();
   @override
+  int? activeTripId;
+  @override
+  void setActiveTripId(int? tripId) => activeTripId = tripId;
+  @override
+  Future<int> createTrip(TripsCompanion trip) async => 0;
+  @override
+  Future<void> updateTrip(Trip trip) async {}
+  @override
+  Future<Trip?> getTrip(int tripId) async => null;
+  @override
+  Stream<List<Trip>> watchAllTrips() => const Stream.empty();
+  @override
+  Future<void> deleteTrip(int tripId) async {}
+  @override
+  Future<int> getReadingCountForTrip(int tripId) async => 0;
+  @override
+  Future<int> getEventCountForTrip(int tripId) async => 0;
+  @override
   Future<void> deleteAllReadings() async {}
   @override
   Future<void> deleteEvent(int eventId) async {}
+  @override
+  Future<void> flushPendingBuffer() async {}
   @override
   void dispose() {}
 }

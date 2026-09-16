@@ -23,20 +23,21 @@ class ExportFilterState {
   final DateTime? customEndDate;
   final ExportFormat format;
   final ExportMode mode;
+  final bool onlyCrossConfirmed; // Filter toggle: only export cross-confirmed events
 
   const ExportFilterState({
     this.timeRangeType = ExportTimeRangeType.allData,
     this.customStartDate,
     this.customEndDate,
     this.format = ExportFormat.both,
-    this.mode = ExportMode.eventsOnly,
+    this.mode = ExportMode.fullRawSession,
+    this.onlyCrossConfirmed = false,
   });
 
   DateTime? get startUtc {
     final now = DateTime.now().toUtc();
     switch (timeRangeType) {
       case ExportTimeRangeType.thisSession:
-        // Assume session start within the last 4 hours or start of day
         return now.subtract(const Duration(hours: 4));
       case ExportTimeRangeType.today:
         return DateTime.utc(now.year, now.month, now.day);
@@ -62,6 +63,7 @@ class ExportFilterState {
     DateTime? customEndDate,
     ExportFormat? format,
     ExportMode? mode,
+    bool? onlyCrossConfirmed,
   }) {
     return ExportFilterState(
       timeRangeType: timeRangeType ?? this.timeRangeType,
@@ -69,6 +71,7 @@ class ExportFilterState {
       customEndDate: customEndDate ?? this.customEndDate,
       format: format ?? this.format,
       mode: mode ?? this.mode,
+      onlyCrossConfirmed: onlyCrossConfirmed ?? this.onlyCrossConfirmed,
     );
   }
 }

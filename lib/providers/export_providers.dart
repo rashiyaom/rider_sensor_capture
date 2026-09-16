@@ -40,6 +40,10 @@ class ExportFilterNotifier extends StateNotifier<ExportFilterState> {
   void setMode(ExportMode mode) {
     state = state.copyWith(mode: mode);
   }
+
+  void setOnlyCrossConfirmed(bool val) {
+    state = state.copyWith(onlyCrossConfirmed: val);
+  }
 }
 
 // Summary auto-provider: calculates expected counts whenever filters or database change
@@ -51,6 +55,7 @@ final exportSummaryProvider = FutureProvider<ExportSummary>((ref) async {
     startUtc: filter.startUtc,
     endUtc: filter.endUtc,
     mode: filter.mode,
+    onlyCrossConfirmed: filter.onlyCrossConfirmed,
   );
 });
 
@@ -103,7 +108,7 @@ class ExportController extends StateNotifier<ExportControllerState> {
     try {
       state = state.copyWith(
         status: ExportStatus.generating,
-        statusMessage: 'Extracting data & formatting output...',
+        statusMessage: 'Extracting multi-modal data & formatting 3 ML files...',
         errorMessage: null,
       );
 
@@ -112,6 +117,7 @@ class ExportController extends StateNotifier<ExportControllerState> {
         endUtc: filter.endUtc,
         format: filter.format,
         mode: filter.mode,
+        onlyCrossConfirmed: filter.onlyCrossConfirmed,
       );
 
       state = state.copyWith(

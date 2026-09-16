@@ -4,6 +4,7 @@ import '../ble/models/raw_sensor_data.dart';
 import '../ble/services/ble_scanner.dart';
 import '../ble/services/ble_connection_manager.dart';
 import '../ble/services/ble_permission_service.dart';
+import '../ble/services/watch_sync_service.dart';
 
 // Singletons for BleScanner and BleConnectionManager
 final bleScannerProvider = Provider<BleScanner>((ref) {
@@ -36,8 +37,26 @@ final connectionStatesStreamProvider =
   return manager.deviceStatesStream;
 });
 
+// Device mount location mappings: deviceId -> 'fork', 'footboard', 'forearm'
+final deviceMountLocationMapProvider =
+    StateProvider<Map<String, String>>((ref) => {});
+
 // Raw Sensor Data stream provider
 final rawSensorDataStreamProvider = StreamProvider<RawSensorData>((ref) {
   final manager = ref.watch(bleConnectionManagerProvider);
   return manager.rawDataStream;
+});
+
+// Watch Sync Service Provider (Bidirectional companion bridge)
+final watchSyncServiceProvider = Provider<WatchSyncService>((ref) {
+  final manager = ref.watch(bleConnectionManagerProvider);
+  final service = WatchSyncService(manager, ref);
+  ref.onDispose(() => service.dispose());
+  return service;
+});
+
+// Watch Battery Stream Provider
+final watchBatteryStreamProvider = StreamProvider<WatchBatteryInfo>((ref) {
+  final service = ref.watch(watchSyncServiceProvider);
+  return service.watchBatteryStream;
 });

@@ -11,11 +11,11 @@ class SensorRepositoryImpl implements SensorRepository {
   final List<RawSensorData> _buffer = [];
   Timer? _flushTimer;
   DateTime? _lastWriteTime;
-  int? _activeEventId;
 
   int _totalRowCount = 0;
   final Map<String, int> _deviceCounts = {};
-  bool _countsInitialized = false;
+  int? _activeEventId;
+  int? _activeTripId;
 
   final StreamController<DbWriteStats> _statsController =
       StreamController<DbWriteStats>.broadcast();
@@ -51,15 +51,15 @@ class SensorRepositoryImpl implements SensorRepository {
         ..addColumns([deviceCol, countExp])
         ..groupBy([deviceCol]);
 
-      final rows = await devQuery.get();
-      for (var row in rows) {
+      final devRows = await devQuery.get();
+      _deviceCounts.clear();
+      for (var row in devRows) {
         final dev = row.read(deviceCol);
         final c = row.read(countExp);
         if (dev != null && c != null) {
           _deviceCounts[dev] = c;
         }
       }
-      _countsInitialized = true;
       _emitStats();
     } catch (_) {}
   }
@@ -81,6 +81,14 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   int? get activeEventId => _activeEventId;
+
+  @override
+  void setActiveTripId(int? tripId) {
+    _activeTripId = tripId;
+  }
+
+  @override
+  int? get activeTripId => _activeTripId;
 
   @override
   Future<void> insertReading(RawSensorData data) async {
@@ -137,11 +145,16 @@ class SensorRepositoryImpl implements SensorRepository {
           sequenceNo: currentSeq,
           timestampUtc: data.timestamp.toUtc(),
           sensorType: sType,
+          mountLocation: Value(data.mountLocation),
           eventId: Value(_activeEventId), // Tag with current active event
+          tripId: Value(_activeTripId),   // Tag with current active journey/trip
           heartRate: Value(data.heartRate),
           accelX: Value(data.accelX),
           accelY: Value(data.accelY),
           accelZ: Value(data.accelZ),
+          gyroX: Value(data.gyroX),
+          gyroY: Value(data.gyroY),
+          gyroZ: Value(data.gyroZ),
           ppiMs: Value(data.ppiMs),
           rawPayload: Value(data.rawBytes.toString()),
         ),
@@ -167,6 +180,9 @@ class SensorRepositoryImpl implements SensorRepository {
     _buffer.clear();
     await insertReadingsBatch(batchToInsert);
   }
+
+  @override
+  Future<void> flushPendingBuffer() => _flushBuffer();
 
   @override
   Stream<List<SensorReading>> watchRecentReadings({int limit = 50}) {
@@ -211,18 +227,15 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Future<int> getTotalCount() async {
-    if (_countsInitialized) return _totalRowCount;
     final countExp = _db.sensorReadings.id.count();
     final query = _db.selectOnly(_db.sensorReadings)..addColumns([countExp]);
-    final result = await query.map((row) => row.read(countExp)).getSingle();
+    final result = await query.map((row) => row.read(countExp)).getSingleOrNull();
     _totalRowCount = result ?? 0;
-    _countsInitialized = true;
     return _totalRowCount;
   }
 
   @override
   Future<Map<String, int>> getCountPerDevice() async {
-    if (_countsInitialized) return Map.unmodifiable(_deviceCounts);
     final countExp = _db.sensorReadings.id.count();
     final deviceCol = _db.sensorReadings.deviceId;
 
@@ -231,15 +244,16 @@ class SensorRepositoryImpl implements SensorRepository {
       ..groupBy([deviceCol]);
 
     final rows = await query.get();
+    final result = <String, int>{};
     for (var row in rows) {
       final dev = row.read(deviceCol);
       final c = row.read(countExp);
       if (dev != null && c != null) {
+        result[dev] = c;
         _deviceCounts[dev] = c;
       }
     }
-    _countsInitialized = true;
-    return Map.unmodifiable(_deviceCounts);
+    return Map.unmodifiable(result);
   }
 
   @override
@@ -264,6 +278,59 @@ class SensorRepositoryImpl implements SensorRepository {
         .watch();
   }
 
+  // ── Trip / Journey Persistence Methods ──
+  @override
+  Future<int> createTrip(TripsCompanion trip) async {
+    return await _db.into(_db.trips).insert(trip);
+  }
+
+  @override
+  Future<void> updateTrip(Trip trip) async {
+    await _db.update(_db.trips).replace(trip);
+  }
+
+  @override
+  Future<Trip?> getTrip(int tripId) async {
+    return await (_db.select(_db.trips)..where((t) => t.id.equals(tripId))).getSingleOrNull();
+  }
+
+  @override
+  Stream<List<Trip>> watchAllTrips() {
+    return (_db.select(_db.trips)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
+          ]))
+        .watch();
+  }
+
+  @override
+  Future<void> deleteTrip(int tripId) async {
+    await (_db.delete(_db.sensorReadings)..where((t) => t.tripId.equals(tripId))).go();
+    await (_db.delete(_db.eventRecords)..where((t) => t.tripId.equals(tripId))).go();
+    await (_db.delete(_db.trips)..where((t) => t.id.equals(tripId))).go();
+    await _initCountersFromDb();
+  }
+
+  @override
+  Future<int> getReadingCountForTrip(int tripId) async {
+    final countExp = _db.sensorReadings.id.count();
+    final query = _db.selectOnly(_db.sensorReadings)
+      ..addColumns([countExp])
+      ..where(_db.sensorReadings.tripId.equals(tripId));
+    final row = await query.getSingleOrNull();
+    return row?.read(countExp) ?? 0;
+  }
+
+  @override
+  Future<int> getEventCountForTrip(int tripId) async {
+    final countExp = _db.eventRecords.id.count();
+    final query = _db.selectOnly(_db.eventRecords)
+      ..addColumns([countExp])
+      ..where(_db.eventRecords.tripId.equals(tripId));
+    final row = await query.getSingleOrNull();
+    return row?.read(countExp) ?? 0;
+  }
+
   @override
   Future<void> deleteAllReadings() async {
     await _db.delete(_db.sensorReadings).go();
@@ -271,7 +338,6 @@ class SensorRepositoryImpl implements SensorRepository {
     _deviceCounts.clear();
     _sequenceCounters.clear();
     _lastWriteTime = null;
-    _countsInitialized = true;
     _emitStats();
   }
 

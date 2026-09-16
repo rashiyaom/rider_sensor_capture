@@ -8,8 +8,14 @@ class SensorReadings extends Table {
   DateTimeColumn get timestampUtc => dateTime()();
   TextColumn get sensorType => text()();
 
+  // Physical placement mount location ('fork', 'footboard', 'forearm')
+  TextColumn get mountLocation => text().withDefault(const Constant('fork'))();
+
   // Linked active Event ID (nullable, directly tags readings belonging to a labeled ride event)
   IntColumn get eventId => integer().nullable()();
+
+  // Linked active Trip / Journey ID (nullable, tags readings belonging to a specific journey)
+  IntColumn get tripId => integer().nullable()();
 
   // Explicit Metric Columns (high-performance querying for ML & Charts)
   IntColumn get heartRate => integer().nullable()();

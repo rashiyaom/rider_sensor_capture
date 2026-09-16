@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../ble/models/ble_device_model.dart';
 import '../data/local_db/database.dart';
 import '../data/repositories/sensor_repository.dart';
 import '../data/repositories/sensor_repository_impl.dart';
 import 'ble_providers.dart';
+import 'ride_recording_provider.dart';
 
 // Database Singleton Provider
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -19,13 +21,22 @@ final sensorRepositoryProvider = Provider<SensorRepository>((ref) {
   return repo;
 });
 
-// Bridge provider: streams raw sensor packets from BLE connection manager directly to database
+// Bridge provider: streams raw sensor packets from BLE connection manager directly to database ONLY when ride recording is actively started
 final bleToDbBridgeProvider = Provider<void>((ref) {
   final repo = ref.watch(sensorRepositoryProvider);
+  final isRecording = ref.watch(isRideRecordingActiveProvider);
   final rawDataAsync = ref.watch(rawSensorDataStreamProvider);
+  final mountMap = ref.watch(deviceMountLocationMapProvider);
 
   rawDataAsync.whenData((data) {
-    repo.insertReading(data);
+    if (isRecording) {
+      final mountLoc = mountMap[data.deviceId] ??
+          (data.deviceType == DeviceType.verityBand
+              ? 'forearm'
+              : (data.mountLocation.isNotEmpty ? data.mountLocation : 'fork'));
+      repo.insertReading(data.copyWith(mountLocation: mountLoc));
+      ref.read(rideRecordingProvider.notifier).incrementRowCount(1);
+    }
   });
 });
 
