@@ -15,6 +15,7 @@ import '../../../providers/ble_providers.dart';
 import '../../../data/local_db/database.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/db_providers.dart';
+import '../../../providers/sample_rate_provider.dart';
 import '../../../providers/session_health_providers.dart';
 import '../../trips/trip_controller.dart';
 import '../../trips/presentation/trips_history_screen.dart';
@@ -773,76 +774,204 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
 
   void _promptAndStartJourney(BuildContext context, WidgetRef ref) {
     final nameController = TextEditingController(text: ref.read(tripControllerProvider).riderName);
+    String selectedWrist = ref.read(tripControllerProvider).wristSide;
+    double selectedInterval = ref.read(sampleIntervalSecondsProvider);
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: const Text('Start New Journey', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Enter Rider / Subject Name for this journey:',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          title: const Text('Start New Journey', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Rider / Subject Name:',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: nameController,
+                  style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                  decoration: InputDecoration(
+                    hintText: 'e.g. Ramesh, Priya, Rider 1',
+                    hintStyle: const TextStyle(color: AppColors.textTertiary),
+                    filled: true,
+                    fillColor: AppColors.cardElevated,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accentCyan)),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  children: ['Rider 1', 'Ramesh', 'Priya', 'Demo'].map((name) {
+                    return ActionChip(
+                      label: Text(name, style: const TextStyle(fontSize: 11, color: AppColors.textPrimary)),
+                      backgroundColor: AppColors.cardElevated,
+                      side: const BorderSide(color: AppColors.cardBorder),
+                      onPressed: () => nameController.text = name,
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                // ── Wrist Side Selector ──
+                const Text(
+                  'Watch worn on:',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setDialogState(() => selectedWrist = 'Left'),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: selectedWrist == 'Left' ? AppColors.accentCyan.withValues(alpha: 0.15) : AppColors.cardElevated,
+                            borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                            border: Border.all(
+                              color: selectedWrist == 'Left' ? AppColors.accentCyan : AppColors.cardBorder,
+                              width: selectedWrist == 'Left' ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('🤚', style: TextStyle(fontSize: 16)),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Left Hand',
+                                style: TextStyle(
+                                  color: selectedWrist == 'Left' ? AppColors.accentCyan : AppColors.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: selectedWrist == 'Left' ? FontWeight.w700 : FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setDialogState(() => selectedWrist = 'Right'),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: selectedWrist == 'Right' ? AppColors.accentCyan.withValues(alpha: 0.15) : AppColors.cardElevated,
+                            borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+                            border: Border.all(
+                              color: selectedWrist == 'Right' ? AppColors.accentCyan : AppColors.cardBorder,
+                              width: selectedWrist == 'Right' ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('🤚', style: TextStyle(fontSize: 16)),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Right Hand',
+                                style: TextStyle(
+                                  color: selectedWrist == 'Right' ? AppColors.accentCyan : AppColors.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: selectedWrist == 'Right' ? FontWeight.w700 : FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // ── Sample Rate Selector ──
+                const Text(
+                  'Data capture rate:',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: kSampleRateOptions.map((opt) {
+                    final isSelected = selectedInterval == opt.intervalSeconds;
+                    return GestureDetector(
+                      onTap: () => setDialogState(() => selectedInterval = opt.intervalSeconds),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: isSelected ? AppColors.accentGreenBg : AppColors.cardElevated,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected ? AppColors.accentGreen : AppColors.cardBorder,
+                            width: isSelected ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Text(
+                          opt.label,
+                          style: TextStyle(
+                            color: isSelected ? AppColors.accentGreen : AppColors.textSecondary,
+                            fontSize: 11,
+                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: nameController,
-              style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
-              decoration: InputDecoration(
-                hintText: 'e.g. Ramesh, Priya, Rider 1',
-                hintStyle: const TextStyle(color: AppColors.textTertiary),
-                filled: true,
-                fillColor: AppColors.cardElevated,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.cardBorder)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.accentCyan)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryWhite,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              children: ['Rider 1', 'Ramesh', 'Priya', 'Demo'].map((name) {
-                return ActionChip(
-                  label: Text(name, style: const TextStyle(fontSize: 11, color: AppColors.textPrimary)),
-                  backgroundColor: AppColors.cardElevated,
-                  side: const BorderSide(color: AppColors.cardBorder),
-                  onPressed: () => nameController.text = name,
+              onPressed: () {
+                final chosenName = nameController.text.trim();
+                // Apply sample rate globally
+                ref.read(sampleIntervalSecondsProvider.notifier).state = selectedInterval;
+                Navigator.pop(ctx);
+                ref.read(tripControllerProvider.notifier).startJourney(
+                  riderName: chosenName.isEmpty ? 'Rider' : chosenName,
+                  wristSide: selectedWrist,
                 );
-              }).toList(),
+                final rateLabel = kSampleRateOptions
+                    .firstWhere((o) => o.intervalSeconds == selectedInterval,
+                        orElse: () => kSampleRateOptions.first)
+                    .label;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '🚀 Journey started for ${chosenName.isEmpty ? "Rider" : chosenName} '
+                      '· ${selectedWrist} hand · Rate: $rateLabel',
+                    ),
+                    backgroundColor: AppColors.accentGreen,
+                  ),
+                );
+              },
+              child: const Text('Begin Journey', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryWhite,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-            onPressed: () {
-              final chosenName = nameController.text.trim();
-              Navigator.pop(ctx);
-              ref.read(tripControllerProvider.notifier).startJourney(
-                    riderName: chosenName.isEmpty ? 'Rider' : chosenName,
-                  );
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('🚀 Journey started for ${chosenName.isEmpty ? "Rider" : chosenName}! Recording GPS & 50Hz telemetry.'),
-                  backgroundColor: AppColors.accentGreen,
-                ),
-              );
-            },
-            child: const Text('Begin Journey', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
       ),
     );
   }

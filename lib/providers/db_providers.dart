@@ -5,6 +5,7 @@ import '../data/repositories/sensor_repository.dart';
 import '../data/repositories/sensor_repository_impl.dart';
 import 'ble_providers.dart';
 import 'ride_recording_provider.dart';
+import 'sample_rate_provider.dart';
 
 // Database Singleton Provider
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
@@ -21,22 +22,36 @@ final sensorRepositoryProvider = Provider<SensorRepository>((ref) {
   return repo;
 });
 
-// Bridge provider: streams raw sensor packets from BLE connection manager directly to database ONLY when ride recording is actively started
+// Per-device last write time — used to enforce user-selected sample interval.
+final _deviceLastWriteMap = <String, DateTime>{};
+
+// Bridge provider: streams raw sensor packets from BLE to database, with
+// optional user-selectable sample-rate decimation.
 final bleToDbBridgeProvider = Provider<void>((ref) {
   final repo = ref.watch(sensorRepositoryProvider);
   final isRecording = ref.watch(isRideRecordingActiveProvider);
   final rawDataAsync = ref.watch(rawSensorDataStreamProvider);
   final mountMap = ref.watch(deviceMountLocationMapProvider);
+  final intervalSec = ref.watch(sampleIntervalSecondsProvider);
 
   rawDataAsync.whenData((data) {
-    if (isRecording) {
-      final mountLoc = mountMap[data.deviceId] ??
-          (data.deviceType == DeviceType.verityBand
-              ? 'forearm'
-              : (data.mountLocation.isNotEmpty ? data.mountLocation : 'fork'));
-      repo.insertReading(data.copyWith(mountLocation: mountLoc));
-      ref.read(rideRecordingProvider.notifier).incrementRowCount(1);
+    if (!isRecording) return;
+
+    // Throttle: skip packet if it arrives before the interval has elapsed
+    final now = DateTime.now();
+    final last = _deviceLastWriteMap[data.deviceId];
+    if (last != null && intervalSec > 0.02) {
+      final elapsed = now.difference(last).inMicroseconds / 1e6;
+      if (elapsed < intervalSec) return; // drop packet
     }
+    _deviceLastWriteMap[data.deviceId] = now;
+
+    final mountLoc = mountMap[data.deviceId] ??
+        (data.deviceType == DeviceType.verityBand
+            ? 'forearm'
+            : (data.mountLocation.isNotEmpty ? data.mountLocation : 'fork'));
+    repo.insertReading(data.copyWith(mountLocation: mountLoc));
+    ref.read(rideRecordingProvider.notifier).incrementRowCount(1);
   });
 });
 

@@ -3,6 +3,7 @@ import 'package:drift/drift.dart';
 class Trips extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get riderName => text().withDefault(const Constant('Rider'))();
+  TextColumn get wristSide => text().withDefault(const Constant('Left'))(); // 'Left' or 'Right'
 
   // Legacy timestamps (required by existing codebase and tests)
   DateTimeColumn get startTimeUtc => dateTime()();

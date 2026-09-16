@@ -2751,6 +2751,18 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, Trip> {
     requiredDuringInsert: false,
     defaultValue: const Constant('Rider'),
   );
+  static const VerificationMeta _wristSideMeta = const VerificationMeta(
+    'wristSide',
+  );
+  @override
+  late final GeneratedColumn<String> wristSide = GeneratedColumn<String>(
+    'wrist_side',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('Left'),
+  );
   static const VerificationMeta _startTimeUtcMeta = const VerificationMeta(
     'startTimeUtc',
   );
@@ -3085,6 +3097,7 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, Trip> {
   List<GeneratedColumn> get $columns => [
     id,
     riderName,
+    wristSide,
     startTimeUtc,
     endTimeUtc,
     startTimestampUtc,
@@ -3135,6 +3148,12 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, Trip> {
       context.handle(
         _riderNameMeta,
         riderName.isAcceptableOrUnknown(data['rider_name']!, _riderNameMeta),
+      );
+    }
+    if (data.containsKey('wrist_side')) {
+      context.handle(
+        _wristSideMeta,
+        wristSide.isAcceptableOrUnknown(data['wrist_side']!, _wristSideMeta),
       );
     }
     if (data.containsKey('start_time_utc')) {
@@ -3402,6 +3421,10 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, Trip> {
         DriftSqlType.string,
         data['${effectivePrefix}rider_name'],
       )!,
+      wristSide: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}wrist_side'],
+      )!,
       startTimeUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}start_time_utc'],
@@ -3534,6 +3557,7 @@ class $TripsTable extends Trips with TableInfo<$TripsTable, Trip> {
 class Trip extends DataClass implements Insertable<Trip> {
   final int id;
   final String riderName;
+  final String wristSide;
   final DateTime startTimeUtc;
   final DateTime? endTimeUtc;
   final DateTime? startTimestampUtc;
@@ -3567,6 +3591,7 @@ class Trip extends DataClass implements Insertable<Trip> {
   const Trip({
     required this.id,
     required this.riderName,
+    required this.wristSide,
     required this.startTimeUtc,
     this.endTimeUtc,
     this.startTimestampUtc,
@@ -3603,6 +3628,7 @@ class Trip extends DataClass implements Insertable<Trip> {
     final map = <String, Expression>{};
     map['id'] = Variable<int>(id);
     map['rider_name'] = Variable<String>(riderName);
+    map['wrist_side'] = Variable<String>(wristSide);
     map['start_time_utc'] = Variable<DateTime>(startTimeUtc);
     if (!nullToAbsent || endTimeUtc != null) {
       map['end_time_utc'] = Variable<DateTime>(endTimeUtc);
@@ -3680,6 +3706,7 @@ class Trip extends DataClass implements Insertable<Trip> {
     return TripsCompanion(
       id: Value(id),
       riderName: Value(riderName),
+      wristSide: Value(wristSide),
       startTimeUtc: Value(startTimeUtc),
       endTimeUtc: endTimeUtc == null && nullToAbsent
           ? const Value.absent()
@@ -3761,6 +3788,7 @@ class Trip extends DataClass implements Insertable<Trip> {
     return Trip(
       id: serializer.fromJson<int>(json['id']),
       riderName: serializer.fromJson<String>(json['riderName']),
+      wristSide: serializer.fromJson<String>(json['wristSide']),
       startTimeUtc: serializer.fromJson<DateTime>(json['startTimeUtc']),
       endTimeUtc: serializer.fromJson<DateTime?>(json['endTimeUtc']),
       startTimestampUtc: serializer.fromJson<DateTime?>(
@@ -3807,6 +3835,7 @@ class Trip extends DataClass implements Insertable<Trip> {
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
       'riderName': serializer.toJson<String>(riderName),
+      'wristSide': serializer.toJson<String>(wristSide),
       'startTimeUtc': serializer.toJson<DateTime>(startTimeUtc),
       'endTimeUtc': serializer.toJson<DateTime?>(endTimeUtc),
       'startTimestampUtc': serializer.toJson<DateTime?>(startTimestampUtc),
@@ -3845,6 +3874,7 @@ class Trip extends DataClass implements Insertable<Trip> {
   Trip copyWith({
     int? id,
     String? riderName,
+    String? wristSide,
     DateTime? startTimeUtc,
     Value<DateTime?> endTimeUtc = const Value.absent(),
     Value<DateTime?> startTimestampUtc = const Value.absent(),
@@ -3878,6 +3908,7 @@ class Trip extends DataClass implements Insertable<Trip> {
   }) => Trip(
     id: id ?? this.id,
     riderName: riderName ?? this.riderName,
+    wristSide: wristSide ?? this.wristSide,
     startTimeUtc: startTimeUtc ?? this.startTimeUtc,
     endTimeUtc: endTimeUtc.present ? endTimeUtc.value : this.endTimeUtc,
     startTimestampUtc: startTimestampUtc.present
@@ -3927,6 +3958,7 @@ class Trip extends DataClass implements Insertable<Trip> {
     return Trip(
       id: data.id.present ? data.id.value : this.id,
       riderName: data.riderName.present ? data.riderName.value : this.riderName,
+      wristSide: data.wristSide.present ? data.wristSide.value : this.wristSide,
       startTimeUtc: data.startTimeUtc.present
           ? data.startTimeUtc.value
           : this.startTimeUtc,
@@ -4009,6 +4041,7 @@ class Trip extends DataClass implements Insertable<Trip> {
     return (StringBuffer('Trip(')
           ..write('id: $id, ')
           ..write('riderName: $riderName, ')
+          ..write('wristSide: $wristSide, ')
           ..write('startTimeUtc: $startTimeUtc, ')
           ..write('endTimeUtc: $endTimeUtc, ')
           ..write('startTimestampUtc: $startTimestampUtc, ')
@@ -4047,6 +4080,7 @@ class Trip extends DataClass implements Insertable<Trip> {
   int get hashCode => Object.hashAll([
     id,
     riderName,
+    wristSide,
     startTimeUtc,
     endTimeUtc,
     startTimestampUtc,
@@ -4084,6 +4118,7 @@ class Trip extends DataClass implements Insertable<Trip> {
       (other is Trip &&
           other.id == this.id &&
           other.riderName == this.riderName &&
+          other.wristSide == this.wristSide &&
           other.startTimeUtc == this.startTimeUtc &&
           other.endTimeUtc == this.endTimeUtc &&
           other.startTimestampUtc == this.startTimestampUtc &&
@@ -4119,6 +4154,7 @@ class Trip extends DataClass implements Insertable<Trip> {
 class TripsCompanion extends UpdateCompanion<Trip> {
   final Value<int> id;
   final Value<String> riderName;
+  final Value<String> wristSide;
   final Value<DateTime> startTimeUtc;
   final Value<DateTime?> endTimeUtc;
   final Value<DateTime?> startTimestampUtc;
@@ -4152,6 +4188,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
   const TripsCompanion({
     this.id = const Value.absent(),
     this.riderName = const Value.absent(),
+    this.wristSide = const Value.absent(),
     this.startTimeUtc = const Value.absent(),
     this.endTimeUtc = const Value.absent(),
     this.startTimestampUtc = const Value.absent(),
@@ -4186,6 +4223,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
   TripsCompanion.insert({
     this.id = const Value.absent(),
     this.riderName = const Value.absent(),
+    this.wristSide = const Value.absent(),
     required DateTime startTimeUtc,
     this.endTimeUtc = const Value.absent(),
     this.startTimestampUtc = const Value.absent(),
@@ -4220,6 +4258,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
   static Insertable<Trip> custom({
     Expression<int>? id,
     Expression<String>? riderName,
+    Expression<String>? wristSide,
     Expression<DateTime>? startTimeUtc,
     Expression<DateTime>? endTimeUtc,
     Expression<DateTime>? startTimestampUtc,
@@ -4254,6 +4293,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (riderName != null) 'rider_name': riderName,
+      if (wristSide != null) 'wrist_side': wristSide,
       if (startTimeUtc != null) 'start_time_utc': startTimeUtc,
       if (endTimeUtc != null) 'end_time_utc': endTimeUtc,
       if (startTimestampUtc != null) 'start_timestamp_utc': startTimestampUtc,
@@ -4293,6 +4333,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
   TripsCompanion copyWith({
     Value<int>? id,
     Value<String>? riderName,
+    Value<String>? wristSide,
     Value<DateTime>? startTimeUtc,
     Value<DateTime?>? endTimeUtc,
     Value<DateTime?>? startTimestampUtc,
@@ -4327,6 +4368,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
     return TripsCompanion(
       id: id ?? this.id,
       riderName: riderName ?? this.riderName,
+      wristSide: wristSide ?? this.wristSide,
       startTimeUtc: startTimeUtc ?? this.startTimeUtc,
       endTimeUtc: endTimeUtc ?? this.endTimeUtc,
       startTimestampUtc: startTimestampUtc ?? this.startTimestampUtc,
@@ -4369,6 +4411,9 @@ class TripsCompanion extends UpdateCompanion<Trip> {
     }
     if (riderName.present) {
       map['rider_name'] = Variable<String>(riderName.value);
+    }
+    if (wristSide.present) {
+      map['wrist_side'] = Variable<String>(wristSide.value);
     }
     if (startTimeUtc.present) {
       map['start_time_utc'] = Variable<DateTime>(startTimeUtc.value);
@@ -4472,6 +4517,7 @@ class TripsCompanion extends UpdateCompanion<Trip> {
     return (StringBuffer('TripsCompanion(')
           ..write('id: $id, ')
           ..write('riderName: $riderName, ')
+          ..write('wristSide: $wristSide, ')
           ..write('startTimeUtc: $startTimeUtc, ')
           ..write('endTimeUtc: $endTimeUtc, ')
           ..write('startTimestampUtc: $startTimestampUtc, ')
@@ -6830,6 +6876,7 @@ typedef $$TripsTableCreateCompanionBuilder =
     TripsCompanion Function({
       Value<int> id,
       Value<String> riderName,
+      Value<String> wristSide,
       required DateTime startTimeUtc,
       Value<DateTime?> endTimeUtc,
       Value<DateTime?> startTimestampUtc,
@@ -6865,6 +6912,7 @@ typedef $$TripsTableUpdateCompanionBuilder =
     TripsCompanion Function({
       Value<int> id,
       Value<String> riderName,
+      Value<String> wristSide,
       Value<DateTime> startTimeUtc,
       Value<DateTime?> endTimeUtc,
       Value<DateTime?> startTimestampUtc,
@@ -6912,6 +6960,11 @@ class $$TripsTableFilterComposer extends Composer<_$AppDatabase, $TripsTable> {
 
   ColumnFilters<String> get riderName => $composableBuilder(
     column: $table.riderName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get wristSide => $composableBuilder(
+    column: $table.wristSide,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7085,6 +7138,11 @@ class $$TripsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get wristSide => $composableBuilder(
+    column: $table.wristSide,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get startTimeUtc => $composableBuilder(
     column: $table.startTimeUtc,
     builder: (column) => ColumnOrderings(column),
@@ -7251,6 +7309,9 @@ class $$TripsTableAnnotationComposer
   GeneratedColumn<String> get riderName =>
       $composableBuilder(column: $table.riderName, builder: (column) => column);
 
+  GeneratedColumn<String> get wristSide =>
+      $composableBuilder(column: $table.wristSide, builder: (column) => column);
+
   GeneratedColumn<DateTime> get startTimeUtc => $composableBuilder(
     column: $table.startTimeUtc,
     builder: (column) => column,
@@ -7416,6 +7477,7 @@ class $$TripsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> riderName = const Value.absent(),
+                Value<String> wristSide = const Value.absent(),
                 Value<DateTime> startTimeUtc = const Value.absent(),
                 Value<DateTime?> endTimeUtc = const Value.absent(),
                 Value<DateTime?> startTimestampUtc = const Value.absent(),
@@ -7449,6 +7511,7 @@ class $$TripsTableTableManager
               }) => TripsCompanion(
                 id: id,
                 riderName: riderName,
+                wristSide: wristSide,
                 startTimeUtc: startTimeUtc,
                 endTimeUtc: endTimeUtc,
                 startTimestampUtc: startTimestampUtc,
@@ -7484,6 +7547,7 @@ class $$TripsTableTableManager
               ({
                 Value<int> id = const Value.absent(),
                 Value<String> riderName = const Value.absent(),
+                Value<String> wristSide = const Value.absent(),
                 required DateTime startTimeUtc,
                 Value<DateTime?> endTimeUtc = const Value.absent(),
                 Value<DateTime?> startTimestampUtc = const Value.absent(),
@@ -7517,6 +7581,7 @@ class $$TripsTableTableManager
               }) => TripsCompanion.insert(
                 id: id,
                 riderName: riderName,
+                wristSide: wristSide,
                 startTimeUtc: startTimeUtc,
                 endTimeUtc: endTimeUtc,
                 startTimestampUtc: startTimestampUtc,

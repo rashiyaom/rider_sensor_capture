@@ -8,6 +8,8 @@ import '../../data/local_db/database.dart';
 import '../../providers/db_providers.dart';
 import '../../providers/ride_recording_provider.dart';
 
+const Object _undefined = Object();
+
 class TripState {
   final bool isJourneyActive;
   final int? activeTripId;
@@ -24,6 +26,7 @@ class TripState {
   final int eventsCount;
   final List<Map<String, dynamic>> routePoints;
   final Trip? lastCompletedTrip;
+  final String wristSide;
 
   const TripState({
     this.isJourneyActive = false,
@@ -41,6 +44,7 @@ class TripState {
     this.eventsCount = 0,
     this.routePoints = const [],
     this.lastCompletedTrip,
+    this.wristSide = 'Left',
   });
 
   String get formattedElapsed {
@@ -57,7 +61,7 @@ class TripState {
 
   TripState copyWith({
     bool? isJourneyActive,
-    int? activeTripId,
+    Object? activeTripId = _undefined,
     String? riderName,
     DateTime? startTime,
     Duration? elapsed,
@@ -71,10 +75,11 @@ class TripState {
     int? eventsCount,
     List<Map<String, dynamic>>? routePoints,
     Trip? lastCompletedTrip,
+    String? wristSide,
   }) {
     return TripState(
       isJourneyActive: isJourneyActive ?? this.isJourneyActive,
-      activeTripId: activeTripId ?? this.activeTripId,
+      activeTripId: activeTripId == _undefined ? this.activeTripId : activeTripId as int?,
       riderName: riderName ?? this.riderName,
       startTime: startTime ?? this.startTime,
       elapsed: elapsed ?? this.elapsed,
@@ -88,6 +93,7 @@ class TripState {
       eventsCount: eventsCount ?? this.eventsCount,
       routePoints: routePoints ?? this.routePoints,
       lastCompletedTrip: lastCompletedTrip ?? this.lastCompletedTrip,
+      wristSide: wristSide ?? this.wristSide,
     );
   }
 }
@@ -105,7 +111,11 @@ class TripController extends StateNotifier<TripState> {
     state = state.copyWith(riderName: name.trim().isEmpty ? 'Rider' : name.trim());
   }
 
-  Future<bool> startJourney({String? riderName}) async {
+  void setWristSide(String side) {
+    state = state.copyWith(wristSide: side.trim().isEmpty ? 'Left' : side.trim());
+  }
+
+  Future<bool> startJourney({String? riderName, String wristSide = 'Left'}) async {
     if (state.isJourneyActive) return true;
 
     final chosenRider = (riderName != null && riderName.trim().isNotEmpty)
@@ -149,6 +159,7 @@ class TripController extends StateNotifier<TripState> {
     final tripId = await repo.createTrip(
       TripsCompanion(
         riderName: drift.Value(chosenRider),
+        wristSide: drift.Value(wristSide),
         startTimeUtc: drift.Value(now.toUtc()),
         startLat: drift.Value(startPos?.latitude),
         startLng: drift.Value(startPos?.longitude),
@@ -164,6 +175,7 @@ class TripController extends StateNotifier<TripState> {
       isJourneyActive: true,
       activeTripId: tripId,
       riderName: chosenRider,
+      wristSide: wristSide,
       startTime: now,
       elapsed: Duration.zero,
       startPosition: startPos,
@@ -292,6 +304,7 @@ class TripController extends StateNotifier<TripState> {
       await repo.updateTrip(updated);
       repo.setActiveTripId(null);
 
+      // Pass null explicitly — the _undefined sentinel pattern allows this
       state = state.copyWith(
         isJourneyActive: false,
         activeTripId: null,

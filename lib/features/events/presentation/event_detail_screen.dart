@@ -10,6 +10,15 @@ import '../../../data/local_db/database.dart';
 import '../../../data/models/event_parameters.dart';
 import '../../../providers/db_providers.dart';
 
+/// Stable family provider — one stream per eventId, cached across rebuilds.
+/// This fixes the chart blank-state bug caused by inline StreamProvider creation.
+final _eventReadingsProvider =
+    StreamProvider.family.autoDispose<List<SensorReading>, int>((ref, eventId) {
+  final repo = ref.watch(sensorRepositoryProvider);
+  return repo.watchReadingsForEvent(eventId);
+});
+
+
 class EventDetailScreen extends ConsumerWidget {
   final EventRecord event;
 
@@ -17,10 +26,7 @@ class EventDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(sensorRepositoryProvider);
-    final readingsAsync = ref.watch(
-      StreamProvider<List<SensorReading>>((ref) => repo.watchReadingsForEvent(event.id)),
-    );
+    final readingsAsync = ref.watch(_eventReadingsProvider(event.id));
 
     final params = EventParameters.fromJsonString(event.computedParameters);
 

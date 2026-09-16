@@ -802,8 +802,133 @@ class ExportRepositoryImpl implements ExportRepository {
           ]))
         .get();
 
-    return _generateLegacyCsvFromReadings(readings, eventMap);
+    return _generateLegacyCsvWithBoundingBoxes(readings, eventMap, events);
   }
+
+  /// Generates CSV with EVENT_START / EVENT_END marker rows injected at event boundaries.
+  /// This gives ML preprocessing a clear bounding box for each labeled event.
+  String _generateLegacyCsvWithBoundingBoxes(
+    List<SensorReading> readings,
+    Map<int, EventRecord> eventMap,
+    List<EventRecord> events,
+  ) {
+    final buffer = StringBuffer();
+    final localDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss.SSS');
+
+    // Header — extra sentinel column `bbox_marker` at the end for easy filtering
+    buffer.writeln(
+      'reading_id,timestamp_iso8601,timestamp_local,timestamp_epoch_ms,sequence_no,device_id,device_type,mount_location,sensor_type,'
+      'heart_rate_bpm,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,ppi_ms,'
+      'trip_id,event_id,event_type,event_classification,event_peak_metric,cross_confirmed,param_summary,bbox_marker',
+    );
+
+    // Build a sorted list of event boundary timestamps for efficient insertion
+    // We'll do a merge: walk readings in order and inject markers when we cross an event boundary
+    final sortedEvents = List<EventRecord>.from(events)
+      ..sort((a, b) => a.startTimestamp.compareTo(b.startTimestamp));
+
+    // Track which events have had their START marker written
+    final startWritten = <int>{};
+
+    // Helper to write a sentinel marker row
+    void writeMarker(String markerType, EventRecord evt) {
+      final ts = markerType == 'EVENT_START' ? evt.startTimestamp : (evt.endTimestamp ?? evt.startTimestamp);
+      final localFmt = localDateFormat.format(ts.toLocal());
+      // Marker rows have all data columns empty except bbox_marker
+      final cols = [
+        '',                           // reading_id
+        ts.toIso8601String(),         // timestamp_iso8601
+        _csvEscape(localFmt),         // timestamp_local
+        ts.millisecondsSinceEpoch,    // timestamp_epoch_ms
+        '',                           // sequence_no
+        '',                           // device_id
+        '',                           // device_type
+        '',                           // mount_location
+        '',                           // sensor_type
+        '', '', '', '', '', '', '', '', // sensor data columns
+        evt.tripId ?? '',             // trip_id
+        evt.id,                       // event_id
+        _csvEscape(evt.eventType),    // event_type
+        _csvEscape(evt.classification ?? ''), // event_classification
+        evt.peakMetric?.toStringAsFixed(2) ?? '', // event_peak_metric
+        evt.crossConfirmed ?? false,  // cross_confirmed
+        '',                           // param_summary
+        _csvEscape(markerType),       // bbox_marker
+      ];
+      buffer.writeln(cols.join(','));
+    }
+
+    // Walk through readings; inject event markers at boundaries
+    for (final r in readings) {
+      final rTime = r.timestampUtc;
+
+      // Write EVENT_START for any event whose window begins at or before this reading
+      for (final evt in sortedEvents) {
+        if (!startWritten.contains(evt.id) && !rTime.isBefore(evt.startTimestamp)) {
+          writeMarker('EVENT_START', evt);
+          startWritten.add(evt.id);
+        }
+      }
+
+      // Write the sensor reading row
+      final evt = r.eventId != null ? eventMap[r.eventId] : null;
+      final params = evt?.computedParameters != null
+          ? EventParameters.fromJsonString(evt!.computedParameters)?.summary
+          : '';
+      final localFormatted = localDateFormat.format(r.timestampUtc.toLocal());
+      final epochMs = r.timestampUtc.millisecondsSinceEpoch;
+
+      final row = [
+        r.id,
+        r.timestampUtc.toIso8601String(),
+        _csvEscape(localFormatted),
+        epochMs,
+        r.sequenceNo,
+        _csvEscape(r.deviceId),
+        _csvEscape(r.deviceType),
+        _csvEscape(r.mountLocation),
+        _csvEscape(r.sensorType),
+        r.heartRate ?? '',
+        r.accelX?.toStringAsFixed(4) ?? '',
+        r.accelY?.toStringAsFixed(4) ?? '',
+        r.accelZ?.toStringAsFixed(4) ?? '',
+        r.gyroX?.toStringAsFixed(4) ?? '',
+        r.gyroY?.toStringAsFixed(4) ?? '',
+        r.gyroZ?.toStringAsFixed(4) ?? '',
+        r.ppiMs ?? '',
+        r.tripId ?? '',
+        r.eventId ?? '',
+        _csvEscape(evt?.eventType ?? ''),
+        _csvEscape(evt?.classification ?? ''),
+        evt?.peakMetric?.toStringAsFixed(2) ?? '',
+        evt?.crossConfirmed ?? false,
+        _csvEscape(params ?? ''),
+        '',  // bbox_marker — empty for normal data rows
+      ];
+      buffer.writeln(row.join(','));
+
+      // Write EVENT_END for events whose window closes at this reading's timestamp
+      for (final e in sortedEvents) {
+        if (startWritten.contains(e.id) && e.endTimestamp != null) {
+          if (!rTime.isBefore(e.endTimestamp!)) {
+            writeMarker('EVENT_END', e);
+            sortedEvents.remove(e);
+            break;  // Restart outer loop to avoid ConcurrentModificationError
+          }
+        }
+      }
+    }
+
+    // Flush any remaining EVENT_END markers for events that outlasted all readings
+    for (final evt in sortedEvents) {
+      if (startWritten.contains(evt.id) && evt.endTimestamp != null) {
+        writeMarker('EVENT_END', evt);
+      }
+    }
+
+    return buffer.toString();
+  }
+
 
   @override
   Future<Map<String, dynamic>> exportTripJson(int tripId) async {
