@@ -61,6 +61,8 @@ class _StubSensorRepository implements SensorRepository {
   @override
   Future<Trip?> getTrip(int tripId) async => null;
   @override
+  Future<int> insertLocationReading(LocationReadingsCompanion reading) async => 0;
+  @override
   Stream<List<Trip>> watchAllTrips() => const Stream.empty();
   @override
   Future<void> deleteTrip(int tripId) async {}
@@ -68,6 +70,11 @@ class _StubSensorRepository implements SensorRepository {
   Future<int> getReadingCountForTrip(int tripId) async => 0;
   @override
   Future<int> getEventCountForTrip(int tripId) async => 0;
+  @override
+  Future<BleQualityStats> getTripBleQuality(int tripId) async =>
+      const BleQualityStats(totalPackets: 0, droppedPackets: 0, receptionPercentage: 100.0, gapCount: 0);
+  @override
+  Future<int> deleteUntaggedReadingsForTrip(int tripId) async => 0;
   @override
   Future<void> deleteAllReadings() async {}
   @override

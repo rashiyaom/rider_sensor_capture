@@ -183,6 +183,17 @@ class $SensorReadingsTable extends SensorReadings
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _gpsSpeedKmhMeta = const VerificationMeta(
+    'gpsSpeedKmh',
+  );
+  @override
+  late final GeneratedColumn<double> gpsSpeedKmh = GeneratedColumn<double>(
+    'gps_speed_kmh',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _rawPayloadMeta = const VerificationMeta(
     'rawPayload',
   );
@@ -213,6 +224,7 @@ class $SensorReadingsTable extends SensorReadings
     gyroY,
     gyroZ,
     ppiMs,
+    gpsSpeedKmh,
     rawPayload,
   ];
   @override
@@ -342,6 +354,15 @@ class $SensorReadingsTable extends SensorReadings
         ppiMs.isAcceptableOrUnknown(data['ppi_ms']!, _ppiMsMeta),
       );
     }
+    if (data.containsKey('gps_speed_kmh')) {
+      context.handle(
+        _gpsSpeedKmhMeta,
+        gpsSpeedKmh.isAcceptableOrUnknown(
+          data['gps_speed_kmh']!,
+          _gpsSpeedKmhMeta,
+        ),
+      );
+    }
     if (data.containsKey('raw_payload')) {
       context.handle(
         _rawPayloadMeta,
@@ -425,6 +446,10 @@ class $SensorReadingsTable extends SensorReadings
         DriftSqlType.int,
         data['${effectivePrefix}ppi_ms'],
       ),
+      gpsSpeedKmh: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}gps_speed_kmh'],
+      ),
       rawPayload: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}raw_payload'],
@@ -456,6 +481,7 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
   final double? gyroY;
   final double? gyroZ;
   final int? ppiMs;
+  final double? gpsSpeedKmh;
   final String? rawPayload;
   const SensorReading({
     required this.id,
@@ -475,6 +501,7 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
     this.gyroY,
     this.gyroZ,
     this.ppiMs,
+    this.gpsSpeedKmh,
     this.rawPayload,
   });
   @override
@@ -516,6 +543,9 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
     }
     if (!nullToAbsent || ppiMs != null) {
       map['ppi_ms'] = Variable<int>(ppiMs);
+    }
+    if (!nullToAbsent || gpsSpeedKmh != null) {
+      map['gps_speed_kmh'] = Variable<double>(gpsSpeedKmh);
     }
     if (!nullToAbsent || rawPayload != null) {
       map['raw_payload'] = Variable<String>(rawPayload);
@@ -562,6 +592,9 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
       ppiMs: ppiMs == null && nullToAbsent
           ? const Value.absent()
           : Value(ppiMs),
+      gpsSpeedKmh: gpsSpeedKmh == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gpsSpeedKmh),
       rawPayload: rawPayload == null && nullToAbsent
           ? const Value.absent()
           : Value(rawPayload),
@@ -591,6 +624,7 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
       gyroY: serializer.fromJson<double?>(json['gyroY']),
       gyroZ: serializer.fromJson<double?>(json['gyroZ']),
       ppiMs: serializer.fromJson<int?>(json['ppiMs']),
+      gpsSpeedKmh: serializer.fromJson<double?>(json['gpsSpeedKmh']),
       rawPayload: serializer.fromJson<String?>(json['rawPayload']),
     );
   }
@@ -615,6 +649,7 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
       'gyroY': serializer.toJson<double?>(gyroY),
       'gyroZ': serializer.toJson<double?>(gyroZ),
       'ppiMs': serializer.toJson<int?>(ppiMs),
+      'gpsSpeedKmh': serializer.toJson<double?>(gpsSpeedKmh),
       'rawPayload': serializer.toJson<String?>(rawPayload),
     };
   }
@@ -637,6 +672,7 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
     Value<double?> gyroY = const Value.absent(),
     Value<double?> gyroZ = const Value.absent(),
     Value<int?> ppiMs = const Value.absent(),
+    Value<double?> gpsSpeedKmh = const Value.absent(),
     Value<String?> rawPayload = const Value.absent(),
   }) => SensorReading(
     id: id ?? this.id,
@@ -656,6 +692,7 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
     gyroY: gyroY.present ? gyroY.value : this.gyroY,
     gyroZ: gyroZ.present ? gyroZ.value : this.gyroZ,
     ppiMs: ppiMs.present ? ppiMs.value : this.ppiMs,
+    gpsSpeedKmh: gpsSpeedKmh.present ? gpsSpeedKmh.value : this.gpsSpeedKmh,
     rawPayload: rawPayload.present ? rawPayload.value : this.rawPayload,
   );
   SensorReading copyWithCompanion(SensorReadingsCompanion data) {
@@ -687,6 +724,9 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
       gyroY: data.gyroY.present ? data.gyroY.value : this.gyroY,
       gyroZ: data.gyroZ.present ? data.gyroZ.value : this.gyroZ,
       ppiMs: data.ppiMs.present ? data.ppiMs.value : this.ppiMs,
+      gpsSpeedKmh: data.gpsSpeedKmh.present
+          ? data.gpsSpeedKmh.value
+          : this.gpsSpeedKmh,
       rawPayload: data.rawPayload.present
           ? data.rawPayload.value
           : this.rawPayload,
@@ -713,6 +753,7 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
           ..write('gyroY: $gyroY, ')
           ..write('gyroZ: $gyroZ, ')
           ..write('ppiMs: $ppiMs, ')
+          ..write('gpsSpeedKmh: $gpsSpeedKmh, ')
           ..write('rawPayload: $rawPayload')
           ..write(')'))
         .toString();
@@ -737,6 +778,7 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
     gyroY,
     gyroZ,
     ppiMs,
+    gpsSpeedKmh,
     rawPayload,
   );
   @override
@@ -760,6 +802,7 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
           other.gyroY == this.gyroY &&
           other.gyroZ == this.gyroZ &&
           other.ppiMs == this.ppiMs &&
+          other.gpsSpeedKmh == this.gpsSpeedKmh &&
           other.rawPayload == this.rawPayload);
 }
 
@@ -781,6 +824,7 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
   final Value<double?> gyroY;
   final Value<double?> gyroZ;
   final Value<int?> ppiMs;
+  final Value<double?> gpsSpeedKmh;
   final Value<String?> rawPayload;
   const SensorReadingsCompanion({
     this.id = const Value.absent(),
@@ -800,6 +844,7 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
     this.gyroY = const Value.absent(),
     this.gyroZ = const Value.absent(),
     this.ppiMs = const Value.absent(),
+    this.gpsSpeedKmh = const Value.absent(),
     this.rawPayload = const Value.absent(),
   });
   SensorReadingsCompanion.insert({
@@ -820,6 +865,7 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
     this.gyroY = const Value.absent(),
     this.gyroZ = const Value.absent(),
     this.ppiMs = const Value.absent(),
+    this.gpsSpeedKmh = const Value.absent(),
     this.rawPayload = const Value.absent(),
   }) : deviceId = Value(deviceId),
        deviceType = Value(deviceType),
@@ -844,6 +890,7 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
     Expression<double>? gyroY,
     Expression<double>? gyroZ,
     Expression<int>? ppiMs,
+    Expression<double>? gpsSpeedKmh,
     Expression<String>? rawPayload,
   }) {
     return RawValuesInsertable({
@@ -864,6 +911,7 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
       if (gyroY != null) 'gyro_y': gyroY,
       if (gyroZ != null) 'gyro_z': gyroZ,
       if (ppiMs != null) 'ppi_ms': ppiMs,
+      if (gpsSpeedKmh != null) 'gps_speed_kmh': gpsSpeedKmh,
       if (rawPayload != null) 'raw_payload': rawPayload,
     });
   }
@@ -886,6 +934,7 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
     Value<double?>? gyroY,
     Value<double?>? gyroZ,
     Value<int?>? ppiMs,
+    Value<double?>? gpsSpeedKmh,
     Value<String?>? rawPayload,
   }) {
     return SensorReadingsCompanion(
@@ -906,6 +955,7 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
       gyroY: gyroY ?? this.gyroY,
       gyroZ: gyroZ ?? this.gyroZ,
       ppiMs: ppiMs ?? this.ppiMs,
+      gpsSpeedKmh: gpsSpeedKmh ?? this.gpsSpeedKmh,
       rawPayload: rawPayload ?? this.rawPayload,
     );
   }
@@ -964,6 +1014,9 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
     if (ppiMs.present) {
       map['ppi_ms'] = Variable<int>(ppiMs.value);
     }
+    if (gpsSpeedKmh.present) {
+      map['gps_speed_kmh'] = Variable<double>(gpsSpeedKmh.value);
+    }
     if (rawPayload.present) {
       map['raw_payload'] = Variable<String>(rawPayload.value);
     }
@@ -990,6 +1043,7 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
           ..write('gyroY: $gyroY, ')
           ..write('gyroZ: $gyroZ, ')
           ..write('ppiMs: $ppiMs, ')
+          ..write('gpsSpeedKmh: $gpsSpeedKmh, ')
           ..write('rawPayload: $rawPayload')
           ..write(')'))
         .toString();
@@ -5660,6 +5714,7 @@ typedef $$SensorReadingsTableCreateCompanionBuilder =
       Value<double?> gyroY,
       Value<double?> gyroZ,
       Value<int?> ppiMs,
+      Value<double?> gpsSpeedKmh,
       Value<String?> rawPayload,
     });
 typedef $$SensorReadingsTableUpdateCompanionBuilder =
@@ -5681,6 +5736,7 @@ typedef $$SensorReadingsTableUpdateCompanionBuilder =
       Value<double?> gyroY,
       Value<double?> gyroZ,
       Value<int?> ppiMs,
+      Value<double?> gpsSpeedKmh,
       Value<String?> rawPayload,
     });
 
@@ -5775,6 +5831,11 @@ class $$SensorReadingsTableFilterComposer
 
   ColumnFilters<int> get ppiMs => $composableBuilder(
     column: $table.ppiMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get gpsSpeedKmh => $composableBuilder(
+    column: $table.gpsSpeedKmh,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5878,6 +5939,11 @@ class $$SensorReadingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get gpsSpeedKmh => $composableBuilder(
+    column: $table.gpsSpeedKmh,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get rawPayload => $composableBuilder(
     column: $table.rawPayload,
     builder: (column) => ColumnOrderings(column),
@@ -5954,6 +6020,11 @@ class $$SensorReadingsTableAnnotationComposer
   GeneratedColumn<int> get ppiMs =>
       $composableBuilder(column: $table.ppiMs, builder: (column) => column);
 
+  GeneratedColumn<double> get gpsSpeedKmh => $composableBuilder(
+    column: $table.gpsSpeedKmh,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get rawPayload => $composableBuilder(
     column: $table.rawPayload,
     builder: (column) => column,
@@ -6010,6 +6081,7 @@ class $$SensorReadingsTableTableManager
                 Value<double?> gyroY = const Value.absent(),
                 Value<double?> gyroZ = const Value.absent(),
                 Value<int?> ppiMs = const Value.absent(),
+                Value<double?> gpsSpeedKmh = const Value.absent(),
                 Value<String?> rawPayload = const Value.absent(),
               }) => SensorReadingsCompanion(
                 id: id,
@@ -6029,6 +6101,7 @@ class $$SensorReadingsTableTableManager
                 gyroY: gyroY,
                 gyroZ: gyroZ,
                 ppiMs: ppiMs,
+                gpsSpeedKmh: gpsSpeedKmh,
                 rawPayload: rawPayload,
               ),
           createCompanionCallback:
@@ -6050,6 +6123,7 @@ class $$SensorReadingsTableTableManager
                 Value<double?> gyroY = const Value.absent(),
                 Value<double?> gyroZ = const Value.absent(),
                 Value<int?> ppiMs = const Value.absent(),
+                Value<double?> gpsSpeedKmh = const Value.absent(),
                 Value<String?> rawPayload = const Value.absent(),
               }) => SensorReadingsCompanion.insert(
                 id: id,
@@ -6069,6 +6143,7 @@ class $$SensorReadingsTableTableManager
                 gyroY: gyroY,
                 gyroZ: gyroZ,
                 ppiMs: ppiMs,
+                gpsSpeedKmh: gpsSpeedKmh,
                 rawPayload: rawPayload,
               ),
           withReferenceMapper: (p0) => p0

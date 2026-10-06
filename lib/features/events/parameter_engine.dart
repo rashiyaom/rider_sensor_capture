@@ -39,16 +39,18 @@ class ParameterEngine {
     return smoothed;
   }
 
-  /// Compute continuous 3-axis jerk series and peak magnitude
+  /// Compute continuous 3-axis jerk series and peak magnitude (per physical device)
   static double computePeakJerk(List<SensorReading> readings) {
     if (readings.length < 2) return 0.0;
     double maxJerk = 0.0;
+    final lastReadingByDevice = <String, SensorReading>{};
 
-    for (int i = 1; i < readings.length; i++) {
-      final prev = readings[i - 1];
-      final curr = readings[i];
+    for (final curr in readings) {
+      final prev = lastReadingByDevice[curr.deviceId];
+      lastReadingByDevice[curr.deviceId] = curr;
 
-      if (prev.accelX != null && prev.accelY != null && prev.accelZ != null &&
+      if (prev != null &&
+          prev.accelX != null && prev.accelY != null && prev.accelZ != null &&
           curr.accelX != null && curr.accelY != null && curr.accelZ != null) {
         final dt = curr.timestampUtc.difference(prev.timestampUtc).inMilliseconds / 1000.0;
         if (dt > 0.005 && dt < 0.2) {
@@ -72,9 +74,16 @@ class ParameterEngine {
     double alpha = 0.98,
     bool applyManeuverFilter = true,
   }) {
-    // Prefer fork-mounted readings as authoritative source
+    // Prefer fork or left_hand readings as authoritative single-sensor stream
     final forkReadings = readings.where((r) => r.mountLocation == 'fork').toList();
-    final sourceReadings = forkReadings.isNotEmpty ? forkReadings : readings;
+    final leftReadings = readings.where((r) => r.mountLocation == 'left_hand').toList();
+    final sourceReadings = forkReadings.isNotEmpty
+        ? forkReadings
+        : (leftReadings.isNotEmpty
+            ? leftReadings
+            : (readings.isNotEmpty
+                ? readings.where((r) => r.deviceId == readings.first.deviceId).toList()
+                : <SensorReading>[]));
 
     if (sourceReadings.isEmpty) return 0.0;
 

@@ -210,6 +210,7 @@ class SensorRepositoryImpl implements SensorRepository {
     return (_db.select(_db.sensorReadings)
           ..where((t) => t.eventId.equals(eventId))
           ..orderBy([
+            (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
             (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc)
           ]))
         .watch();
@@ -307,8 +308,15 @@ class SensorRepositoryImpl implements SensorRepository {
   Future<void> deleteTrip(int tripId) async {
     await (_db.delete(_db.sensorReadings)..where((t) => t.tripId.equals(tripId))).go();
     await (_db.delete(_db.eventRecords)..where((t) => t.tripId.equals(tripId))).go();
+    await (_db.delete(_db.locationReadings)..where((t) => t.tripId.equals(tripId))).go();
+    await (_db.delete(_db.tripCalibrations)..where((t) => t.tripId.equals(tripId))).go();
     await (_db.delete(_db.trips)..where((t) => t.id.equals(tripId))).go();
     await _initCountersFromDb();
+  }
+
+  @override
+  Future<int> insertLocationReading(LocationReadingsCompanion reading) async {
+    return await _db.into(_db.locationReadings).insert(reading);
   }
 
   @override
@@ -329,6 +337,57 @@ class SensorRepositoryImpl implements SensorRepository {
       ..where(_db.eventRecords.tripId.equals(tripId));
     final row = await query.getSingleOrNull();
     return row?.read(countExp) ?? 0;
+  }
+
+  @override
+  Future<BleQualityStats> getTripBleQuality(int tripId) async {
+    final seqCol = _db.sensorReadings.sequenceNo;
+    final query = _db.selectOnly(_db.sensorReadings)
+      ..where(_db.sensorReadings.tripId.equals(tripId))
+      ..addColumns([seqCol])
+      ..orderBy([OrderingTerm(expression: seqCol, mode: OrderingMode.asc)]);
+    final rows = await query.get();
+    if (rows.isEmpty) {
+      return const BleQualityStats(
+        totalPackets: 0,
+        droppedPackets: 0,
+        receptionPercentage: 100.0,
+        gapCount: 0,
+      );
+    }
+    int total = rows.length;
+    int gaps = 0;
+    int dropped = 0;
+    int? prevSeq;
+    for (final r in rows) {
+      final seq = r.read(seqCol);
+      if (seq == null) continue;
+      if (prevSeq != null && seq > prevSeq + 1) {
+        final diff = seq - prevSeq - 1;
+        if (diff > 0 && diff < 10000) {
+          dropped += diff;
+          gaps++;
+        }
+      }
+      prevSeq = seq;
+    }
+    final totalExpected = total + dropped;
+    final pct = totalExpected > 0 ? (total / totalExpected) * 100.0 : 100.0;
+    return BleQualityStats(
+      totalPackets: total,
+      droppedPackets: dropped,
+      receptionPercentage: double.parse(pct.toStringAsFixed(1)),
+      gapCount: gaps,
+    );
+  }
+
+  @override
+  Future<int> deleteUntaggedReadingsForTrip(int tripId) async {
+    final deleted = await (_db.delete(_db.sensorReadings)
+          ..where((t) => t.tripId.equals(tripId) & t.eventId.isNull()))
+        .go();
+    await _initCountersFromDb();
+    return deleted;
   }
 
   @override

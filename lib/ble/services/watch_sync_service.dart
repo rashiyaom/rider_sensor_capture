@@ -33,8 +33,6 @@ class WatchSyncService {
   Stream<WatchBatteryInfo> get watchBatteryStream => _watchBatteryController.stream;
   WatchBatteryInfo get currentWatchBattery => _watchBattery;
 
-  int _latestHeartRate = 0;
-
   WatchSyncService(this._bleManager, this._ref) {
     _initSubscriptions();
     _startPeriodicTelemetry();
@@ -44,21 +42,28 @@ class WatchSyncService {
     // 1. Listen for watch-to-phone commands (from 0xFFE3 characteristic)
     _watchCommandSub = _bleManager.watchCommandStream.listen(_handleWatchCommand);
 
-    // 2. Track latest Heart Rate from Polar / BLE stream
-    _bleManager.rawDataStream.listen((data) {
-      if (data.heartRate != null && data.heartRate! > 0) {
-        _latestHeartRate = data.heartRate!;
+    // 3. Listen for watch connection to sync time and initial trip state immediately
+    bool lastWatchConnected = false;
+    _bleManager.deviceStatesStream.listen((_) {
+      final isConnected = _bleManager.isWatchConnected;
+      if (isConnected && !lastWatchConnected) {
+        lastWatchConnected = true;
+        sendTimeSyncToWatch();
+        final isJourneyActive = _ref.read(tripControllerProvider).isJourneyActive;
+        sendTripStateToWatch(isJourneyActive, tripName: 'Ride Session');
+      } else if (!isConnected) {
+        lastWatchConnected = false;
       }
     });
 
-    // 3. Listen for phone trip state changes to mirror on watch immediately
+    // 4. Listen for phone trip state changes to mirror on watch immediately
     _ref.listen<TripState>(tripControllerProvider, (previous, next) {
       if (previous?.isJourneyActive != next.isJourneyActive) {
         sendTripStateToWatch(next.isJourneyActive, tripName: 'Ride Session');
       }
     });
 
-    // 4. Listen for phone event changes (e.g. voice trigger) to mirror on watch immediately
+    // 5. Listen for phone event changes (e.g. voice trigger) to mirror on watch immediately
     _ref.listen<EventRecordingSessionState>(eventRecordingControllerProvider, (previous, next) {
       if (previous?.currentEventType != next.currentEventType ||
           previous?.state != next.state) {
@@ -150,22 +155,12 @@ class WatchSyncService {
 
   void _startPeriodicTelemetry() {
     _periodicTelemetryTimer?.cancel();
-    _periodicTelemetryTimer = Timer.periodic(const Duration(milliseconds: 1000), (_) {
+    _periodicTelemetryTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (!_bleManager.isWatchConnected) return;
 
-      final tripState = _ref.read(tripControllerProvider);
       final batteryInfo = _ref.read(batteryServiceProvider).currentInfo;
 
-      // 1. Send live GPS & sensor telemetry to watch
-      sendTelemetryToWatch(
-        speedKmh: tripState.currentSpeedKmh,
-        distanceMeters: tripState.distanceMeters,
-        heartRate: _latestHeartRate,
-        gpsLocked: tripState.currentPosition != null,
-        satellites: tripState.currentPosition != null ? 8 : 0,
-      );
-
-      // 2. Send phone battery level & charging state
+      // Send phone battery level & charging state every 15s (low-overhead background sync)
       sendPhoneBatteryToWatch(
         batteryPercent: batteryInfo.batteryLevel,
         isCharging: batteryInfo.isCharging,

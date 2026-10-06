@@ -606,49 +606,66 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           ),
           const SizedBox(height: 10),
           // ── Device Mount Location Pairing Selector (§3) ──
-          Row(
-            children: [
-              const Text(
-                'MOUNT:',
-                style: TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              const SizedBox(width: 8),
-              _buildMountChip(
-                device.id,
-                'fork',
-                'Fork',
-                (ref.watch(deviceMountLocationMapProvider)[device.id] ??
-                        (device.type == DeviceType.verityBand
-                            ? 'forearm'
-                            : (device.name.toUpperCase().contains('FOOT') ? 'footboard' : 'fork'))) ==
-                    'fork',
-              ),
-              const SizedBox(width: 6),
-              _buildMountChip(
-                device.id,
-                'footboard',
-                'Footboard',
-                (ref.watch(deviceMountLocationMapProvider)[device.id] ??
-                        (device.type == DeviceType.verityBand
-                            ? 'forearm'
-                            : (device.name.toUpperCase().contains('FOOT') ? 'footboard' : 'fork'))) ==
-                    'footboard',
-              ),
-              if (device.type == DeviceType.verityBand) ...[
-                const SizedBox(width: 6),
-                _buildMountChip(
-                  device.id,
-                  'forearm',
-                  'Forearm',
-                  (ref.watch(deviceMountLocationMapProvider)[device.id] ?? 'forearm') == 'forearm',
-                ),
-              ],
-            ],
+          Builder(
+            builder: (ctx) {
+              final mountMap = ref.watch(deviceMountLocationMapProvider);
+              String currentMount;
+              if (mountMap.containsKey(device.id)) {
+                currentMount = mountMap[device.id]!;
+              } else if (device.type == DeviceType.verityBand) {
+                currentMount = 'forearm';
+              } else {
+                final allDevices = ref.watch(discoveredDevicesStreamProvider).value ?? [];
+                final watches = allDevices.where((d) => d.type == DeviceType.watch || d.name.toLowerCase().contains('esp') || d.name.toLowerCase().contains('watch')).toList();
+                final index = watches.indexWhere((d) => d.id == device.id);
+                if (device.id.toLowerCase().contains('right') || device.name.toLowerCase().contains('right')) {
+                  currentMount = 'right_hand';
+                } else if (device.id.toLowerCase().contains('left') || device.name.toLowerCase().contains('left')) {
+                  currentMount = 'left_hand';
+                } else if (index >= 1) {
+                  currentMount = 'right_hand';
+                } else {
+                  currentMount = 'left_hand';
+                }
+              }
+
+              return Row(
+                children: [
+                  const Text(
+                    'HAND / MOUNT:',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildMountChip(
+                    device.id,
+                    'left_hand',
+                    'Left Hand',
+                    currentMount == 'left_hand',
+                  ),
+                  const SizedBox(width: 6),
+                  _buildMountChip(
+                    device.id,
+                    'right_hand',
+                    'Right Hand',
+                    currentMount == 'right_hand',
+                  ),
+                  if (device.type == DeviceType.verityBand) ...[
+                    const SizedBox(width: 6),
+                    _buildMountChip(
+                      device.id,
+                      'forearm',
+                      'Forearm',
+                      currentMount == 'forearm',
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
           if (isConnected) ...[
             const SizedBox(height: 12),

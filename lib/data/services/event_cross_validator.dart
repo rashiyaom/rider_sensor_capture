@@ -31,10 +31,23 @@ class EventCrossValidator {
     required String eventType,
     required List<SensorReading> readings,
   }) {
-    final forkReadings = readings.where((r) => r.mountLocation == 'fork').toList();
-    final footboardReadings = readings.where((r) => r.mountLocation == 'footboard').toList();
+    var sensor1Readings = readings.where((r) => r.mountLocation == 'left_hand').toList();
+    var sensor2Readings = readings.where((r) => r.mountLocation == 'right_hand').toList();
 
-    if (forkReadings.isEmpty || footboardReadings.isEmpty) {
+    if (sensor1Readings.isEmpty || sensor2Readings.isEmpty) {
+      sensor1Readings = readings.where((r) => r.mountLocation == 'fork').toList();
+      sensor2Readings = readings.where((r) => r.mountLocation == 'footboard').toList();
+    }
+
+    if (sensor1Readings.isEmpty || sensor2Readings.isEmpty) {
+      final devices = readings.map((r) => r.deviceId).toSet().toList();
+      if (devices.length >= 2) {
+        sensor1Readings = readings.where((r) => r.deviceId == devices[0]).toList();
+        sensor2Readings = readings.where((r) => r.deviceId == devices[1]).toList();
+      }
+    }
+
+    if (sensor1Readings.isEmpty || sensor2Readings.isEmpty) {
       // Missing one of the sensors -> cannot cross-confirm
       return const CrossValidationResult(crossConfirmed: false);
     }
@@ -42,9 +55,9 @@ class EventCrossValidator {
     final maxLagAllowedMs = (eventType == 'bump') ? bumpWindowMs : turnBrakeWindowMs;
 
     if (eventType == 'bump') {
-      return _validateBumpSpikes(forkReadings, footboardReadings, maxLagAllowedMs);
+      return _validateBumpSpikes(sensor1Readings, sensor2Readings, maxLagAllowedMs);
     } else {
-      return _validateTurnBrakeSpikes(forkReadings, footboardReadings, maxLagAllowedMs);
+      return _validateTurnBrakeSpikes(sensor1Readings, sensor2Readings, maxLagAllowedMs);
     }
   }
 

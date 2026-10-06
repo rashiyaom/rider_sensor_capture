@@ -19,13 +19,21 @@ final _eventReadingsProvider =
 });
 
 
-class EventDetailScreen extends ConsumerWidget {
+class EventDetailScreen extends ConsumerStatefulWidget {
   final EventRecord event;
 
   const EventDetailScreen({super.key, required this.event});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<EventDetailScreen> createState() => _EventDetailScreenState();
+}
+
+class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
+  String? _selectedDevice;
+
+  @override
+  Widget build(BuildContext context) {
+    final event = widget.event;
     final readingsAsync = ref.watch(_eventReadingsProvider(event.id));
 
     final params = EventParameters.fromJsonString(event.computedParameters);
@@ -227,55 +235,122 @@ class EventDetailScreen extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                SizedBox(
-                  height: 180,
-                  child: readingsAsync.when(
-                    data: (readings) {
-                      if (readings.isEmpty) {
-                        return const Center(child: Text('No tagged readings found.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)));
-                      }
-
-                      final spotsX = <FlSpot>[];
-                      final spotsY = <FlSpot>[];
-                      final spotsZ = <FlSpot>[];
-
-                      for (int i = 0; i < readings.length; i++) {
-                        final r = readings[i];
-                        if (r.accelX != null && r.accelY != null && r.accelZ != null) {
-                          final t = i.toDouble();
-                          spotsX.add(FlSpot(t, r.accelX!));
-                          spotsY.add(FlSpot(t, r.accelY!));
-                          spotsZ.add(FlSpot(t, r.accelZ!));
-                        }
-                      }
-
-                      if (spotsX.isEmpty) {
-                        return const Center(child: Text('Readings contain no IMU acceleration.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)));
-                      }
-
-                      return LineChart(
-                        LineChartData(
-                          gridData: FlGridData(
-                            show: true,
-                            horizontalInterval: 5,
-                            getDrawingHorizontalLine: (_) => FlLine(color: Colors.white.withValues(alpha: 0.04), strokeWidth: 1),
-                          ),
-                          titlesData: const FlTitlesData(
-                            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                          ),
-                          borderData: FlBorderData(show: false),
-                          lineBarsData: [
-                            LineChartBarData(spots: spotsX, color: AppColors.primaryWhite, barWidth: 1.5, dotData: const FlDotData(show: false)),
-                            LineChartBarData(spots: spotsY, color: AppColors.accentCyan, barWidth: 1.5, dotData: const FlDotData(show: false)),
-                            LineChartBarData(spots: spotsZ, color: AppColors.textSecondary, barWidth: 1.5, dotData: const FlDotData(show: false)),
-                          ],
-                        ),
+                readingsAsync.when(
+                  data: (readings) {
+                    if (readings.isEmpty) {
+                      return const SizedBox(
+                        height: 120,
+                        child: Center(child: Text('No tagged readings found.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))),
                       );
-                    },
-                    loading: () => const Center(child: CircularProgressIndicator(color: AppColors.primaryWhite)),
-                    error: (err, _) => Center(child: Text('Error loading trace: $err', style: const TextStyle(color: AppColors.accentRed))),
+                    }
+
+                    // Discover all distinct devices/mount locations in this event window
+                    final devices = readings
+                        .map((r) => r.mountLocation.isNotEmpty ? r.mountLocation : r.deviceId)
+                        .toSet()
+                        .toList();
+
+                    final activeDevice = (_selectedDevice != null && devices.contains(_selectedDevice))
+                        ? _selectedDevice!
+                        : (devices.isNotEmpty ? devices.first : null);
+
+                    final filteredReadings = activeDevice == null
+                        ? readings
+                        : readings.where((r) => (r.mountLocation.isNotEmpty ? r.mountLocation : r.deviceId) == activeDevice).toList();
+
+                    // Downsample to max 150 points for smooth charting performance
+                    List<SensorReading> sampled = filteredReadings;
+                    if (filteredReadings.length > 150) {
+                      final step = filteredReadings.length / 150.0;
+                      sampled = [
+                        for (int i = 0; i < 150; i++) filteredReadings[(i * step).floor()],
+                      ];
+                    }
+
+                    final spotsX = <FlSpot>[];
+                    final spotsY = <FlSpot>[];
+                    final spotsZ = <FlSpot>[];
+
+                    for (int i = 0; i < sampled.length; i++) {
+                      final r = sampled[i];
+                      if (r.accelX != null && r.accelY != null && r.accelZ != null) {
+                        final t = i.toDouble();
+                        spotsX.add(FlSpot(t, r.accelX!));
+                        spotsY.add(FlSpot(t, r.accelY!));
+                        spotsZ.add(FlSpot(t, r.accelZ!));
+                      }
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (devices.length > 1) ...[
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: devices.map((dev) {
+                                final isSelected = dev == activeDevice;
+                                final label = dev == 'left_hand'
+                                    ? 'Left Hand'
+                                    : dev == 'right_hand'
+                                        ? 'Right Hand'
+                                        : dev;
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8, bottom: 8),
+                                  child: ChoiceChip(
+                                    label: Text(label, style: TextStyle(fontSize: 11, color: isSelected ? Colors.black : AppColors.textSecondary)),
+                                    selected: isSelected,
+                                    selectedColor: AppColors.accentCyan,
+                                    backgroundColor: AppColors.cardElevated,
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        setState(() {
+                                          _selectedDevice = dev;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        SizedBox(
+                          height: 180,
+                          child: spotsX.isEmpty
+                              ? const Center(child: Text('Selected stream contains no IMU acceleration.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)))
+                              : LineChart(
+                                  LineChartData(
+                                    gridData: FlGridData(
+                                      show: true,
+                                      horizontalInterval: 5,
+                                      getDrawingHorizontalLine: (_) => FlLine(color: Colors.white.withValues(alpha: 0.04), strokeWidth: 1),
+                                    ),
+                                    titlesData: const FlTitlesData(
+                                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                      bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                    ),
+                                    borderData: FlBorderData(show: false),
+                                    lineBarsData: [
+                                      LineChartBarData(spots: spotsX, color: AppColors.primaryWhite, barWidth: 1.5, dotData: const FlDotData(show: false)),
+                                      LineChartBarData(spots: spotsY, color: AppColors.accentCyan, barWidth: 1.5, dotData: const FlDotData(show: false)),
+                                      LineChartBarData(spots: spotsZ, color: AppColors.textSecondary, barWidth: 1.5, dotData: const FlDotData(show: false)),
+                                    ],
+                                  ),
+                                ),
+                        ),
+                      ],
+                    );
+                  },
+                  loading: () => const SizedBox(
+                    height: 180,
+                    child: Center(child: CircularProgressIndicator(color: AppColors.primaryWhite)),
+                  ),
+                  error: (err, _) => SizedBox(
+                    height: 180,
+                    child: Center(child: Text('Error loading trace: $err', style: const TextStyle(color: AppColors.accentRed))),
                   ),
                 ),
               ],

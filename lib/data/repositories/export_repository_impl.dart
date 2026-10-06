@@ -11,6 +11,7 @@ import '../../core/utils/angular_units.dart';
 import '../local_db/database.dart';
 import '../models/event_parameters.dart';
 import '../services/hr_event_gate.dart';
+import '../services/ml_starter_script_generator.dart';
 import '../../features/export/models/export_options.dart';
 import 'export_repository.dart';
 
@@ -396,11 +397,12 @@ class ExportRepositoryImpl implements ExportRepository {
       'jerk_x,jerk_y,jerk_z,jerk_magnitude,'
       'roll_angle_deg,yaw_rate_deg_s,'
       'latitude,longitude,gps_speed_kmh,gps_heading_deg,gps_accuracy_m,'
-      'ppi_ms',
+      'ppi_ms,event_type,event_classification,bbox_marker',
     );
 
     final recentHrs = <int>[];
-    SensorReading? prevReading;
+    final lastReadingByDevice = <String, SensorReading>{};
+    final eventMap = <int, EventRecord>{for (var e in events) e.id: e};
     int gpsSearchIdx = 0;
 
     for (final r in readings) {
@@ -418,9 +420,11 @@ class ExportRepositoryImpl implements ExportRepository {
         accelMag = math.sqrt(r.accelX! * r.accelX! + r.accelY! * r.accelY! + r.accelZ! * r.accelZ!);
       }
 
-      // Jerk
+      // Jerk strictly per physical device
       double? jx, jy, jz, jMag;
-      if (prevReading != null && prevReading.deviceId == r.deviceId) {
+      final prevReading = lastReadingByDevice[r.deviceId];
+      lastReadingByDevice[r.deviceId] = r;
+      if (prevReading != null) {
         final dt = r.timestampUtc.difference(prevReading.timestampUtc).inMilliseconds / 1000.0;
         if (dt > 0.005 && dt < 0.2) {
           if (r.accelX != null && prevReading.accelX != null) jx = (r.accelX! - prevReading.accelX!) / dt;
@@ -458,13 +462,45 @@ class ExportRepositoryImpl implements ExportRepository {
         }
       }
 
+      // Event classification and bounding box marker
+      String bboxMarker = '';
+      final attachedEvt = r.eventId != null ? eventMap[r.eventId] : null;
+      EventRecord? matchingEvt = attachedEvt;
+
+      if (attachedEvt != null) {
+        bboxMarker = 'EVENT_DATA';
+      } else {
+        for (final evt in events) {
+          final evtStart = evt.startTimestamp;
+          final evtEnd = evt.endTimestamp ?? evtStart;
+          final ctxStart = evtStart.subtract(const Duration(seconds: 3));
+          final ctxEnd = evtEnd.add(const Duration(seconds: 3));
+
+          if (!r.timestampUtc.isBefore(evtStart) && !r.timestampUtc.isAfter(evtEnd)) {
+            bboxMarker = 'EVENT_DATA';
+            matchingEvt = evt;
+            break;
+          } else if (!r.timestampUtc.isBefore(ctxStart) && r.timestampUtc.isBefore(evtStart)) {
+            if (bboxMarker.isEmpty || bboxMarker == 'CONTEXT_POST') {
+              bboxMarker = 'CONTEXT_PRE';
+              matchingEvt = evt;
+            }
+          } else if (r.timestampUtc.isAfter(evtEnd) && !r.timestampUtc.isAfter(ctxEnd)) {
+            if (bboxMarker.isEmpty) {
+              bboxMarker = 'CONTEXT_POST';
+              matchingEvt = evt;
+            }
+          }
+        }
+      }
+
       final row = [
         r.timestampUtc.toIso8601String(),
         r.tripId ?? '',
         _csvEscape(r.deviceId),
         _csvEscape(r.mountLocation),
         _csvEscape(r.sensorType),
-        r.eventId ?? '',
+        r.eventId ?? matchingEvt?.id ?? '',
         r.heartRate ?? '',
         hrBaseline?.toStringAsFixed(1) ?? '',
         hrDelta?.toStringAsFixed(1) ?? '',
@@ -487,10 +523,12 @@ class ExportRepositoryImpl implements ExportRepository {
         nearestGps?.gpsHeadingDeg?.toStringAsFixed(1) ?? '',
         nearestGps?.gpsAccuracyM?.toStringAsFixed(1) ?? '',
         r.ppiMs ?? '',
+        _csvEscape(matchingEvt?.eventType ?? ''),
+        _csvEscape(matchingEvt?.classification ?? ''),
+        _csvEscape(bboxMarker),
       ];
 
       buffer.writeln(row.join(','));
-      prevReading = r;
     }
 
     return buffer.toString();
@@ -504,7 +542,7 @@ class ExportRepositoryImpl implements ExportRepository {
         'jerk_x,jerk_y,jerk_z,jerk_magnitude,'
         'roll_angle_deg,yaw_rate_deg_s,'
         'latitude,longitude,gps_speed_kmh,gps_heading_deg,gps_accuracy_m,'
-        'ppi_ms\n';
+        'ppi_ms,event_type,event_classification,bbox_marker\n';
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -550,6 +588,15 @@ class ExportRepositoryImpl implements ExportRepository {
         params = EventParameters.fromJsonString(e.computedParameters);
       }
 
+      String primaryMount = 'hands';
+      final evReadings = await (_db.select(_db.sensorReadings)
+            ..where((t) => t.eventId.equals(e.id))
+            ..limit(1))
+          .get();
+      if (evReadings.isNotEmpty && evReadings.first.mountLocation.isNotEmpty) {
+        primaryMount = evReadings.first.mountLocation;
+      }
+
       final peakG = params?.bump?.peakGForce ?? (e.peakMetric != null ? AngularUnits.accelToG(e.peakMetric!) : null);
       final jerk = e.jerkPeakMagnitude ?? params?.bump?.jerkPeakMagnitude ?? params?.speed?.jerkPeakMagnitude;
       final yawRate = params?.turn?.peakGyroDegPerSec;
@@ -565,7 +612,7 @@ class ExportRepositoryImpl implements ExportRepository {
         e.startTimestamp.toIso8601String(),
         e.endTimestamp?.toIso8601String() ?? '',
         durationMs,
-        'fork',
+        _csvEscape(primaryMount),
         peakG?.toStringAsFixed(2) ?? '',
         jerk?.toStringAsFixed(2) ?? '',
         yawRate?.toStringAsFixed(1) ?? '',
@@ -615,7 +662,7 @@ class ExportRepositoryImpl implements ExportRepository {
 
     final buffer = StringBuffer();
     buffer.writeln(
-      'trip_id,start_timestamp_utc,end_timestamp_utc,total_distance_km,total_duration_min,'
+      'trip_id,rider_name,wrist_side,start_timestamp_utc,end_timestamp_utc,total_distance_km,total_duration_min,'
       'avg_speed_kmh,max_speed_kmh,'
       'harsh_brake_count,harsh_accel_count,harsh_turn_count,bump_count,'
       'confirmed_event_count,events_per_km,'
@@ -629,6 +676,8 @@ class ExportRepositoryImpl implements ExportRepository {
       final cal = calMap[t.id];
       final row = [
         t.id,
+        _csvEscape(t.riderName),
+        _csvEscape(t.wristSide),
         (t.startTimestampUtc ?? t.startTimeUtc).toIso8601String(),
         (t.endTimestampUtc ?? t.endTimeUtc)?.toIso8601String() ?? '',
         t.totalDistanceKm?.toStringAsFixed(3) ?? '',
@@ -791,98 +840,217 @@ class ExportRepositoryImpl implements ExportRepository {
 
   @override
   Future<String> exportTripCsv(int tripId) async {
+    final trip = await (_db.select(_db.trips)..where((t) => t.id.equals(tripId))).getSingleOrNull();
     final events = await (_db.select(_db.eventRecords)..where((t) => t.tripId.equals(tripId))).get();
     final eventMap = <int, EventRecord>{for (var e in events) e.id: e};
 
     final readings = await (_db.select(_db.sensorReadings)
           ..where((t) => t.tripId.equals(tripId))
           ..orderBy([
-            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
             (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
+            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
           ]))
         .get();
 
-    return _generateLegacyCsvWithBoundingBoxes(readings, eventMap, events);
+    final gpsFixes = await (_db.select(_db.locationReadings)
+          ..where((t) => t.tripId.equals(tripId))
+          ..orderBy([(t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc)]))
+        .get();
+
+    return _buildEventBoundingBoxCsv(
+      readings: readings,
+      eventMap: eventMap,
+      events: events,
+      trip: trip,
+      gpsFixes: gpsFixes,
+    );
   }
 
-  /// Generates CSV with EVENT_START / EVENT_END marker rows injected at event boundaries.
-  /// This gives ML preprocessing a clear bounding box for each labeled event.
-  String _generateLegacyCsvWithBoundingBoxes(
-    List<SensorReading> readings,
-    Map<int, EventRecord> eventMap,
-    List<EventRecord> events,
-  ) {
-    final buffer = StringBuffer();
-    final localDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss.SSS');
+  // ─────────────────────────────────────────────────────────────────────────
+  // CSV generator with:
+  //   • EVENT_START / EVENT_END bounding-box sentinel rows
+  //   • CONTEXT_PRE / CONTEXT_POST tags for ±3s context window around each event
+  //   • High-frequency GPS telemetry synchronization
+  //   • Per-device jerk & acceleration magnitude derivation
+  //   • O(n + m) time complexity using a sorted event pointer
+  // ─────────────────────────────────────────────────────────────────────────
+  static const Duration _contextWindow = Duration(seconds: 3);
 
-    // Header — extra sentinel column `bbox_marker` at the end for easy filtering
+  String _buildEventBoundingBoxCsv({
+    required List<SensorReading> readings,
+    required Map<int, EventRecord> eventMap,
+    required List<EventRecord> events,
+    Trip? trip,
+    List<LocationReading> gpsFixes = const [],
+  }) {
+    final buffer = StringBuffer();
+    final fmt = DateFormat('yyyy-MM-dd HH:mm:ss.SSS');
+
+    // ── Header (32 standardized ML dataset fields) ──
     buffer.writeln(
-      'reading_id,timestamp_iso8601,timestamp_local,timestamp_epoch_ms,sequence_no,device_id,device_type,mount_location,sensor_type,'
-      'heart_rate_bpm,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,ppi_ms,'
-      'trip_id,event_id,event_type,event_classification,event_peak_metric,cross_confirmed,param_summary,bbox_marker',
+      'reading_id,timestamp_iso8601,timestamp_local,timestamp_epoch_ms,sequence_no,'
+      'device_id,device_type,mount_location,sensor_type,'
+      'heart_rate_bpm,accel_x,accel_y,accel_z,accel_magnitude,gyro_x,gyro_y,gyro_z,jerk_magnitude,'
+      'latitude,longitude,gps_speed_kmh,gps_heading_deg,gps_accuracy_m,ppi_ms,'
+      'trip_id,event_id,event_type,event_classification,event_peak_metric,'
+      'cross_confirmed,param_summary,bbox_marker',
     );
 
-    // Build a sorted list of event boundary timestamps for efficient insertion
-    // We'll do a merge: walk readings in order and inject markers when we cross an event boundary
-    final sortedEvents = List<EventRecord>.from(events)
+    if (readings.isEmpty) return buffer.toString();
+
+    // Sort events by start timestamp — O(m log m), done once
+    final sortedEvts = List<EventRecord>.from(events)
       ..sort((a, b) => a.startTimestamp.compareTo(b.startTimestamp));
 
-    // Track which events have had their START marker written
+    // Set of eventIds whose EVENT_START sentinel has been written
     final startWritten = <int>{};
+    // Set of eventIds whose EVENT_END sentinel has been written
+    final endWritten = <int>{};
 
-    // Helper to write a sentinel marker row
-    void writeMarker(String markerType, EventRecord evt) {
-      final ts = markerType == 'EVENT_START' ? evt.startTimestamp : (evt.endTimestamp ?? evt.startTimestamp);
-      final localFmt = localDateFormat.format(ts.toLocal());
-      // Marker rows have all data columns empty except bbox_marker
-      final cols = [
-        '',                           // reading_id
-        ts.toIso8601String(),         // timestamp_iso8601
-        _csvEscape(localFmt),         // timestamp_local
-        ts.millisecondsSinceEpoch,    // timestamp_epoch_ms
-        '',                           // sequence_no
-        '',                           // device_id
-        '',                           // device_type
-        '',                           // mount_location
-        '',                           // sensor_type
-        '', '', '', '', '', '', '', '', // sensor data columns
-        evt.tripId ?? '',             // trip_id
-        evt.id,                       // event_id
-        _csvEscape(evt.eventType),    // event_type
-        _csvEscape(evt.classification ?? ''), // event_classification
-        evt.peakMetric?.toStringAsFixed(2) ?? '', // event_peak_metric
-        evt.crossConfirmed ?? false,  // cross_confirmed
-        '',                           // param_summary
-        _csvEscape(markerType),       // bbox_marker
-      ];
-      buffer.writeln(cols.join(','));
+    // ── Helper: write a zero-data sentinel row (32 fields) ──
+    void writeSentinel(String markerType, EventRecord evt) {
+      final ts = (markerType == 'EVENT_START' || markerType == 'CONTEXT_PRE')
+          ? evt.startTimestamp
+          : (evt.endTimestamp ?? evt.startTimestamp);
+      final localFmt = fmt.format(ts.toLocal());
+      buffer.writeln([
+        '',                                         // reading_id
+        ts.toIso8601String(),                       // timestamp_iso8601
+        _csvEscape(localFmt),                       // timestamp_local
+        ts.millisecondsSinceEpoch,                  // timestamp_epoch_ms
+        '',                                         // sequence_no
+        '', '', '', '',                             // device fields
+        '', '', '', '', '', '', '', '', '',         // sensor data & magnitudes (HR, Ax, Ay, Az, Amag, Gx, Gy, Gz, Jmag)
+        '', '', '', '', '',                         // GPS data
+        '',                                         // ppi_ms
+        evt.tripId ?? '',                           // trip_id
+        evt.id,                                     // event_id
+        _csvEscape(evt.eventType),                  // event_type
+        _csvEscape(evt.classification ?? ''),        // event_classification
+        evt.peakMetric?.toStringAsFixed(2) ?? '',   // event_peak_metric
+        evt.crossConfirmed,                         // cross_confirmed
+        '',                                         // param_summary
+        _csvEscape(markerType),                     // bbox_marker
+      ].join(','));
     }
 
-    // Walk through readings; inject event markers at boundaries
+    final lastReadingByDevice = <String, SensorReading>{};
+    int gpsSearchIdx = 0;
+
+    // ── Main pass: O(n) readings, O(m) event pointer advances ──
     for (final r in readings) {
       final rTime = r.timestampUtc;
 
-      // Write EVENT_START for any event whose window begins at or before this reading
-      for (final evt in sortedEvents) {
-        if (!startWritten.contains(evt.id) && !rTime.isBefore(evt.startTimestamp)) {
-          writeMarker('EVENT_START', evt);
+      // 1. Inject EVENT_START sentinels for events whose window opened (or upon first tagged reading)
+      for (final evt in sortedEvts) {
+        if (startWritten.contains(evt.id)) continue;
+        if (!rTime.isBefore(evt.startTimestamp) || r.eventId == evt.id) {
+          writeSentinel('EVENT_START', evt);
           startWritten.add(evt.id);
         }
       }
 
-      // Write the sensor reading row
-      final evt = r.eventId != null ? eventMap[r.eventId] : null;
-      final params = evt?.computedParameters != null
-          ? EventParameters.fromJsonString(evt!.computedParameters)?.summary
-          : '';
-      final localFormatted = localDateFormat.format(r.timestampUtc.toLocal());
-      final epochMs = r.timestampUtc.millisecondsSinceEpoch;
+      // 2. Accel & Jerk Magnitude per physical device
+      double? accelMag;
+      if (r.accelX != null && r.accelY != null && r.accelZ != null) {
+        accelMag = math.sqrt(r.accelX! * r.accelX! + r.accelY! * r.accelY! + r.accelZ! * r.accelZ!);
+      }
 
-      final row = [
+      double? jMag;
+      final prevR = lastReadingByDevice[r.deviceId];
+      lastReadingByDevice[r.deviceId] = r;
+      if (prevR != null &&
+          r.accelX != null && prevR.accelX != null &&
+          r.accelY != null && prevR.accelY != null &&
+          r.accelZ != null && prevR.accelZ != null) {
+        final dt = rTime.difference(prevR.timestampUtc).inMilliseconds / 1000.0;
+        if (dt > 0.005 && dt < 0.2) {
+          final jx = (r.accelX! - prevR.accelX!) / dt;
+          final jy = (r.accelY! - prevR.accelY!) / dt;
+          final jz = (r.accelZ! - prevR.accelZ!) / dt;
+          jMag = math.sqrt(jx * jx + jy * jy + jz * jz);
+        }
+      }
+
+      // 3. Nearest GPS fix within 2.0s tolerance
+      LocationReading? nearestGps;
+      if (gpsFixes.isNotEmpty) {
+        while (gpsSearchIdx < gpsFixes.length - 1 &&
+            gpsFixes[gpsSearchIdx + 1].timestampUtc.isBefore(rTime)) {
+          gpsSearchIdx++;
+        }
+        final candidate1 = gpsFixes[gpsSearchIdx];
+        final candidate2 = (gpsSearchIdx + 1 < gpsFixes.length) ? gpsFixes[gpsSearchIdx + 1] : candidate1;
+        final diff1 = candidate1.timestampUtc.difference(rTime).inMilliseconds.abs();
+        final diff2 = candidate2.timestampUtc.difference(rTime).inMilliseconds.abs();
+        final best = diff1 <= diff2 ? candidate1 : candidate2;
+        final bestDiff = diff1 <= diff2 ? diff1 : diff2;
+        if (bestDiff <= 2000) {
+          nearestGps = best;
+        }
+      }
+
+      // 4. Determine this reading's bbox_marker
+      String bboxMarker = '';
+      String rowEventType = '';
+      String rowClassification = '';
+      double? rowPeakMetric;
+      bool rowCrossConfirmed = false;
+      String rowParamSummary = '';
+
+      final attachedEvt = r.eventId != null ? eventMap[r.eventId] : null;
+      EventRecord? matchingEvt = attachedEvt;
+
+      if (attachedEvt != null) {
+        bboxMarker = 'EVENT_DATA';
+      } else {
+        for (final evt in sortedEvts) {
+          final evtStart = evt.startTimestamp;
+          final evtEnd = evt.endTimestamp ?? evtStart;
+
+          final contextStart = evtStart.subtract(_contextWindow);
+          final contextEnd = evtEnd.add(_contextWindow);
+
+          if (!rTime.isBefore(evtStart) && !rTime.isAfter(evtEnd)) {
+            // Inside the labeled event window
+            bboxMarker = 'EVENT_DATA';
+            matchingEvt = evt;
+            break;
+          } else if (!rTime.isBefore(contextStart) && rTime.isBefore(evtStart)) {
+            // Pre-event context window
+            if (bboxMarker.isEmpty || bboxMarker == 'CONTEXT_POST') {
+              bboxMarker = 'CONTEXT_PRE';
+              matchingEvt = evt;
+            }
+          } else if (rTime.isAfter(evtEnd) && !rTime.isAfter(contextEnd)) {
+            // Post-event context window
+            if (bboxMarker.isEmpty) {
+              bboxMarker = 'CONTEXT_POST';
+              matchingEvt = evt;
+            }
+          }
+        }
+      }
+
+      // Populate event metadata for attached or window-matched event
+      final effectiveEvt = attachedEvt ?? matchingEvt;
+      if (effectiveEvt != null) {
+        rowEventType = effectiveEvt.eventType;
+        rowClassification = effectiveEvt.classification ?? '';
+        rowPeakMetric = effectiveEvt.peakMetric;
+        rowCrossConfirmed = effectiveEvt.crossConfirmed;
+        rowParamSummary = effectiveEvt.computedParameters != null
+            ? (EventParameters.fromJsonString(effectiveEvt.computedParameters)?.summary ?? '')
+            : '';
+      }
+
+      // 5. Write sensor data row (32 fields)
+      final localFormatted = fmt.format(rTime.toLocal());
+      buffer.writeln([
         r.id,
-        r.timestampUtc.toIso8601String(),
+        rTime.toIso8601String(),
         _csvEscape(localFormatted),
-        epochMs,
+        rTime.millisecondsSinceEpoch,
         r.sequenceNo,
         _csvEscape(r.deviceId),
         _csvEscape(r.deviceType),
@@ -892,37 +1060,48 @@ class ExportRepositoryImpl implements ExportRepository {
         r.accelX?.toStringAsFixed(4) ?? '',
         r.accelY?.toStringAsFixed(4) ?? '',
         r.accelZ?.toStringAsFixed(4) ?? '',
+        accelMag?.toStringAsFixed(4) ?? '',
         r.gyroX?.toStringAsFixed(4) ?? '',
         r.gyroY?.toStringAsFixed(4) ?? '',
         r.gyroZ?.toStringAsFixed(4) ?? '',
+        jMag?.toStringAsFixed(2) ?? '',
+        nearestGps?.latitude.toStringAsFixed(6) ?? '',
+        nearestGps?.longitude.toStringAsFixed(6) ?? '',
+        nearestGps?.gpsSpeedMps != null ? (nearestGps!.gpsSpeedMps! * 3.6).toStringAsFixed(1) : '',
+        nearestGps?.gpsHeadingDeg?.toStringAsFixed(1) ?? '',
+        nearestGps?.gpsAccuracyM?.toStringAsFixed(1) ?? '',
         r.ppiMs ?? '',
         r.tripId ?? '',
-        r.eventId ?? '',
-        _csvEscape(evt?.eventType ?? ''),
-        _csvEscape(evt?.classification ?? ''),
-        evt?.peakMetric?.toStringAsFixed(2) ?? '',
-        evt?.crossConfirmed ?? false,
-        _csvEscape(params ?? ''),
-        '',  // bbox_marker — empty for normal data rows
-      ];
-      buffer.writeln(row.join(','));
+        r.eventId ?? effectiveEvt?.id ?? '',
+        _csvEscape(rowEventType),
+        _csvEscape(rowClassification),
+        rowPeakMetric?.toStringAsFixed(2) ?? '',
+        effectiveEvt != null ? rowCrossConfirmed : '',
+        _csvEscape(rowParamSummary),
+        _csvEscape(bboxMarker),
+      ].join(','));
 
-      // Write EVENT_END for events whose window closes at this reading's timestamp
-      for (final e in sortedEvents) {
-        if (startWritten.contains(e.id) && e.endTimestamp != null) {
-          if (!rTime.isBefore(e.endTimestamp!)) {
-            writeMarker('EVENT_END', e);
-            sortedEvents.remove(e);
-            break;  // Restart outer loop to avoid ConcurrentModificationError
-          }
+      // 6. Inject EVENT_END sentinels for events whose window closed
+      for (final evt in sortedEvts) {
+        if (endWritten.contains(evt.id)) continue;
+        if (!startWritten.contains(evt.id)) continue;
+        final evtEnd = evt.endTimestamp;
+        if (evtEnd != null && (!rTime.isBefore(evtEnd) || (r.eventId != evt.id && r.eventId != null))) {
+          writeSentinel('EVENT_END', evt);
+          endWritten.add(evt.id);
         }
       }
     }
 
-    // Flush any remaining EVENT_END markers for events that outlasted all readings
-    for (final evt in sortedEvents) {
-      if (startWritten.contains(evt.id) && evt.endTimestamp != null) {
-        writeMarker('EVENT_END', evt);
+    // 7. Flush any remaining EVENT_START / EVENT_END sentinels for events with no subsequent readings
+    for (final evt in sortedEvts) {
+      if (!startWritten.contains(evt.id)) {
+        writeSentinel('EVENT_START', evt);
+        startWritten.add(evt.id);
+      }
+      if (!endWritten.contains(evt.id)) {
+        writeSentinel('EVENT_END', evt);
+        endWritten.add(evt.id);
       }
     }
 
@@ -1033,26 +1212,48 @@ class ExportRepositoryImpl implements ExportRepository {
       await exportDir.create(recursive: true);
     }
 
+    // Fetch trip metadata for descriptive filenames
+    final trip = await (_db.select(_db.trips)..where((t) => t.id.equals(tripId))).getSingleOrNull();
+    final riderSlug = (trip?.riderName ?? 'rider')
+        .trim()
+        .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_')
+        .toLowerCase();
+    final wristSlug = (trip?.wristSide ?? 'unknown')
+        .replaceAll(' ', '')
+        .toLowerCase(); // e.g. "lefthand" or "righthand"
+
     final timestampStr = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+    // Example: trip_3_ramesh_lefthand_20260916_143022.csv
+    final fileBase = 'trip_${tripId}_${riderSlug}_${wristSlug}_$timestampStr';
     final createdFiles = <File>[];
 
     if (format == ExportFormat.json || format == ExportFormat.both) {
       final jsonMap = await exportTripJson(tripId);
       final jsonString = const JsonEncoder.withIndent('  ').convert(jsonMap);
-      final jsonFile = File(p.join(exportDir.path, 'trip_${tripId}_dataset_$timestampStr.json'));
+      final jsonFile = File(p.join(exportDir.path, '$fileBase.json'));
       await jsonFile.writeAsString(jsonString);
       createdFiles.add(jsonFile);
     }
 
     if (format == ExportFormat.csv || format == ExportFormat.both) {
       final tripCsv = await exportTripCsv(tripId);
-      final csvFile = File(p.join(exportDir.path, 'trip_${tripId}_sensor_telemetry_$timestampStr.csv'));
+      final csvFilename = '$fileBase.csv';
+      final csvFile = File(p.join(exportDir.path, csvFilename));
       await csvFile.writeAsString(tripCsv);
       createdFiles.add(csvFile);
+
+      // Bundle ML Starter script directly with exported trip dataset
+      final pyScript = MlStarterScriptGenerator.generateTrainBaselineScript(
+        defaultCsvFilename: csvFilename,
+      );
+      final pyFile = File(p.join(exportDir.path, 'train_baseline_${tripId}_$timestampStr.py'));
+      await pyFile.writeAsString(pyScript);
+      createdFiles.add(pyFile);
     }
 
     return createdFiles;
   }
+
 
   @override
   Future<String> buildCameraCsvExport({
@@ -1112,7 +1313,7 @@ class ExportRepositoryImpl implements ExportRepository {
   }
 
   String _csvEscape(String val) {
-    if (val.contains(',') || val.contains('"') || val.contains('\n')) {
+    if (val.contains(',') || val.contains('"') || val.contains('\n') || val.contains('\r')) {
       return '"${val.replaceAll('"', '""')}"';
     }
     return val;
@@ -1189,6 +1390,14 @@ class ExportRepositoryImpl implements ExportRepository {
         await cameraFile.writeAsString(cameraCsv);
         createdFiles.add(cameraFile);
       }
+
+      // Bundle ML Starter script directly with exported session CSVs
+      final pyScript = MlStarterScriptGenerator.generateTrainBaselineScript(
+        defaultCsvFilename: 'sensor_timeseries_export_$timestampStr.csv',
+      );
+      final pyFile = File(p.join(exportDir.path, 'train_baseline_$timestampStr.py'));
+      await pyFile.writeAsString(pyScript);
+      createdFiles.add(pyFile);
     }
 
     return createdFiles;

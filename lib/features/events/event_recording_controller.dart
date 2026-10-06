@@ -1,17 +1,14 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:drift/drift.dart' as drift;
 
+import '../../core/services/rider_feedback_service.dart';
 import '../../data/local_db/database.dart';
 import '../../data/models/event_parameters.dart';
 import '../../providers/db_providers.dart';
-import '../../providers/ble_providers.dart';
 import '../../voice/voice_command_config.dart';
-import '../../voice/voice_command_listener.dart';
-import '../../ble/models/raw_sensor_data.dart';
-import '../../core/utils/angular_units.dart';
+import '../trips/trip_controller.dart';
 import 'parameter_engine.dart';
 
 enum RecordingState {
@@ -27,6 +24,7 @@ class EventRecordingSessionState {
   final EventType? currentEventType;
   final String? triggerPhrase;
   final int? activeEventId;
+  final int? tripId;
   final DateTime? startTime;
   final Duration elapsed;
   final Position? startGps;
@@ -40,6 +38,7 @@ class EventRecordingSessionState {
     this.currentEventType,
     this.triggerPhrase,
     this.activeEventId,
+    this.tripId,
     this.startTime,
     this.elapsed = Duration.zero,
     this.startGps,
@@ -54,6 +53,7 @@ class EventRecordingSessionState {
     EventType? currentEventType,
     String? triggerPhrase,
     int? activeEventId,
+    int? tripId,
     DateTime? startTime,
     Duration? elapsed,
     Position? startGps,
@@ -67,6 +67,7 @@ class EventRecordingSessionState {
       currentEventType: currentEventType ?? this.currentEventType,
       triggerPhrase: triggerPhrase ?? this.triggerPhrase,
       activeEventId: activeEventId ?? this.activeEventId,
+      tripId: tripId ?? this.tripId,
       startTime: startTime ?? this.startTime,
       elapsed: elapsed ?? this.elapsed,
       startGps: startGps ?? this.startGps,
@@ -80,97 +81,13 @@ class EventRecordingSessionState {
 
 class EventRecordingController extends StateNotifier<EventRecordingSessionState> {
   final Ref ref;
-  final VoiceCommandListener _voiceListener = VoiceCommandListener();
 
-  StreamSubscription<VoiceCommandConfig>? _commandSubscription;
-  StreamSubscription<String>? _wordsSubscription;
-  StreamSubscription<RawSensorData>? _imuSubscription;
   Timer? _elapsedTimer;
   Timer? _autoHaltTimer;
 
-  static const double gravityBaseline = AngularUnits.standardGravity;
-  static const double motionThreshold = 1.8;
-  static const Duration calmSettlingDuration = Duration(milliseconds: 2500);
-  static const Duration maxRecordingDuration = Duration(seconds: 30);
+  static const Duration maxRecordingDuration = Duration(seconds: 60);
 
-  DateTime? _lastSignificantMotionTime;
-  bool _hasExperiencedMotionSpike = false;
-
-  EventRecordingController(this.ref) : super(const EventRecordingSessionState()) {
-    _initVoiceSubscriptions();
-    _initMotionStream();
-  }
-
-  void _initVoiceSubscriptions() {
-    _commandSubscription = _voiceListener.commandStream.listen((cmd) {
-      if (cmd.isHaltCommand) {
-        if (state.state == RecordingState.recording) {
-          stopAndSaveEvent(reason: 'Voice command ("${cmd.phrase}")');
-        }
-      } else {
-        if (state.state == RecordingState.listening || state.state == RecordingState.idle) {
-          startEvent(cmd.eventType, triggerPhrase: cmd.phrase);
-        }
-      }
-    });
-
-    _wordsSubscription = _voiceListener.recognizedWordsStream.listen((words) {
-      state = state.copyWith(lastRecognizedWords: words);
-    });
-  }
-
-  void _initMotionStream() {
-    final bleManager = ref.read(bleConnectionManagerProvider);
-    _imuSubscription = bleManager.rawDataStream.listen((packet) {
-      if (state.state != RecordingState.recording) return;
-
-      if (packet.accelX != null && packet.accelY != null && packet.accelZ != null) {
-        final mag = math.sqrt(
-          packet.accelX! * packet.accelX! +
-          packet.accelY! * packet.accelY! +
-          packet.accelZ! * packet.accelZ!,
-        );
-
-        final delta = (mag - gravityBaseline).abs();
-
-        if (delta > motionThreshold) {
-          _lastSignificantMotionTime = DateTime.now();
-          _hasExperiencedMotionSpike = true;
-        } else {
-          if (_hasExperiencedMotionSpike && _lastSignificantMotionTime != null) {
-            final calmElapsed = DateTime.now().difference(_lastSignificantMotionTime!);
-            if (calmElapsed >= calmSettlingDuration) {
-              stopAndSaveEvent(reason: 'Auto-halt: motion settled (${calmElapsed.inSeconds}s calm)');
-            }
-          }
-        }
-      }
-    });
-  }
-
-  Future<void> startListening() async {
-    final ok = await _voiceListener.initialize();
-    if (!ok) {
-      state = state.copyWith(statusMessage: 'Microphone permission needed');
-      return;
-    }
-
-    await _voiceListener.startListening();
-    state = state.copyWith(
-      state: RecordingState.listening,
-      statusMessage: 'Listening for voice commands (e.g. "start bump", "start turn")...',
-    );
-  }
-
-  Future<void> stopListening() async {
-    await _voiceListener.stopListening();
-    if (state.state == RecordingState.listening) {
-      state = state.copyWith(
-        state: RecordingState.idle,
-        statusMessage: 'Voice listening stopped',
-      );
-    }
-  }
+  EventRecordingController(this.ref) : super(const EventRecordingSessionState(statusMessage: 'Ready to mark event'));
 
   Future<void> startEvent(EventType type, {String? triggerPhrase}) async {
     final repo = ref.read(sensorRepositoryProvider);
@@ -186,6 +103,7 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       );
     } catch (_) {}
 
+    final currentTripId = repo.activeTripId;
     final companion = EventRecordsCompanion.insert(
       eventType: type.name,
       startTimestamp: now,
@@ -193,20 +111,19 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       startGpsLng: drift.Value(startPos?.longitude),
       status: 'active',
       triggerPhrase: drift.Value(triggerPhrase ?? 'manual'),
-      tripId: drift.Value(repo.activeTripId),
+      tripId: drift.Value(currentTripId),
     );
 
     final eventId = await repo.createEventRecord(companion);
     repo.setActiveEventId(eventId);
-
-    _hasExperiencedMotionSpike = false;
-    _lastSignificantMotionTime = DateTime.now();
+    unawaited(RiderFeedbackService.onEventStarted());
 
     state = state.copyWith(
       state: RecordingState.recording,
       currentEventType: type,
       triggerPhrase: triggerPhrase ?? 'manual',
       activeEventId: eventId,
+      tripId: currentTripId,
       startTime: now,
       elapsed: Duration.zero,
       startGps: startPos,
@@ -235,6 +152,7 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
 
     _elapsedTimer?.cancel();
     _autoHaltTimer?.cancel();
+    unawaited(RiderFeedbackService.onEventStopped());
 
     final activeId = state.activeEventId;
     final eventTypeStr = state.currentEventType?.name ?? 'unknown';
@@ -286,6 +204,7 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
 
       final updatedEvent = EventRecord(
         id: activeId,
+        tripId: state.tripId ?? repo.activeTripId,
         eventType: eventTypeStr,
         startTimestamp: state.startTime ?? now,
         endTimestamp: now,
@@ -308,6 +227,9 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       );
 
       await repo.updateEventRecord(updatedEvent);
+      try {
+        ref.read(tripControllerProvider.notifier).incrementEvents(1);
+      } catch (_) {}
     }
 
     state = state.copyWith(
@@ -319,7 +241,10 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
 
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
-        startListening();
+        state = state.copyWith(
+          state: RecordingState.idle,
+          statusMessage: 'Ready to mark event',
+        );
       }
     });
   }
@@ -328,10 +253,6 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
   void dispose() {
     _elapsedTimer?.cancel();
     _autoHaltTimer?.cancel();
-    _commandSubscription?.cancel();
-    _wordsSubscription?.cancel();
-    _imuSubscription?.cancel();
-    _voiceListener.dispose();
     super.dispose();
   }
 }

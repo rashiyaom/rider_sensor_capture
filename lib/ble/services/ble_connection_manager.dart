@@ -31,7 +31,7 @@ class BleConnectionManager {
   final StreamController<List<int>> _watchCommandController =
       StreamController<List<int>>.broadcast();
 
-  BluetoothCharacteristic? _esp32RxCharacteristic;
+  final Map<String, BluetoothCharacteristic> _esp32RxCharacteristics = {};
 
   BleConnectionManager() {
     _startHealthMonitor();
@@ -44,26 +44,26 @@ class BleConnectionManager {
 
   Stream<List<int>> get watchCommandStream => _watchCommandController.stream;
 
-  bool get isWatchConnected => _esp32RxCharacteristic != null;
+  bool get isWatchConnected => _esp32RxCharacteristics.isNotEmpty;
 
   Map<String, BleDeviceModel> get currentDeviceStates =>
       Map.unmodifiable(_deviceModelsMap);
 
   Future<bool> writeToWatch(List<int> bytes) async {
-    if (_esp32RxCharacteristic != null) {
+    if (_esp32RxCharacteristics.isEmpty) return false;
+    bool anySuccess = false;
+    for (final char in _esp32RxCharacteristics.values) {
       try {
-        await _esp32RxCharacteristic!.write(bytes, withoutResponse: true);
-        return true;
+        await char.write(bytes, withoutResponse: true);
+        anySuccess = true;
       } catch (_) {
         try {
-          await _esp32RxCharacteristic!.write(bytes, withoutResponse: false);
-          return true;
-        } catch (_) {
-          return false;
-        }
+          await char.write(bytes, withoutResponse: false);
+          anySuccess = true;
+        } catch (_) {}
       }
     }
-    return false;
+    return anySuccess;
   }
 
   /// 1500ms link health monitor measuring packet gap intervals
@@ -251,6 +251,7 @@ class BleConnectionManager {
 
   void _handleDisconnection(BluetoothDevice device, BleDeviceModel model) {
     final deviceId = model.id;
+    _esp32RxCharacteristics.remove(deviceId);
     if (_userConnectedDeviceIds.contains(deviceId)) {
       // Out of range or dropped connection -> trigger exponential auto-reconnect
       _updateState(
@@ -287,6 +288,7 @@ class BleConnectionManager {
     _userConnectedDeviceIds.remove(deviceId);
     _deviceRetryCounts[deviceId] = 0;
     _cancelReconnectTimer(deviceId);
+    _esp32RxCharacteristics.remove(deviceId);
 
     _simulatedDeviceTimers[deviceId]?.cancel();
     _simulatedDeviceTimers.remove(deviceId);
@@ -403,7 +405,7 @@ class BleConnectionManager {
           final isEsp32Fallback = sUuid.contains('ffe0') && !isPolarHr && !isPolarPmd && !isEsp32Rx && !isEsp32Ctrl;
 
           if (isEsp32Rx) {
-            _esp32RxCharacteristic = characteristic;
+            _esp32RxCharacteristics[model.id] = characteristic;
           }
 
           if (isEsp32Ctrl) {

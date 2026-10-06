@@ -32,6 +32,8 @@ dependencies:
   network_info_plus: ^6.0.0
   battery_plus: ^6.2.1
   url_launcher: ^6.3.1
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
 
 dev_dependencies:
   flutter_test:

@@ -36,6 +36,14 @@ abstract class SensorRepository {
   Future<void> deleteTrip(int tripId);
   Future<int> getReadingCountForTrip(int tripId);
   Future<int> getEventCountForTrip(int tripId);
+  Future<int> insertLocationReading(LocationReadingsCompanion reading);
+
+  /// Analyzes BLE sequence numbers for the trip to detect packet loss and continuity
+  Future<BleQualityStats> getTripBleQuality(int tripId);
+
+  /// Deletes raw continuous sensor readings that are not associated with any labeled event,
+  /// preserving labeled ground-truth event segments and freeing SQLite storage.
+  Future<int> deleteUntaggedReadingsForTrip(int tripId);
 
   /// Delete all sensor readings (Clear Ride Telemetry)
   Future<void> deleteAllReadings();
@@ -47,4 +55,18 @@ abstract class SensorRepository {
   Future<void> flushPendingBuffer();
 
   void dispose();
+}
+
+class BleQualityStats {
+  final int totalPackets;
+  final int droppedPackets;
+  final double receptionPercentage;
+  final int gapCount;
+
+  const BleQualityStats({
+    required this.totalPackets,
+    required this.droppedPackets,
+    required this.receptionPercentage,
+    required this.gapCount,
+  });
 }

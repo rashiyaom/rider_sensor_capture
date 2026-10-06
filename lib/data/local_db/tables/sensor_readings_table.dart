@@ -27,6 +27,9 @@ class SensorReadings extends Table {
   RealColumn get gyroZ => real().nullable()();
   IntColumn get ppiMs => integer().nullable()();
 
+  // GPS speed snapshot at time of this reading (km/h) — feeds speedometer CSV column
+  RealColumn get gpsSpeedKmh => real().nullable()();
+
   // Raw payload for backward/forward compatibility
   TextColumn get rawPayload => text().nullable()();
 }

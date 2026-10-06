@@ -92,7 +92,7 @@ class _TapEventHeroCard extends ConsumerWidget {
                       const Icon(Icons.fiber_manual_record_rounded, color: AppColors.accentRed, size: 12),
                       const SizedBox(width: 4),
                       Text(
-                        '\${session.elapsed.inMinutes.toString().padLeft(2, "0")}:\${(session.elapsed.inSeconds % 60).toString().padLeft(2, "0")}',
+                        '${session.elapsed.inMinutes.toString().padLeft(2, "0")}:${(session.elapsed.inSeconds % 60).toString().padLeft(2, "0")}',
                         style: const TextStyle(color: AppColors.accentRed, fontSize: 12, fontWeight: FontWeight.bold),
                       ),
                     ],
@@ -103,8 +103,8 @@ class _TapEventHeroCard extends ConsumerWidget {
           const SizedBox(height: 6),
           Text(
             isRecording
-                ? 'Recording \${session.currentEventType?.name.toUpperCase() ?? "EVENT"} — tap STOP when done'
-                : 'Tap a quick button below or the big button to mark a BUMP event',
+                ? 'Recording ${session.currentEventType?.name.toUpperCase() ?? "EVENT"} — tap STOP when done'
+                : 'Tap the button below to choose & mark an event type',
             style: TextStyle(
               color: isRecording ? AppColors.accentRed : AppColors.textTertiary,
               fontSize: 12,
@@ -125,7 +125,7 @@ class _TapEventHeroCard extends ConsumerWidget {
                 if (isRecording) {
                   controller.stopAndSaveEvent(reason: 'Tap Stop');
                 } else {
-                  controller.startEvent(EventType.bump, triggerPhrase: 'tap');
+                  _showEventPickerSheet(context, controller);
                 }
               },
               child: Row(
@@ -134,7 +134,7 @@ class _TapEventHeroCard extends ConsumerWidget {
                   Icon(isRecording ? Icons.stop_rounded : Icons.touch_app_rounded, size: 26),
                   const SizedBox(width: 10),
                   Text(
-                    isRecording ? 'STOP — Save Event' : 'TAP to Mark Event',
+                    isRecording ? 'STOP — Save Event' : 'TAP — Choose Event',
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.3),
                   ),
                 ],
@@ -156,7 +156,7 @@ class _TapEventHeroCard extends ConsumerWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Bounding window open · Event #\${session.activeEventId ?? "?"} · \${session.currentEventType?.name.toUpperCase()}',
+                      'Bounding window open · Event #${session.activeEventId ?? "?"} · ${session.currentEventType?.name.toUpperCase()}',
                       style: const TextStyle(color: AppColors.accentRed, fontSize: 11),
                     ),
                   ),
@@ -165,6 +165,274 @@ class _TapEventHeroCard extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  /// Shows a bottom-sheet where the user explicitly picks the event type.
+  void _showEventPickerSheet(BuildContext context, EventRecordingController controller) {
+    final eventOptions = [
+      {
+        'type': EventType.bump,
+        'label': 'BUMP',
+        'subtitle': 'Pothole, speed breaker, jolt',
+        'icon': Icons.vibration_rounded,
+        'color': const Color(0xFFFF9F0A),
+      },
+      {
+        'type': EventType.turn,
+        'label': 'TURN',
+        'subtitle': 'Corner, U-turn, swerve',
+        'icon': Icons.turn_sharp_right_rounded,
+        'color': const Color(0xFF64D2FF),
+      },
+      {
+        'type': EventType.speedTest,
+        'label': 'HARD BRAKE',
+        'subtitle': 'Sudden deceleration or stop',
+        'icon': Icons.speed_rounded,
+        'color': const Color(0xFFFF453A),
+      },
+    ];
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        ),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.cardBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'What event did you observe?',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 17,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Select the type to start recording it',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 18),
+            ...eventOptions.map((opt) {
+              final type = opt['type'] as EventType;
+              final label = opt['label'] as String;
+              final subtitle = opt['subtitle'] as String;
+              final icon = opt['icon'] as IconData;
+              final color = opt['color'] as Color;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    controller.startEvent(type, triggerPhrase: 'tap_${type.name}');
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardElevated,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: color.withValues(alpha: 0.25)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(icon, color: color, size: 22),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                label,
+                                style: TextStyle(
+                                  color: color,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                subtitle,
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+            // Custom label option
+            InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () {
+                Navigator.pop(ctx);
+                _showCustomLabelSheetStatic(context, controller);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.cardElevated,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.accentCyan.withValues(alpha: 0.25)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: AppColors.accentCyan.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.edit_rounded, color: AppColors.accentCyan, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: const [
+                          Text(
+                            'CUSTOM',
+                            style: TextStyle(
+                              color: AppColors.accentCyan,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Type your own event label',
+                            style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, color: AppColors.textTertiary, size: 20),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showCustomLabelSheetStatic(BuildContext context, EventRecordingController controller) {
+    final textCtrl = TextEditingController();
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.cardBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              const Text('Custom Event Label',
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              const Text('Type what you are about to record:',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+              const SizedBox(height: 14),
+              TextField(
+                controller: textCtrl,
+                autofocus: true,
+                style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w600),
+                decoration: InputDecoration(
+                  hintText: 'e.g. pothole, speed breaker, U-turn...',
+                  hintStyle: const TextStyle(color: AppColors.textTertiary),
+                  filled: true,
+                  fillColor: AppColors.cardElevated,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.cardBorder),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.accentCyan),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryWhite,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
+                  ),
+                  onPressed: () {
+                    final label = textCtrl.text.trim();
+                    Navigator.pop(ctx);
+                    controller.startEvent(EventType.voiceTag,
+                        triggerPhrase: label.isEmpty ? 'custom' : label);
+                  },
+                  child: const Text('Start Recording This Event',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -427,7 +695,7 @@ class _SwipeToDeleteEventCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Dismissible(
-      key: ValueKey('dismissible_\${item.id}'),
+      key: ValueKey('dismissible_${item.id}'),
       direction: DismissDirection.endToStart,
       background: Container(
         margin: const EdgeInsets.only(bottom: 8),
@@ -474,7 +742,7 @@ class _SwipeToDeleteEventCard extends ConsumerWidget {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Event deleted')));
         }
       },
-      child: _EventCard(key: ValueKey('card_\${item.id}'), item: item),
+      child: _EventCard(key: ValueKey('card_${item.id}'), item: item),
     );
   }
 }
@@ -487,7 +755,7 @@ class _EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final start = DateFormat('HH:mm:ss').format(item.startTimestamp.toLocal());
     final duration = item.endTimestamp != null
-        ? '\${(item.endTimestamp!.difference(item.startTimestamp).inMilliseconds / 1000).toStringAsFixed(1)}s'
+        ? '${(item.endTimestamp!.difference(item.startTimestamp).inMilliseconds / 1000).toStringAsFixed(1)}s'
         : 'In progress';
     final params = EventParameters.fromJsonString(item.computedParameters);
 
@@ -527,7 +795,7 @@ class _EventCard extends StatelessWidget {
                 Text('Duration: $duration', style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                 if (params?.bump != null) ...[
                   const SizedBox(width: 12),
-                  Text('Peak: \${params!.bump!.peakGForce.toStringAsFixed(1)}g',
+                  Text('Peak: ${params!.bump!.peakGForce.toStringAsFixed(1)}g',
                       style: const TextStyle(color: AppColors.accentCyan, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
               ],

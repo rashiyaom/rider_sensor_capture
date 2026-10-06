@@ -20,6 +20,11 @@ import '../../../providers/session_health_providers.dart';
 import '../../trips/trip_controller.dart';
 import '../../trips/presentation/trips_history_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'speedometer_widget.dart';
+import 'live_map_widget.dart';
+import '../../events/event_recording_controller.dart';
+
+final isStoppingJourneyProvider = StateProvider<bool>((ref) => false);
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -94,6 +99,14 @@ class DashboardScreen extends ConsumerWidget {
 
             // ── 1. Hero Card (or Zero-State CTA if no devices) ──
             const _HeroActionSection(),
+
+            const SizedBox(height: 14),
+
+            // ── 1b. Live Speedometer (shown only during active journey) ──
+            const _LiveSpeedometerSection(),
+
+            // ── 1c. Live OSM Map (shown only during active journey) ──
+            const _LiveMapDashboardSection(),
 
             const SizedBox(height: 14),
 
@@ -579,6 +592,7 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
     final isSpecificConnected = selectedId != null &&
         connectionMap[selectedId]?.connectionState == BleConnectionState.connected;
     final tripState = ref.watch(tripControllerProvider);
+    final isStoppingJourney = ref.watch(isStoppingJourneyProvider);
 
     return Container(
       width: double.infinity,
@@ -713,36 +727,84 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                     ),
-                    onPressed: () async {
-                      if (tripState.isJourneyActive) {
-                        final completed = await ref.read(tripControllerProvider.notifier).endJourney();
-                        if (completed != null && context.mounted) {
-                          _showJourneyCompletedDialog(context, completed);
-                        }
-                      } else {
-                        _promptAndStartJourney(context, ref);
-                      }
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          tripState.isJourneyActive ? Icons.stop_rounded : Icons.play_arrow_rounded,
-                          color: tripState.isJourneyActive ? Colors.white : Colors.black,
-                          size: 22,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          tripState.isJourneyActive ? 'End & Save Journey' : 'Start Journey',
-                          style: TextStyle(
-                            color: tripState.isJourneyActive ? Colors.white : Colors.black,
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.2,
+                    onPressed: isStoppingJourney
+                        ? null
+                        : () async {
+                            if (tripState.isJourneyActive) {
+                              ref.read(isStoppingJourneyProvider.notifier).state = true;
+                              try {
+                                final completed = await ref.read(tripControllerProvider.notifier).endJourney();
+                                if (context.mounted) {
+                                  if (completed != null) {
+                                    _showJourneyCompletedDialog(context, completed);
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('🛑 Journey ended and saved to local database.'),
+                                        backgroundColor: AppColors.accentCyan,
+                                      ),
+                                    );
+                                  }
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Error stopping journey: $e'),
+                                      backgroundColor: AppColors.accentRed,
+                                    ),
+                                  );
+                                }
+                              } finally {
+                                ref.read(isStoppingJourneyProvider.notifier).state = false;
+                              }
+                            } else {
+                              _promptAndStartJourney(context, ref);
+                            }
+                          },
+                    child: isStoppingJourney
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: const [
+                              SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2.2,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Text(
+                                'Saving Journey...',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                tripState.isJourneyActive ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                                color: tripState.isJourneyActive ? Colors.white : Colors.black,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                tripState.isJourneyActive ? 'End & Save Journey' : 'Start Journey',
+                                style: TextStyle(
+                                  color: tripState.isJourneyActive ? Colors.white : Colors.black,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ),
@@ -774,8 +836,30 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
 
   void _promptAndStartJourney(BuildContext context, WidgetRef ref) {
     final nameController = TextEditingController(text: ref.read(tripControllerProvider).riderName);
-    String selectedWrist = ref.read(tripControllerProvider).wristSide;
+    final customSecondsController = TextEditingController();
     double selectedInterval = ref.read(sampleIntervalSecondsProvider);
+    bool isCustom = !kSampleRateOptions.any((o) => o.intervalSeconds == selectedInterval);
+    if (isCustom) {
+      customSecondsController.text = selectedInterval.toStringAsFixed(0);
+    }
+
+    // Determine connected ESP32 watch info at dialog open time
+    final deviceStates = ref.read(connectionStatesStreamProvider).value ?? {};
+    final connectedWatches = deviceStates.values
+        .where((d) =>
+            d.type == DeviceType.watch &&
+            d.connectionState == BleConnectionState.connected)
+        .toList();
+
+    // Derive wristSide label from the actual connected watches
+    String wristSideLabel(List<BleDeviceModel> watches) {
+      if (watches.isEmpty) return 'No Watch';
+      if (watches.length >= 2) return 'Both Hands';
+      final name = watches.first.name.toLowerCase();
+      if (name.contains('right')) return 'Right Hand';
+      if (name.contains('left')) return 'Left Hand';
+      return 'Left Hand'; // default single watch to left
+    }
 
     showDialog(
       context: context,
@@ -820,117 +904,182 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
                   }).toList(),
                 ),
                 const SizedBox(height: 16),
-                // ── Wrist Side Selector ──
-                const Text(
-                  'Watch worn on:',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setDialogState(() => selectedWrist = 'Left'),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                // ── Dynamic Watch Status Banner ──
+                Builder(builder: (_) {
+                  final watchCount = connectedWatches.length;
+                  final bool hasBoth = watchCount >= 2;
+                  final bool hasNone = watchCount == 0;
+                  final Color bannerColor = hasNone
+                      ? AppColors.accentAmber
+                      : AppColors.accentCyan;
+                  final Color bannerBg = hasNone
+                      ? AppColors.accentAmberBg
+                      : AppColors.accentCyanBg;
+                  final IconData bannerIcon = hasNone
+                      ? Icons.watch_off_rounded
+                      : Icons.watch_rounded;
+                  final String title = hasNone
+                      ? 'No ESP32 Watch Connected'
+                      : hasBoth
+                          ? 'Dual ESP32 Watches Active'
+                          : 'Single ESP32 Watch Active';
+                  final String subtitle = hasNone
+                      ? 'Connect at least one watch before starting'
+                      : hasBoth
+                          ? 'Both Hands: Left & Right recorded simultaneously'
+                          : 'One hand recording \u2014 ${wristSideLabel(connectedWatches)}';
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.cardElevated,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: bannerColor.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: selectedWrist == 'Left' ? AppColors.accentCyan.withValues(alpha: 0.15) : AppColors.cardElevated,
-                            borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
-                            border: Border.all(
-                              color: selectedWrist == 'Left' ? AppColors.accentCyan : AppColors.cardBorder,
-                              width: selectedWrist == 'Left' ? 1.5 : 1,
-                            ),
+                            color: bannerBg,
+                            shape: BoxShape.circle,
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                          child: Icon(bannerIcon, color: bannerColor, size: 20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('🤚', style: TextStyle(fontSize: 16)),
-                              const SizedBox(width: 6),
                               Text(
-                                'Left Hand',
+                                title,
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                subtitle,
                                 style: TextStyle(
-                                  color: selectedWrist == 'Left' ? AppColors.accentCyan : AppColors.textSecondary,
-                                  fontSize: 12,
-                                  fontWeight: selectedWrist == 'Left' ? FontWeight.w700 : FontWeight.w500,
+                                  color: bannerColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setDialogState(() => selectedWrist = 'Right'),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 180),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          decoration: BoxDecoration(
-                            color: selectedWrist == 'Right' ? AppColors.accentCyan.withValues(alpha: 0.15) : AppColors.cardElevated,
-                            borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
-                            border: Border.all(
-                              color: selectedWrist == 'Right' ? AppColors.accentCyan : AppColors.cardBorder,
-                              width: selectedWrist == 'Right' ? 1.5 : 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text('🤚', style: TextStyle(fontSize: 16)),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Right Hand',
-                                style: TextStyle(
-                                  color: selectedWrist == 'Right' ? AppColors.accentCyan : AppColors.textSecondary,
-                                  fontSize: 12,
-                                  fontWeight: selectedWrist == 'Right' ? FontWeight.w700 : FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  );
+                }),
                 const SizedBox(height: 16),
                 // ── Sample Rate Selector ──
                 const Text(
-                  'Data capture rate:',
+                  'Data capture rate (CSV entry timer):',
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
-                  children: kSampleRateOptions.map((opt) {
-                    final isSelected = selectedInterval == opt.intervalSeconds;
-                    return GestureDetector(
-                      onTap: () => setDialogState(() => selectedInterval = opt.intervalSeconds),
+                  children: [
+                    ...kSampleRateOptions.map((opt) {
+                      final isSelected = !isCustom && selectedInterval == opt.intervalSeconds;
+                      return GestureDetector(
+                        onTap: () => setDialogState(() {
+                          isCustom = false;
+                          selectedInterval = opt.intervalSeconds;
+                        }),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.accentGreenBg : AppColors.cardElevated,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isSelected ? AppColors.accentGreen : AppColors.cardBorder,
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Text(
+                            opt.label,
+                            style: TextStyle(
+                              color: isSelected ? AppColors.accentGreen : AppColors.textSecondary,
+                              fontSize: 11,
+                              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    GestureDetector(
+                      onTap: () => setDialogState(() {
+                        isCustom = true;
+                        if (customSecondsController.text.isEmpty) {
+                          customSecondsController.text = '5';
+                          selectedInterval = 5.0;
+                        } else {
+                          selectedInterval = double.tryParse(customSecondsController.text) ?? 5.0;
+                        }
+                      }),
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.accentGreenBg : AppColors.cardElevated,
+                          color: isCustom ? AppColors.accentGreenBg : AppColors.cardElevated,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: isSelected ? AppColors.accentGreen : AppColors.cardBorder,
-                            width: isSelected ? 1.5 : 1,
+                            color: isCustom ? AppColors.accentGreen : AppColors.cardBorder,
+                            width: isCustom ? 1.5 : 1,
                           ),
                         ),
                         child: Text(
-                          opt.label,
+                          'Custom',
                           style: TextStyle(
-                            color: isSelected ? AppColors.accentGreen : AppColors.textSecondary,
+                            color: isCustom ? AppColors.accentGreen : AppColors.textSecondary,
                             fontSize: 11,
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                            fontWeight: isCustom ? FontWeight.w700 : FontWeight.w500,
                           ),
                         ),
                       ),
-                    );
-                  }).toList(),
+                    ),
+                  ],
                 ),
+                if (isCustom) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Text('1 entry per: ', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                      SizedBox(
+                        width: 70,
+                        height: 38,
+                        child: TextField(
+                          controller: customSecondsController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          style: const TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            filled: true,
+                            fillColor: AppColors.cardElevated,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.cardBorder)),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.accentGreen)),
+                          ),
+                          onChanged: (val) {
+                            final parsed = double.tryParse(val);
+                            if (parsed != null && parsed > 0) {
+                              selectedInterval = parsed;
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('seconds', style: TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ],
               ],
             ),
           ),
@@ -947,22 +1096,28 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
               ),
               onPressed: () {
                 final chosenName = nameController.text.trim();
+                final chosenInterval = isCustom
+                    ? (double.tryParse(customSecondsController.text) ?? selectedInterval)
+                    : selectedInterval;
+                final wristSide = wristSideLabel(connectedWatches);
                 // Apply sample rate globally
-                ref.read(sampleIntervalSecondsProvider.notifier).state = selectedInterval;
+                ref.read(sampleIntervalSecondsProvider.notifier).state = chosenInterval;
                 Navigator.pop(ctx);
                 ref.read(tripControllerProvider.notifier).startJourney(
                   riderName: chosenName.isEmpty ? 'Rider' : chosenName,
-                  wristSide: selectedWrist,
+                  wristSide: wristSide,
                 );
-                final rateLabel = kSampleRateOptions
-                    .firstWhere((o) => o.intervalSeconds == selectedInterval,
-                        orElse: () => kSampleRateOptions.first)
-                    .label;
+                final rateLabel = isCustom
+                    ? '1 per ${chosenInterval.toStringAsFixed(1)}s (custom)'
+                    : kSampleRateOptions
+                        .firstWhere((o) => o.intervalSeconds == chosenInterval,
+                            orElse: () => kSampleRateOptions.first)
+                        .label;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
                       '🚀 Journey started for ${chosenName.isEmpty ? "Rider" : chosenName} '
-                      '· ${selectedWrist} hand · Rate: $rateLabel',
+                      '· $wristSide · Rate: $rateLabel',
                     ),
                     backgroundColor: AppColors.accentGreen,
                   ),
@@ -979,6 +1134,22 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
   void _showJourneyCompletedDialog(BuildContext context, Trip trip) {
     final durationMins = (trip.durationSeconds / 60.0).toStringAsFixed(1);
     final distanceKm = (trip.distanceMeters / 1000.0).toStringAsFixed(2);
+    final tripStartTime = trip.startTimeUtc;
+
+    // Fetch events for this trip from provider
+    final tripEvents = ref
+        .read(allEventRecordsStreamProvider)
+        .value
+        ?.where((e) => e.tripId == trip.id && e.status == 'completed')
+        .toList()
+        ?? [];
+
+    // Sort by start time
+    tripEvents.sort((a, b) => a.startTimestamp.compareTo(b.startTimestamp));
+
+    // Helper to compute offset from trip start in seconds
+    int offsetSec(DateTime t) =>
+        t.difference(tripStartTime).inSeconds.clamp(0, trip.durationSeconds);
 
     showDialog(
       context: context,
@@ -992,34 +1163,149 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
             const Text('Journey Saved!', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Rider: ${trip.riderName}  •  Journey #${trip.id}', style: const TextStyle(color: AppColors.accentCyan, fontWeight: FontWeight.w700, fontSize: 13)),
-            const SizedBox(height: 12),
-            _buildDialogRow('Duration', '$durationMins min'),
-            _buildDialogRow('Distance', '$distanceKm km'),
-            _buildDialogRow('Avg Speed', trip.avgSpeedKmh != null ? '${trip.avgSpeedKmh!.toStringAsFixed(1)} km/h' : '--'),
-            _buildDialogRow('Peak Speed', trip.peakSpeedKmh != null ? '${trip.peakSpeedKmh!.toStringAsFixed(1)} km/h' : '--'),
-            _buildDialogRow('Sensor Rows', '${trip.totalSensorRows} rows recorded'),
-            _buildDialogRow('Labeled Events', '${trip.totalEventsCount} events'),
-            const SizedBox(height: 12),
-            if (trip.startLat != null && trip.startLng != null)
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Color(0xFF3C3C44)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  minimumSize: const Size(double.infinity, 38),
-                ),
-                icon: const Icon(Icons.map_rounded, size: 16, color: AppColors.accentCyan),
-                label: const Text('Open Location on Google Maps', style: TextStyle(color: AppColors.textPrimary, fontSize: 12)),
-                onPressed: () {
-                  final uri = Uri.parse('https://maps.google.com/?q=${trip.startLat},${trip.startLng}');
-                  launchUrl(uri, mode: LaunchMode.externalApplication);
-                },
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Rider: ${trip.riderName}  •  Journey #${trip.id}',
+                style: const TextStyle(color: AppColors.accentCyan, fontWeight: FontWeight.w700, fontSize: 13),
               ),
-          ],
+              const SizedBox(height: 12),
+              _buildDialogRow('Duration', '$durationMins min'),
+              _buildDialogRow('Distance', '$distanceKm km'),
+              _buildDialogRow('Avg Speed', trip.avgSpeedKmh != null ? '${trip.avgSpeedKmh!.toStringAsFixed(1)} km/h' : '--'),
+              _buildDialogRow('Peak Speed', trip.peakSpeedKmh != null ? '${trip.peakSpeedKmh!.toStringAsFixed(1)} km/h' : '--'),
+              _buildDialogRow('Sensor Rows', '${trip.totalSensorRows} rows recorded'),
+              _buildDialogRow('Labeled Events', '${trip.totalEventsCount} events'),
+
+              // ── Per-Event Breakdown Table ──
+              if (tripEvents.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                const Divider(color: AppColors.cardBorder),
+                const SizedBox(height: 8),
+                const Text(
+                  'Event Timeline (CSV seconds offset)',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Use Start/End cols to locate rows in CSV',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 10),
+                ),
+                const SizedBox(height: 8),
+                // Column headers
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardElevated,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      SizedBox(width: 18),
+                      Expanded(flex: 3, child: Text('Type', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w700))),
+                      Expanded(flex: 2, child: Text('Start\n(s)', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w700))),
+                      Expanded(flex: 2, child: Text('End\n(s)', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w700))),
+                      Expanded(flex: 2, child: Text('Dur\n(s)', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w700))),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ...tripEvents.asMap().entries.map((entry) {
+                  final idx = entry.key;
+                  final evt = entry.value;
+                  final startSec = offsetSec(evt.startTimestamp);
+                  final endSec = evt.endTimestamp != null
+                      ? offsetSec(evt.endTimestamp!)
+                      : startSec;
+                  final durSec = endSec - startSec;
+
+                  final Color dotColor = evt.eventType == 'bump'
+                      ? AppColors.accentRed
+                      : (evt.eventType == 'turn'
+                          ? AppColors.accentCyan
+                          : AppColors.accentAmber);
+
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: dotColor.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: dotColor.withValues(alpha: 0.15)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 10,
+                          height: 10,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: dotColor,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            '#${idx + 1} ${evt.eventType.toUpperCase()}',
+                            style: TextStyle(
+                              color: dotColor,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            '${startSec}s',
+                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 10, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            '${endSec}s',
+                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 10, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            '${durSec}s',
+                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+
+              const SizedBox(height: 12),
+              if (trip.startLat != null && trip.startLng != null)
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF3C3C44)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    minimumSize: const Size(double.infinity, 38),
+                  ),
+                  icon: const Icon(Icons.map_rounded, size: 16, color: AppColors.accentCyan),
+                  label: const Text('Open Location on Google Maps', style: TextStyle(color: AppColors.textPrimary, fontSize: 12)),
+                  onPressed: () {
+                    final uri = Uri.parse('https://maps.google.com/?q=${trip.startLat},${trip.startLng}');
+                    launchUrl(uri, mode: LaunchMode.externalApplication);
+                  },
+                ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -1849,6 +2135,94 @@ class _GyroscopeWaveformSection extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+// ── 1b. Live Speedometer Section (visible only during active journey) ───────
+class _LiveSpeedometerSection extends ConsumerWidget {
+  const _LiveSpeedometerSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tripState = ref.watch(tripControllerProvider);
+    if (!tripState.isJourneyActive) return const SizedBox.shrink();
+
+    final speed = tripState.currentSpeedKmh;
+    final peak = tripState.peakSpeedKmh;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: AppStyles.cardDecoration(
+        border: Border.all(color: AppColors.accentGreen.withValues(alpha: 0.3), width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.speed_rounded, color: AppColors.accentGreen, size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Live Speedometer',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.accentGreenBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.accentGreen.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  'Peak: ${peak.toStringAsFixed(1)} km/h',
+                  style: const TextStyle(
+                    color: AppColors.accentGreen,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: RepaintBoundary(
+              child: SpeedometerWidget(
+                speedKmh: speed,
+                maxSpeed: 120,
+                size: 200,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 1c. Live OSM Map Section (visible only during active journey) ────────────
+class _LiveMapDashboardSection extends ConsumerWidget {
+  const _LiveMapDashboardSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tripState = ref.watch(tripControllerProvider);
+    if (!tripState.isJourneyActive) return const SizedBox.shrink();
+
+    return const Padding(
+      padding: EdgeInsets.only(bottom: 14),
+      child: LiveMapSection(),
     );
   }
 }

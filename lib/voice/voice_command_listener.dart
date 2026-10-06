@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../core/services/rider_feedback_service.dart';
 import 'voice_command_config.dart';
 
 class VoiceCommandListener {
@@ -95,6 +96,7 @@ class VoiceCommandListener {
           );
 
           if (matched != null && !_commandStreamController.isClosed) {
+            unawaited(RiderFeedbackService.onVoiceCommandTriggered());
             _commandStreamController.add(matched);
           }
         },

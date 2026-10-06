@@ -138,23 +138,27 @@ class Esp32WatchParser {
         az = byteData.getFloat32(8, Endian.little);
       }
 
-      // Infer mount location from device name if not in packet
+      // Infer mount location from device name / ID if not in packet
       if (inferredMount == null) {
-        final upper = deviceName.toUpperCase();
-        if (upper.contains('FORK')) {
+        final combined = '${deviceName}_$deviceId'.toUpperCase();
+        if (combined.contains('LEFT')) {
+          inferredMount = 'left_hand';
+        } else if (combined.contains('RIGHT')) {
+          inferredMount = 'right_hand';
+        } else if (combined.contains('FORK')) {
           inferredMount = 'fork';
-        } else if (upper.contains('FOOT')) {
+        } else if (combined.contains('FOOT')) {
           inferredMount = 'footboard';
         }
       }
 
-      // Convert unit if watch reports in 'g' instead of 'm/s²' (normal range check for legacy packets only)
-      if (!isV2 && ax != null && ay != null && az != null) {
-        if (!ax.isFinite || !ay.isFinite || !az.isFinite) {
+      // Validate accelerometer floats for all formats
+      if (ax != null) {
+        if (!ax.isFinite || ay == null || !ay.isFinite || az == null || !az.isFinite) {
           ax = null;
           ay = null;
           az = null;
-        } else {
+        } else if (!isV2) {
           // If legacy values are within ±8 range, they might be in g's -> scale to m/s² for chart
           final mag = ax * ax + ay * ay + az * az;
           if (mag > 0.1 && mag < 16.0) {
@@ -165,13 +169,22 @@ class Esp32WatchParser {
         }
       }
 
-      if (gx != null && (!gx.isFinite || !gy!.isFinite || !gz!.isFinite)) {
-        gx = null;
-        gy = null;
-        gz = null;
+      // Validate gyroscope floats
+      if (gx != null) {
+        if (!gx.isFinite || gy == null || !gy.isFinite || gz == null || !gz.isFinite) {
+          gx = null;
+          gy = null;
+          gz = null;
+        }
+      }
+
+      // Drop completely corrupt frames
+      if (ax == null && gx == null) {
+        return null;
       }
     } catch (_) {
       // Gracefully handle malformed frame
+      return null;
     }
 
     return RawSensorData(
@@ -179,7 +192,7 @@ class Esp32WatchParser {
       deviceName: deviceName.isNotEmpty ? deviceName : esp32DeviceName,
       deviceType: DeviceType.watch,
       timestamp: DateTime.now(),
-      mountLocation: inferredMount ?? 'fork',
+      mountLocation: inferredMount ?? 'left_hand',
       heartRate: null, // ESP32 Watch is a dedicated 6-axis IMU, not a Polar HR band
       accelX: ax,
       accelY: ay,

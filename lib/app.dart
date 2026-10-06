@@ -173,7 +173,7 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                     ),
                     SizedBox(height: 2),
                     Text(
-                      'Bluetooth, GPS & Mic needed for live ML capture.',
+                      'Bluetooth & GPS needed for live ML capture.',
                       style: TextStyle(
                         color: AppColors.textSecondary,
                         fontSize: 10,
