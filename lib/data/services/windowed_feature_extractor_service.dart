@@ -216,8 +216,8 @@ class WindowedFeatureExtractorService {
     final w2Hrs = <double>[];
 
     for (final r in readings) {
-      final loc = (r.mountLocation ?? '').toLowerCase();
-      final isW2 = loc.contains('foot') || (r.deviceId?.contains('watch_2') ?? false);
+      final loc = r.mountLocation.toLowerCase();
+      final isW2 = loc.contains('foot') || r.deviceId.contains('watch_2');
 
       final ax = r.accelX;
       final ay = r.accelY;
@@ -225,9 +225,14 @@ class WindowedFeatureExtractorService {
       final gx = r.gyroX;
       final gy = r.gyroY;
       final gz = r.gyroZ;
-      final roll = r.rollDeg;
-      final pitch = r.pitchDeg;
       final hr = r.heartRate?.toDouble();
+
+      double? roll;
+      double? pitch;
+      if (ax != null && ay != null && az != null) {
+        roll = math.atan2(ay, az) * (180.0 / math.pi);
+        pitch = math.atan2(-ax, math.sqrt(ay * ay + az * az)) * (180.0 / math.pi);
+      }
 
       if (isW2) {
         if (ax != null) w2Ax.add(ax);
@@ -249,7 +254,7 @@ class WindowedFeatureExtractorService {
         if (hr != null && hr > 30) w1Hrs.add(hr);
       }
 
-      if (r.deviceType?.toLowerCase().contains('polar') == true && hr != null && hr > 30) {
+      if (r.deviceType.toLowerCase().contains('polar') && hr != null && hr > 30) {
         polarHrs.add(hr);
       }
     }

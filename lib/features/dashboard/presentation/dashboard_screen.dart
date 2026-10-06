@@ -10,6 +10,7 @@ import '../../../ble/models/ble_device_model.dart';
 import '../../../core/services/battery_service.dart';
 import '../../../core/services/session_health_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/angular_units.dart';
 import '../../../providers/battery_providers.dart';
 import '../../../providers/ble_providers.dart';
 import '../../../data/local_db/database.dart';
@@ -20,6 +21,8 @@ import '../../../providers/session_health_providers.dart';
 import '../../trips/trip_controller.dart';
 import '../../trips/presentation/trips_history_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../data/services/live_ml_inference_service.dart';
+import '../../../providers/ml_inference_providers.dart';
 import 'speedometer_widget.dart';
 import 'live_map_widget.dart';
 import '../../events/event_recording_controller.dart';
@@ -107,6 +110,9 @@ class DashboardScreen extends ConsumerWidget {
 
             // ── 1c. Live OSM Map (shown only during active journey) ──
             const _LiveMapDashboardSection(),
+
+            // ── 1d. Live Edge ML Inference & Real-Time Event Classification ──
+            const _LiveEdgeMlInferenceSection(),
 
             const SizedBox(height: 14),
 
@@ -2224,6 +2230,269 @@ class _LiveMapDashboardSection extends ConsumerWidget {
       padding: EdgeInsets.only(bottom: 14),
       child: LiveMapSection(),
     );
+  }
+}
+
+// ── 1d. Live Edge ML Inference & Real-Time Classifier Section ────────────────
+class _LiveEdgeMlInferenceSection extends ConsumerWidget {
+  const _LiveEdgeMlInferenceSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final prediction = ref.watch(latestMlPredictionProvider);
+    final eventSession = ref.watch(eventRecordingControllerProvider);
+    final isRecordingEvent = eventSession.state == RecordingState.recording;
+
+    final color = _getEventColor(prediction.eventType);
+    final icon = _getEventIcon(prediction.eventType);
+
+    final peakZ = prediction.topFeatures['z_peak_mps2'] ?? AngularUnits.standardGravity;
+    final jerk = prediction.topFeatures['peak_jerk_mps3'] ?? 0.0;
+    final roll = prediction.topFeatures['roll_deg'] ?? 0.0;
+    final corr = prediction.topFeatures['fork_foot_corr'] ?? 0.0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: AppStyles.cardDecoration(
+        border: Border.all(
+          color: prediction.isAnomaly
+              ? color.withValues(alpha: 0.6)
+              : AppColors.accentCyan.withValues(alpha: 0.25),
+          width: prediction.isAnomaly ? 1.4 : 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: prediction.isAnomaly ? color : AppColors.accentGreen,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: prediction.isAnomaly ? color : AppColors.accentGreen,
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Real-Time Edge ML Classifier',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: color.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.bolt_rounded, color: color, size: 12),
+                    const SizedBox(width: 3),
+                    Text(
+                      '${(prediction.confidence * 100).toInt()}% CONF',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Prediction Banner Card
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF141418),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: color.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: color.withValues(alpha: 0.4)),
+                  ),
+                  child: Icon(icon, color: color, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        prediction.label.toUpperCase(),
+                        style: TextStyle(
+                          color: color,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        prediction.explanation,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // Confidence Progress Bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: prediction.confidence,
+              minHeight: 4,
+              backgroundColor: AppColors.cardBorder,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // Live Explanatory Telemetry Chips
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _buildFeatureChip('Peak Z', '${peakZ.toStringAsFixed(1)} m/s²', Icons.vertical_align_top_rounded),
+              _buildFeatureChip('Jerk', '${jerk.toStringAsFixed(0)} m/s³', Icons.trending_up_rounded),
+              _buildFeatureChip('Lean', '${roll.toStringAsFixed(1)}°', Icons.rotate_right_rounded),
+              _buildFeatureChip('Fork-Foot', '${(corr * 100).toInt()}% corr', Icons.link_rounded),
+            ],
+          ),
+
+          // Active Ground-Truth Comparison Tag
+          if (isRecordingEvent) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.accentAmber.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.accentAmber.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.compare_arrows_rounded, color: AppColors.accentAmber, size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Ground Truth Active: ${eventSession.currentEventType?.name.toUpperCase()} (Testing model accuracy in real time)',
+                      style: const TextStyle(
+                        color: AppColors.accentAmber,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureChip(String label, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.cardElevated,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: AppColors.textTertiary),
+          const SizedBox(width: 4),
+          Text(
+            '$label: ',
+            style: const TextStyle(color: AppColors.textTertiary, fontSize: 10),
+          ),
+          Text(
+            value,
+            style: const TextStyle(color: AppColors.textPrimary, fontSize: 10, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getEventColor(MlPredictedEventType type) {
+    switch (type) {
+      case MlPredictedEventType.severeBump:
+        return Colors.orangeAccent;
+      case MlPredictedEventType.mildBump:
+        return AppColors.accentAmber;
+      case MlPredictedEventType.sharpTurn:
+        return const Color(0xFF00D4FF);
+      case MlPredictedEventType.hardBraking:
+        return Colors.redAccent;
+      case MlPredictedEventType.rapidAcceleration:
+        return Colors.purpleAccent;
+      case MlPredictedEventType.normalRiding:
+        return AppColors.accentGreen;
+    }
+  }
+
+  IconData _getEventIcon(MlPredictedEventType type) {
+    switch (type) {
+      case MlPredictedEventType.severeBump:
+        return Icons.terrain_rounded;
+      case MlPredictedEventType.mildBump:
+        return Icons.waves_rounded;
+      case MlPredictedEventType.sharpTurn:
+        return Icons.turn_right_rounded;
+      case MlPredictedEventType.hardBraking:
+        return Icons.do_not_disturb_on_total_silence_rounded;
+      case MlPredictedEventType.rapidAcceleration:
+        return Icons.speed_rounded;
+      case MlPredictedEventType.normalRiding:
+        return Icons.check_circle_rounded;
+    }
   }
 }
 

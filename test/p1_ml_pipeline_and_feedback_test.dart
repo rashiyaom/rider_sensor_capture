@@ -113,9 +113,9 @@ void main() {
       // Export with CSV format
       final files = await exportRepo.generateTripExportFiles(tripId, format: ExportFormat.csv);
 
-      // Should produce CSV file AND train_baseline_*.py
-      expect(files.length, equals(2));
-      final csvFile = files.firstWhere((f) => f.path.endsWith('.csv'));
+      // Should produce raw CSV, features_windowed CSV, AND train_baseline_*.py
+      expect(files.length, equals(3));
+      final csvFile = files.firstWhere((f) => f.path.endsWith('.csv') && !f.path.contains('features_windowed'));
       final pyFile = files.firstWhere((f) => f.path.endsWith('.py'));
 
       expect(await csvFile.exists(), isTrue);

@@ -63,6 +63,16 @@ abstract class ExportRepository {
     required ExportMode mode,
   });
 
+  /// Build Pre-windowed ML Feature Table (features_windowed.csv) with label encodings and dataset splits
+  Future<String> buildWindowedFeaturesCsvExport({
+    int? tripId,
+    DateTime? startUtc,
+    DateTime? endUtc,
+    double windowSec = 1.5,
+    double strideSec = 0.5,
+    String? datasetSplit,
+  });
+
   /// Build complete CSV export for a specific Trip / Journey
   Future<String> exportTripCsv(int tripId);
 

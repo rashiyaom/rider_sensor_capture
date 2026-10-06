@@ -12,6 +12,7 @@ import '../local_db/database.dart';
 import '../models/event_parameters.dart';
 import '../services/hr_event_gate.dart';
 import '../services/ml_starter_script_generator.dart';
+import '../services/windowed_feature_extractor_service.dart';
 import '../../features/export/models/export_options.dart';
 import 'export_repository.dart';
 
@@ -1242,6 +1243,14 @@ class ExportRepositoryImpl implements ExportRepository {
       await csvFile.writeAsString(tripCsv);
       createdFiles.add(csvFile);
 
+      // Pre-computed rolling ML Feature Table (features_windowed_trip_X.csv)
+      final windowedCsv = await buildWindowedFeaturesCsvExport(tripId: tripId);
+      if (windowedCsv.isNotEmpty) {
+        final windowedFile = File(p.join(exportDir.path, 'features_windowed_$fileBase.csv'));
+        await windowedFile.writeAsString(windowedCsv);
+        createdFiles.add(windowedFile);
+      }
+
       // Bundle ML Starter script directly with exported trip dataset
       final pyScript = MlStarterScriptGenerator.generateTrainBaselineScript(
         defaultCsvFilename: csvFilename,
@@ -1252,6 +1261,57 @@ class ExportRepositoryImpl implements ExportRepository {
     }
 
     return createdFiles;
+  }
+
+  @override
+  Future<String> buildWindowedFeaturesCsvExport({
+    int? tripId,
+    DateTime? startUtc,
+    DateTime? endUtc,
+    double windowSec = 1.5,
+    double strideSec = 0.5,
+    String? datasetSplit,
+  }) async {
+    List<SensorReading> readings;
+    List<EventRecord> events;
+
+    if (tripId != null) {
+      readings = await (_db.select(_db.sensorReadings)
+            ..where((t) => t.tripId.equals(tripId))
+            ..orderBy([(t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc)]))
+          .get();
+      events = await (_db.select(_db.eventRecords)
+            ..where((t) => t.tripId.equals(tripId))
+            ..orderBy([(t) => OrderingTerm(expression: t.startTimestamp, mode: OrderingMode.asc)]))
+          .get();
+    } else {
+      var query = _db.select(_db.sensorReadings);
+      if (startUtc != null) {
+        query = query..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
+      }
+      if (endUtc != null) {
+        query = query..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
+      }
+      readings = await (query
+            ..orderBy([(t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc)]))
+          .get();
+      events = await _fetchEventsInRange(startUtc, endUtc);
+    }
+
+    final extractor = WindowedFeatureExtractorService(
+      sampleRateHz: 50.0,
+      windowDurationSec: windowSec,
+      strideDurationSec: strideSec,
+    );
+
+    final windows = extractor.extractWindows(
+      readings: readings,
+      events: events,
+      tripId: tripId,
+      forcedSplit: datasetSplit,
+    );
+
+    return extractor.buildCsv(windows);
   }
 
 
@@ -1383,17 +1443,20 @@ class ExportRepositoryImpl implements ExportRepository {
       await tripSummaryFile.writeAsString(tripSummaryCsv);
       createdFiles.add(tripSummaryFile);
 
-      // Optional camera detections export
-      final cameraCsv = await buildCameraCsvExport(startUtc: startUtc, endUtc: endUtc, mode: mode);
-      if (cameraCsv.split('\n').length > 2) {
-        final cameraFile = File(p.join(exportDir.path, 'ride_camera_detections_$timestampStr.csv'));
-        await cameraFile.writeAsString(cameraCsv);
-        createdFiles.add(cameraFile);
+      // File 4: features_windowed_session.csv (Pre-computed rolling ML tabular dataset)
+      final windowedCsv = await buildWindowedFeaturesCsvExport(
+        startUtc: startUtc,
+        endUtc: endUtc,
+      );
+      if (windowedCsv.isNotEmpty) {
+        final windowedFile = File(p.join(exportDir.path, 'features_windowed_session_$timestampStr.csv'));
+        await windowedFile.writeAsString(windowedCsv);
+        createdFiles.add(windowedFile);
       }
 
       // Bundle ML Starter script directly with exported session CSVs
       final pyScript = MlStarterScriptGenerator.generateTrainBaselineScript(
-        defaultCsvFilename: 'sensor_timeseries_export_$timestampStr.csv',
+        defaultCsvFilename: 'features_windowed_session_$timestampStr.csv',
       );
       final pyFile = File(p.join(exportDir.path, 'train_baseline_$timestampStr.py'));
       await pyFile.writeAsString(pyScript);
