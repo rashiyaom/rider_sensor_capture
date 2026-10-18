@@ -84,12 +84,29 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
 
   Timer? _elapsedTimer;
   Timer? _autoHaltTimer;
+  Timer? _savedResetTimer;
+  Future<void> _eventOperation = Future.value();
+
+  Future<void> _serialize(Future<void> Function() operation) {
+    final task = _eventOperation.then((_) async {
+      if (mounted) await operation();
+    });
+    _eventOperation = task.catchError((Object error) {});
+    return task;
+  }
 
   static const Duration maxRecordingDuration = Duration(seconds: 60);
 
   EventRecordingController(this.ref) : super(const EventRecordingSessionState(statusMessage: 'Ready to mark event'));
 
-  Future<void> startEvent(EventType type, {String? triggerPhrase}) async {
+  Future<void> startEvent(EventType type, {String? triggerPhrase}) =>
+      _serialize(() async {
+        await _stopAndSaveEvent(reason: 'Next event');
+        await _startEvent(type, triggerPhrase: triggerPhrase);
+      });
+
+  Future<void> _startEvent(EventType type, {String? triggerPhrase}) async {
+    _savedResetTimer?.cancel();
     final repo = ref.read(sensorRepositoryProvider);
     final now = DateTime.now().toUtc();
 
@@ -142,12 +159,15 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
     _autoHaltTimer?.cancel();
     _autoHaltTimer = Timer(maxRecordingDuration, () {
       if (state.state == RecordingState.recording) {
-        stopAndSaveEvent(reason: 'Max duration reached (30s)');
+        stopAndSaveEvent(reason: 'Max duration reached (60s)');
       }
     });
   }
 
-  Future<void> stopAndSaveEvent({String reason = 'Manual stop'}) async {
+  Future<void> stopAndSaveEvent({String reason = 'Manual stop'}) =>
+      _serialize(() => _stopAndSaveEvent(reason: reason));
+
+  Future<void> _stopAndSaveEvent({String reason = 'Manual stop'}) async {
     if (state.state != RecordingState.recording) return;
 
     _elapsedTimer?.cancel();
@@ -239,8 +259,9 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       statusMessage: 'Saved #$activeId: ${computedParams.summary}',
     );
 
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
+    _savedResetTimer?.cancel();
+    _savedResetTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted && state.state == RecordingState.saved && state.activeEventId == activeId) {
         state = state.copyWith(
           state: RecordingState.idle,
           statusMessage: 'Ready to mark event',
@@ -251,6 +272,7 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
 
   @override
   void dispose() {
+    _savedResetTimer?.cancel();
     _elapsedTimer?.cancel();
     _autoHaltTimer?.cancel();
     super.dispose();

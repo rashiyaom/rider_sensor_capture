@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'watch_companion_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
@@ -237,6 +238,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
             // ── 2. Three-Column Stat Metric Bento ──
             _buildThreeColumnDeviceBento(connectedDevices.length, dbStats.totalRows, battery.batteryLevel),
 
+            const SizedBox(height: 14),
+
+            const WatchCompanionCard(),
             const SizedBox(height: 14),
 
             // ── 3. Connected BLE Sensors Section ──
@@ -629,7 +633,10 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                 }
               }
 
-              return Row(
+              return Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   const Text(
                     'HAND / MOUNT:',
@@ -640,29 +647,25 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                       letterSpacing: 0.5,
                     ),
                   ),
-                  const SizedBox(width: 8),
                   _buildMountChip(
                     device.id,
                     'left_hand',
                     'Left Hand',
                     currentMount == 'left_hand',
                   ),
-                  const SizedBox(width: 6),
                   _buildMountChip(
                     device.id,
                     'right_hand',
                     'Right Hand',
                     currentMount == 'right_hand',
                   ),
-                  if (device.type == DeviceType.verityBand) ...[
-                    const SizedBox(width: 6),
+                  if (device.type == DeviceType.verityBand)
                     _buildMountChip(
                       device.id,
                       'forearm',
                       'Forearm',
                       currentMount == 'forearm',
                     ),
-                  ],
                 ],
               );
             },
@@ -683,8 +686,14 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                     decoration: const BoxDecoration(shape: BoxShape.circle, color: AppColors.accentGreen),
                   ),
                   const SizedBox(width: 6),
-                  const Text('Live 50Hz Stream', style: TextStyle(color: AppColors.accentGreen, fontSize: 10, fontWeight: FontWeight.bold)),
-                  const Spacer(),
+                  const Expanded(
+                    child: Text(
+                      'Live 50Hz Stream',
+                      style: TextStyle(color: AppColors.accentGreen, fontSize: 10, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                   Text(
                     '$dbRowCount rows persisted',
                     style: const TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w600),

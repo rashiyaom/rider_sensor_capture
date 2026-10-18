@@ -567,7 +567,12 @@ class ExportScreen extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(name, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w700)),
+                            Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w700),
+                            ),
                             const SizedBox(height: 2),
                             Text('$sizeKb KB', style: const TextStyle(color: AppColors.textSecondary, fontSize: 10)),
                           ],
@@ -575,18 +580,29 @@ class ExportScreen extends ConsumerWidget {
                       ),
                       // Preview Button
                       IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(),
                         icon: const Icon(Icons.visibility_outlined, size: 18, color: AppColors.accentCyan),
                         tooltip: 'Preview dataset',
                         onPressed: () => _showFilePreview(context, file),
                       ),
+                      const SizedBox(width: 4),
                       // Share Button
                       IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(),
                         icon: const Icon(Icons.share_rounded, size: 16, color: AppColors.textSecondary),
                         tooltip: 'Share file',
                         onPressed: () => controller.reShareFiles([file]),
                       ),
+                      const SizedBox(width: 4),
                       // Delete Archive Button
                       IconButton(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(),
                         icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.accentRed),
                         tooltip: 'Delete archive',
                         onPressed: () async {

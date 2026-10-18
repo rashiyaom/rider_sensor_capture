@@ -1457,7 +1457,7 @@ class _ThreeColumnMetricBentoSection extends ConsumerWidget {
         Expanded(
           child: _buildBentoCard(
             icon: Icons.inventory_2_outlined,
-            badge: 'Live SQLite',
+            badge: 'DB',
             value: formattedRows,
             unit: 'rows',
             label: selectedId != null ? 'sensor rows' : 'persisted rows',
@@ -1503,6 +1503,8 @@ class _ThreeColumnMetricBentoSection extends ConsumerWidget {
           Text(
             label,
             textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: AppStyles.statLabel,
           ),
         ],
@@ -1584,10 +1586,14 @@ class _ContinuityPillGridSectionState extends ConsumerState<_ContinuityPillGridS
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Packet Continuity',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+              const Expanded(
+                child: Text(
+                  'Packet Continuity',
+                  style: TextStyle(color: AppColors.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
+              const SizedBox(width: 8),
               Text(
                 isPaused
                     ? 'Paused'
@@ -1672,7 +1678,7 @@ class _SplitBentoSection extends ConsumerWidget {
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(16),
-            height: 180,
+            constraints: const BoxConstraints(minHeight: 180),
             decoration: AppStyles.cardDecoration(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1702,7 +1708,7 @@ class _SplitBentoSection extends ConsumerWidget {
                     letterSpacing: -0.5,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(height: 12),
                 RepaintBoundary(
                   child: SizedBox(
                     height: 54,
@@ -1725,7 +1731,7 @@ class _SplitBentoSection extends ConsumerWidget {
         Expanded(
           child: Container(
             padding: const EdgeInsets.all(16),
-            height: 180,
+            constraints: const BoxConstraints(minHeight: 180),
             decoration: AppStyles.cardDecoration(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1781,7 +1787,7 @@ class _SplitBentoSection extends ConsumerWidget {
                     ],
                   ],
                 ),
-                const Spacer(),
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
@@ -1846,23 +1852,22 @@ class _HeartRateWaveformSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: const [
-                    Icon(Icons.favorite_rounded, color: AppColors.accentRed, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'Polar Verity Heart Rate',
-                      style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
-                    ),
-                  ],
+                const Icon(Icons.favorite_rounded, color: AppColors.accentRed, size: 18),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'Polar Verity Heart Rate',
+                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Text(
                   latest != null ? '$latest BPM' : '-- BPM',
                   style: const TextStyle(
                     color: AppColors.textPrimary,
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.3,
                   ),
@@ -1954,27 +1959,22 @@ class _AccelerometerWaveformSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: const [
-                    Icon(Icons.vibration_rounded, color: AppColors.accentCyan, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'IMU Accelerometer (XYZ)',
-                      style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
-                    ),
-                  ],
+                const Icon(Icons.vibration_rounded, color: AppColors.accentCyan, size: 18),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'IMU Accel (XYZ)',
+                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                Row(
-                  children: [
-                    _buildTraceLegend('X', AppColors.primaryWhite, telemetry.latestAccelX),
-                    const SizedBox(width: 8),
-                    _buildTraceLegend('Y', AppColors.accentCyan, telemetry.latestAccelY),
-                    const SizedBox(width: 8),
-                    _buildTraceLegend('Z', AppColors.textSecondary, telemetry.latestAccelZ),
-                  ],
-                ),
+                const SizedBox(width: 6),
+                _buildTraceLegend('X', AppColors.primaryWhite, telemetry.latestAccelX),
+                const SizedBox(width: 6),
+                _buildTraceLegend('Y', AppColors.accentCyan, telemetry.latestAccelY),
+                const SizedBox(width: 6),
+                _buildTraceLegend('Z', AppColors.textSecondary, telemetry.latestAccelZ),
               ],
             ),
             const SizedBox(height: 14),
@@ -2047,14 +2047,14 @@ class _AccelerometerWaveformSection extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 6,
-          height: 6,
+          width: 5,
+          height: 5,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 4),
+        const SizedBox(width: 3),
         Text(
-          value != null ? '$label: ${value.toStringAsFixed(1)}' : label,
-          style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold),
+          value != null ? '$label:${value.toStringAsFixed(1)}' : label,
+          style: TextStyle(color: color, fontSize: 9.5, fontWeight: FontWeight.bold),
         ),
       ],
     );
@@ -2081,18 +2081,17 @@ class _GyroscopeWaveformSection extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: const [
-                Row(
-                  children: [
-                    Icon(Icons.screen_rotation_alt_rounded, color: AppColors.textSecondary, size: 18),
-                    SizedBox(width: 8),
-                    Text(
-                      'Gyroscope Angular Velocity',
-                      style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
-                    ),
-                  ],
+                Icon(Icons.screen_rotation_alt_rounded, color: AppColors.textSecondary, size: 18),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Gyroscope Angular Velocity',
+                    style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+                SizedBox(width: 8),
                 Text('rad/s', style: TextStyle(color: AppColors.textTertiary, fontSize: 11)),
               ],
             ),
@@ -2169,20 +2168,26 @@ class _LiveSpeedometerSection extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Row(
-                children: [
-                  Icon(Icons.speed_rounded, color: AppColors.accentGreen, size: 18),
-                  SizedBox(width: 8),
-                  Text(
-                    'Live Speedometer',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+              const Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.speed_rounded, color: AppColors.accentGreen, size: 18),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Live Speedometer',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -2269,34 +2274,40 @@ class _LiveEdgeMlInferenceSection extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: prediction.isAnomaly ? color : AppColors.accentGreen,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: prediction.isAnomaly ? color : AppColors.accentGreen,
-                          blurRadius: 6,
-                          spreadRadius: 1,
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: prediction.isAnomaly ? color : AppColors.accentGreen,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: prediction.isAnomaly ? color : AppColors.accentGreen,
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Real-Time Edge ML Classifier',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
                         ),
-                      ],
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Real-Time Edge ML Classifier',
-                    style: TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(

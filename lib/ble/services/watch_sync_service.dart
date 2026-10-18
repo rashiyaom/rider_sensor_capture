@@ -1,10 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'ble_connection_manager.dart';
+import 'watch_protocol.dart';
+import '../models/raw_sensor_data.dart';
+import '../models/ble_device_model.dart';
 import '../../providers/battery_providers.dart';
+import '../../providers/ble_providers.dart';
 import '../../features/trips/trip_controller.dart';
 import '../../features/events/event_recording_controller.dart';
 import '../../voice/voice_command_config.dart';
@@ -13,188 +18,365 @@ class WatchBatteryInfo {
   final int batteryPercent;
   final bool isCharging;
   final int millivolts;
-
   const WatchBatteryInfo({
-    this.batteryPercent = 100,
+    this.batteryPercent = 255,
     this.isCharging = false,
-    this.millivolts = 4150,
+    this.millivolts = 0,
   });
+}
+
+class WatchAppearance {
+  final int face;
+  final int brightness;
+  const WatchAppearance({this.face = 0, this.brightness = 190});
+}
+
+class WatchPeerStatus {
+  final int role;
+  final bool localControl;
+  final bool tripActive;
+  final int recordingState;
+  final bool sdReady;
+  final int samplesWritten;
+  final DateTime receivedAt;
+  const WatchPeerStatus({
+    required this.role,
+    required this.localControl,
+    required this.tripActive,
+    required this.recordingState,
+    required this.sdReady,
+    required this.samplesWritten,
+    required this.receivedAt,
+  });
+  bool get fresh => DateTime.now().difference(receivedAt).inSeconds < 15;
+  String get wrist => role == 1
+      ? 'Left'
+      : role == 2
+      ? 'Right'
+      : 'Unassigned';
 }
 
 class WatchSyncService {
   final BleConnectionManager _bleManager;
   final Ref _ref;
-
-  StreamSubscription<List<int>>? _watchCommandSub;
+  StreamSubscription<WatchCommand>? _watchCommandSub;
+  StreamSubscription<dynamic>? _deviceSub;
+  StreamSubscription<RawSensorData>? _sensorSub;
   Timer? _periodicTelemetryTimer;
-
+  bool _disposed = false;
+  bool _commandBusy = false;
+  bool _sendingSnapshot = false;
+  int _telemetryTick = 0;
+  int _heartRate = 0;
+  DateTime? _heartRateAt;
+  String? _heartRateDevice;
   WatchBatteryInfo _watchBattery = const WatchBatteryInfo();
-  final _watchBatteryController = StreamController<WatchBatteryInfo>.broadcast();
-  Stream<WatchBatteryInfo> get watchBatteryStream => _watchBatteryController.stream;
+  WatchAppearance _appearance = const WatchAppearance();
+  final Map<String, WatchPeerStatus> _peers = {};
+  final _peerController =
+      StreamController<Map<String, WatchPeerStatus>>.broadcast();
+  Stream<Map<String, WatchPeerStatus>> get peerStream => _peerController.stream;
+  Map<String, WatchPeerStatus> get peers => Map.unmodifiable(_peers);
+  final _watchBatteryController =
+      StreamController<WatchBatteryInfo>.broadcast();
+  final _appearanceController = StreamController<WatchAppearance>.broadcast();
+  Stream<WatchBatteryInfo> get watchBatteryStream =>
+      _watchBatteryController.stream;
+  Stream<WatchAppearance> get appearanceStream => _appearanceController.stream;
   WatchBatteryInfo get currentWatchBattery => _watchBattery;
+  WatchAppearance get currentAppearance => _appearance;
 
   WatchSyncService(this._bleManager, this._ref) {
-    _initSubscriptions();
-    _startPeriodicTelemetry();
-  }
-
-  void _initSubscriptions() {
-    // 1. Listen for watch-to-phone commands (from 0xFFE3 characteristic)
-    _watchCommandSub = _bleManager.watchCommandStream.listen(_handleWatchCommand);
-
-    // 3. Listen for watch connection to sync time and initial trip state immediately
-    bool lastWatchConnected = false;
-    _bleManager.deviceStatesStream.listen((_) {
-      final isConnected = _bleManager.isWatchConnected;
-      if (isConnected && !lastWatchConnected) {
-        lastWatchConnected = true;
-        sendTimeSyncToWatch();
-        final isJourneyActive = _ref.read(tripControllerProvider).isJourneyActive;
-        sendTripStateToWatch(isJourneyActive, tripName: 'Ride Session');
-      } else if (!isConnected) {
-        lastWatchConnected = false;
+    _watchCommandSub = _bleManager.watchControlStream.listen((command) {
+      unawaited(_handleWatchCommand(command.bytes, deviceId: command.deviceId));
+    });
+    _sensorSub = _bleManager.rawDataStream.listen((sample) {
+      if (sample.heartRate != null && sample.heartRate! > 0) {
+        _heartRate = sample.heartRate!;
+        _heartRateAt = DateTime.now();
+        _heartRateDevice = sample.deviceId;
       }
     });
-
-    // 4. Listen for phone trip state changes to mirror on watch immediately
+    var lastReadyIds = <String>{};
+    _deviceSub = _bleManager.deviceStatesStream.listen((_) {
+      final readyIds = _bleManager.readyWatchIds;
+      if (readyIds.difference(lastReadyIds).isNotEmpty) {
+        unawaited(_initialSync());
+      }
+      _peers.removeWhere((id, _) => !readyIds.contains(id));
+      _peerController.add(peers);
+      lastReadyIds = readyIds;
+    });
     _ref.listen<TripState>(tripControllerProvider, (previous, next) {
-      if (previous?.isJourneyActive != next.isJourneyActive) {
-        sendTripStateToWatch(next.isJourneyActive, tripName: 'Ride Session');
+      if (previous?.isJourneyActive != next.isJourneyActive && !_commandBusy) {
+        unawaited(_sendState());
       }
     });
-
-    // 5. Listen for phone event changes (e.g. voice trigger) to mirror on watch immediately
-    _ref.listen<EventRecordingSessionState>(eventRecordingControllerProvider, (previous, next) {
-      if (previous?.currentEventType != next.currentEventType ||
-          previous?.state != next.state) {
-        if (next.state == RecordingState.recording && next.currentEventType != null) {
-          int classId = 1;
-          String name = 'Bump';
-          if (next.currentEventType == EventType.turn) {
-            classId = 2;
-            name = 'Turn';
-          } else if (next.currentEventType == EventType.speedTest) {
-            classId = 3;
-            name = 'Speed';
-          }
-          sendEventTagToWatch(classId, name);
-        } else if (next.state == RecordingState.idle || next.state == RecordingState.halted) {
-          sendEventTagToWatch(0, 'Normal');
-        }
+    _ref.listen<EventRecordingSessionState>(eventRecordingControllerProvider, (
+      previous,
+      next,
+    ) {
+      if ((previous?.currentEventType != next.currentEventType ||
+              previous?.state != next.state) &&
+          !_commandBusy) {
+        unawaited(_sendEventState());
       }
     });
+    _periodicTelemetryTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!_disposed && _bleManager.isWatchConnected) {
+        unawaited(_periodicSync());
+      }
+    });
+    if (_bleManager.isWatchConnected) unawaited(_initialSync());
   }
 
-  void _handleWatchCommand(List<int> bytes) {
-    if (bytes.isEmpty) return;
-    final opcode = bytes[0];
+  Future<void> _initialSync() async {
+    await _bleManager.writeToWatch([0x0C]);
+    await sendTimeSyncToWatch();
+    await _sendState();
+    await _sendEventState();
+    await _sendLiveValues();
+    await _sendBattery();
+    if (_disposed) return;
+    await _bleManager.writeToWatch([
+      0x06,
+    ]); // Request watch battery and saved appearance after CCCD subscription.
+  }
 
-    switch (opcode) {
-      case 0x10: // Trip Toggle
-        final tripNotifier = _ref.read(tripControllerProvider.notifier);
-        final isCurrentlyActive = _ref.read(tripControllerProvider).isJourneyActive;
-        final requestedAction = bytes.length > 1 ? bytes[1] : (isCurrentlyActive ? 0 : 1);
+  Future<void> _sendState() async {
+    if (_disposed || _commandBusy) return;
+    final trip = _ref.read(tripControllerProvider);
+    await sendTripStateToWatch(trip.isJourneyActive, tripName: trip.riderName);
+    await _bleManager.writeToWatch(WatchProtocol.elapsed(trip.elapsed));
+  }
 
-        if (requestedAction == 1 && !isCurrentlyActive) {
-          tripNotifier.startJourney();
-        } else if (requestedAction == 0 && isCurrentlyActive) {
-          tripNotifier.endJourney();
+  Future<void> _sendEventState() async {
+    if (_disposed || _commandBusy) return;
+    final event = _ref.read(eventRecordingControllerProvider);
+    int id = 0;
+    String name = 'Normal';
+    if (event.state == RecordingState.recording) {
+      switch (event.currentEventType) {
+        case EventType.bump:
+          id = 1;
+          name = 'Bump';
+          break;
+        case EventType.turn:
+          id = 2;
+          name = 'Turn';
+          break;
+        case EventType.speedTest:
+          id = 3;
+          name = 'Speed';
+          break;
+        default:
+          break;
+      }
+    }
+    await sendEventTagToWatch(id, name);
+  }
+
+  Future<void> _handleWatchCommand(
+    List<int> bytes, {
+    required String deviceId,
+  }) async {
+    if (_disposed || bytes.isEmpty) return;
+    if (bytes[0] == 0x16 && bytes.length == 11 && bytes[1] >= 2) {
+      _peers[deviceId] = WatchPeerStatus(
+        role: bytes[2],
+        localControl: bytes[3] != 0,
+        tripActive: bytes[4] != 0,
+        recordingState: bytes[5],
+        sdReady: bytes[6] != 0,
+        samplesWritten:
+            (bytes[7] << 24) | (bytes[8] << 16) | (bytes[9] << 8) | bytes[10],
+        receivedAt: DateTime.now(),
+      );
+      if (bytes[2] == 1 || bytes[2] == 2) {
+        final map = _ref.read(deviceMountLocationMapProvider);
+        final wrist = bytes[2] == 1 ? 'left_hand' : 'right_hand';
+        if (map[deviceId] != wrist) {
+          _ref.read(deviceMountLocationMapProvider.notifier).state = {
+            ...map,
+            deviceId: wrist,
+          };
         }
-        break;
-
-      case 0x11: // Event Trigger from Watch Glove Buttons
-        if (bytes.length >= 3) {
-          final classId = (bytes[1] << 8) | bytes[2];
-          String name = 'Watch Event';
-          if (bytes.length >= 4) {
-            final nameLen = bytes[3];
-            if (bytes.length >= 4 + nameLen) {
-              name = utf8.decode(bytes.sublist(4, 4 + nameLen), allowMalformed: true);
-            }
-          }
-
-          final eventController = _ref.read(eventRecordingControllerProvider.notifier);
-          if (classId == 4) {
-            // Halt / Stop current event
-            eventController.stopAndSaveEvent(reason: 'Watch Halt Action');
-          } else {
-            EventType type = EventType.bump;
-            if (classId == 2) type = EventType.turn;
-            if (classId == 3) type = EventType.speedTest;
-
-            eventController.startEvent(type, triggerPhrase: 'Watch $name');
-          }
+      }
+      _peerController.add(peers);
+      return;
+    }
+    if (bytes[0] == 0x13 && bytes.length >= 3) {
+      _watchBattery = WatchBatteryInfo(
+        batteryPercent: bytes[1] <= 100 ? bytes[1] : 255,
+        isCharging: bytes[2] == 1,
+        millivolts: bytes.length >= 5 ? (bytes[3] << 8) | bytes[4] : 0,
+      );
+      _watchBatteryController.add(_watchBattery);
+      return;
+    }
+    if (bytes[0] == 0x15 &&
+        bytes.length == 3 &&
+        bytes[1] <= 1 &&
+        bytes[2] >= 30) {
+      _appearance = WatchAppearance(face: bytes[1], brightness: bytes[2]);
+      _appearanceController.add(_appearance);
+      return;
+    }
+    if (_commandBusy || (bytes[0] != 0x10 && bytes[0] != 0x11)) return;
+    // Serialize phone actions. Confirm the actual controller state after its async work.
+    int? requestId;
+    if (bytes[0] == 0x10 && bytes.length == 3) requestId = bytes[2];
+    if (bytes[0] == 0x11 && bytes.length >= 5 && bytes.length == 5 + bytes[3]) {
+      requestId = bytes.last;
+    }
+    bool succeeded = false;
+    _commandBusy = true;
+    try {
+      final trip = _ref.read(tripControllerProvider);
+      if (bytes[0] == 0x10 &&
+          (bytes.length == 2 || bytes.length == 3) &&
+          bytes[1] <= 1) {
+        final controller = _ref.read(tripControllerProvider.notifier);
+        if (bytes[1] == 1 && !trip.isJourneyActive) {
+          await controller.startJourney();
+        } else if (bytes[1] == 0 && trip.isJourneyActive) {
+          await _ref
+              .read(eventRecordingControllerProvider.notifier)
+              .stopAndSaveEvent(reason: 'Ride ended from watch');
+          await controller.endJourney();
         }
-        break;
-
-      case 0x12: // Export Request from Watch
-        // Watch requested data export
-        break;
-
-      case 0x13: // Watch Battery Status
-        if (bytes.length >= 3) {
-          final pct = bytes[1];
-          final isCharging = bytes[2] == 1;
-          int mv = 4150;
-          if (bytes.length >= 5) {
-            mv = (bytes[3] << 8) | bytes[4];
-          }
-          _watchBattery = WatchBatteryInfo(
-            batteryPercent: pct,
-            isCharging: isCharging,
-            millivolts: mv,
+        succeeded =
+            _ref.read(tripControllerProvider).isJourneyActive ==
+            (bytes[1] == 1);
+      } else if (bytes[0] == 0x11 &&
+          bytes.length >= 4 &&
+          trip.isJourneyActive) {
+        final id = (bytes[1] << 8) | bytes[2];
+        final length = bytes[3];
+        if (id < 1 ||
+            id > 4 ||
+            length > 16 ||
+            bytes.length != 4 + length + (requestId == null ? 0 : 1)) {
+          return;
+        }
+        final name = utf8.decode(
+          bytes.sublist(4, 4 + length),
+          allowMalformed: true,
+        );
+        final controller = _ref.read(eventRecordingControllerProvider.notifier);
+        if (id == 4) {
+          await controller.stopAndSaveEvent(reason: 'Watch finish event');
+        } else {
+          // Save a previous label before starting another; never create overlapping windows.
+          await controller.stopAndSaveEvent(reason: 'Next event from watch');
+          await controller.startEvent(
+            id == 2
+                ? EventType.turn
+                : id == 3
+                ? EventType.speedTest
+                : EventType.bump,
+            triggerPhrase: 'Watch $name',
           );
-          _watchBatteryController.add(_watchBattery);
         }
-        break;
-
-      default:
-        break;
+        succeeded = id == 4
+            ? _ref.read(eventRecordingControllerProvider).state !=
+                  RecordingState.recording
+            : _ref.read(eventRecordingControllerProvider).state ==
+                  RecordingState.recording;
+      }
+    } catch (error) {
+      debugPrint('[Watch] Command failed: $error');
+    } finally {
+      _commandBusy = false;
+      if (!_disposed) {
+        await _sendState();
+        await _sendEventState();
+        if (requestId != null) {
+          await _bleManager.writeToWatch([
+            0x09,
+            requestId,
+            succeeded ? 0 : 1,
+          ], deviceId: deviceId);
+        }
+      }
     }
   }
 
-  void _startPeriodicTelemetry() {
-    _periodicTelemetryTimer?.cancel();
-    _periodicTelemetryTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (!_bleManager.isWatchConnected) return;
+  Future<void> _sendLiveValues() async {
+    if (_disposed) return;
+    final trip = _ref.read(tripControllerProvider);
+    final now = DateTime.now();
+    final position = trip.currentPosition;
+    final gpsFresh =
+        trip.isJourneyActive &&
+        position != null &&
+        now.difference(position.timestamp).abs() < const Duration(seconds: 10);
+    final hrFresh =
+        _heartRateAt != null &&
+        now.difference(_heartRateAt!) < const Duration(seconds: 6) &&
+        _bleManager.currentDeviceStates[_heartRateDevice]?.connectionState ==
+            BleConnectionState.connected;
+    await sendTelemetryToWatch(
+      speedKmh: gpsFresh ? trip.currentSpeedKmh : 0,
+      distanceMeters: trip.distanceMeters,
+      heartRate: hrFresh ? _heartRate : 0,
+      gpsLocked: gpsFresh,
+      satellites: 0, // The location API does not report satellite counts.
+    );
+  }
 
-      final batteryInfo = _ref.read(batteryServiceProvider).currentInfo;
+  Future<void> _sendBattery() async {
+    if (_disposed) return;
+    final battery = _ref.read(batteryServiceProvider).currentInfo;
+    await sendPhoneBatteryToWatch(
+      batteryPercent: battery.batteryLevel,
+      isCharging: battery.isCharging,
+    );
+  }
 
-      // Send phone battery level & charging state every 15s (low-overhead background sync)
-      sendPhoneBatteryToWatch(
-        batteryPercent: batteryInfo.batteryLevel,
-        isCharging: batteryInfo.isCharging,
+  Future<void> _periodicSync() async {
+    if (_sendingSnapshot) {
+      return; // Do not accumulate telemetry behind a slow link.
+    }
+    _sendingSnapshot = true;
+    try {
+      await _sendLiveValues();
+      _telemetryTick++;
+      if (_telemetryTick % 5 == 0) {
+        await _bleManager.writeToWatch([0x06]);
+        await _sendState();
+        await _sendEventState();
+      }
+      if (_telemetryTick % 15 == 0) await _sendBattery();
+      if (_telemetryTick % 60 == 0) await sendTimeSyncToWatch();
+    } finally {
+      _sendingSnapshot = false;
+    }
+  }
+
+  Future<void> sendTripStateToWatch(
+    bool isStarting, {
+    String tripName = 'Ride Session',
+  }) async {
+    for (final id in _bleManager.readyWatchIds) {
+      if (_peers[id]?.localControl == true) continue;
+      await _bleManager.writeToWatch(
+        WatchProtocol.trip(isStarting, tripName),
+        deviceId: id,
       );
-    });
+    }
   }
 
-  /// Sends Opcode 0x01: Trip Control
-  Future<void> sendTripStateToWatch(bool isStarting, {String tripName = 'Ride Session'}) async {
-    final nameBytes = utf8.encode(tripName);
-    final packet = Uint8List(4 + nameBytes.length);
-    packet[0] = 0x01; // Opcode TripControl
-    packet[1] = isStarting ? 1 : 0;
-    packet[2] = 0;
-    packet[3] = nameBytes.length;
-    packet.setRange(4, 4 + nameBytes.length, nameBytes);
-
-    await _bleManager.writeToWatch(packet);
-  }
-
-  /// Sends Opcode 0x02: Event Tag Confirmation
   Future<void> sendEventTagToWatch(int classId, String eventName) async {
-    final nameBytes = utf8.encode(eventName);
-    final packet = Uint8List(4 + nameBytes.length);
-    packet[0] = 0x02; // Opcode EventTag
-    packet[1] = (classId >> 8) & 0xFF;
-    packet[2] = classId & 0xFF;
-    packet[3] = nameBytes.length;
-    packet.setRange(4, 4 + nameBytes.length, nameBytes);
-
-    await _bleManager.writeToWatch(packet);
+    for (final id in _bleManager.readyWatchIds) {
+      if (_peers[id]?.localControl == true) continue;
+      await _bleManager.writeToWatch(
+        WatchProtocol.event(classId, eventName),
+        deviceId: id,
+      );
+    }
   }
 
-  /// Sends Opcode 0x03: Telemetry (Speed, Distance, HR, GPS)
   Future<void> sendTelemetryToWatch({
     required double speedKmh,
     required double distanceMeters,
@@ -202,62 +384,55 @@ class WatchSyncService {
     required bool gpsLocked,
     required int satellites,
   }) async {
-    final packet = Uint8List(9);
-    final byteData = ByteData.sublistView(packet);
-
-    byteData.setUint8(0, 0x03); // Opcode Telemetry
-
-    // Speed in km/h * 10 (uint16 big endian)
-    final speedRaw = (speedKmh * 10).clamp(0, 65535).toInt();
-    byteData.setUint16(1, speedRaw, Endian.big);
-
-    // Distance in meters (uint32 big endian)
-    final distRaw = distanceMeters.clamp(0, 4294967295).toInt();
-    byteData.setUint32(3, distRaw, Endian.big);
-
-    // Heart Rate BPM (uint8)
-    byteData.setUint8(7, heartRate.clamp(0, 255));
-
-    // GPS flags (bit 0 = locked, bits 1..7 = satellites)
-    int gpsFlags = gpsLocked ? 0x01 : 0x00;
-    gpsFlags |= ((satellites.clamp(0, 127)) << 1);
-    byteData.setUint8(8, gpsFlags);
-
-    await _bleManager.writeToWatch(packet);
+    await _bleManager.writeToWatch(
+      WatchProtocol.telemetry(
+        speedKmh: speedKmh,
+        distanceMeters: distanceMeters,
+        heartRate: heartRate,
+        gpsLocked: gpsLocked,
+        satellites: satellites,
+      ),
+    );
   }
 
-  /// Sends Opcode 0x04: Time Sync
   Future<void> sendTimeSyncToWatch() async {
-    final now = DateTime.now();
-    final epochSec = now.toUtc().millisecondsSinceEpoch ~/ 1000;
-    final tzOffsetMin = now.timeZoneOffset.inMinutes;
-
-    final packet = Uint8List(7);
-    final byteData = ByteData.sublistView(packet);
-
-    byteData.setUint8(0, 0x04); // Opcode TimeSync
-    byteData.setUint32(1, epochSec, Endian.big);
-    byteData.setInt16(5, tzOffsetMin, Endian.big);
-
-    await _bleManager.writeToWatch(packet);
+    await _bleManager.writeToWatch(WatchProtocol.time(DateTime.now()));
   }
 
-  /// Sends Opcode 0x05: Phone Battery Status
   Future<void> sendPhoneBatteryToWatch({
     required int batteryPercent,
     required bool isCharging,
   }) async {
-    final packet = Uint8List(3);
-    packet[0] = 0x05; // Opcode PhoneBattery
-    packet[1] = batteryPercent.clamp(0, 100);
-    packet[2] = isCharging ? 1 : 0;
+    await _bleManager.writeToWatch([
+      0x05,
+      batteryPercent < 0 ? 255 : batteryPercent.clamp(0, 100),
+      isCharging ? 1 : 0,
+    ]);
+  }
 
-    await _bleManager.writeToWatch(packet);
+  Future<bool> setAppearance({required int face, required int brightness}) =>
+      _bleManager.writeToWatch(WatchProtocol.appearance(face, brightness));
+
+  Future<bool> setWrist(String deviceId, int role) =>
+      _bleManager.writeToWatch([0x0A, role], deviceId: deviceId);
+  Future<void> usePhoneControls(String deviceId) async {
+    await _bleManager.writeToWatch([0x0B], deviceId: deviceId);
+    await _bleManager.writeToWatch([0x0C], deviceId: deviceId);
+  }
+
+  Future<void> repairConnection(String deviceId) async {
+    await _bleManager.repairWatchConnection(deviceId);
+    if (!_disposed) await _initialSync();
   }
 
   void dispose() {
+    _disposed = true;
+    _peerController.close();
     _watchCommandSub?.cancel();
+    _deviceSub?.cancel();
+    _sensorSub?.cancel();
     _periodicTelemetryTimer?.cancel();
     _watchBatteryController.close();
+    _appearanceController.close();
   }
 }

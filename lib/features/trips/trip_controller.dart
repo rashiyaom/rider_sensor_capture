@@ -9,6 +9,7 @@ import '../../core/services/rider_feedback_service.dart';
 import '../../data/local_db/database.dart';
 import '../../providers/db_providers.dart';
 import '../../providers/ride_recording_provider.dart';
+import '../events/event_recording_controller.dart';
 
 const Object _undefined = Object();
 
@@ -117,7 +118,18 @@ class TripController extends StateNotifier<TripState> {
     state = state.copyWith(wristSide: side.trim().isEmpty ? 'Both Hands' : side.trim());
   }
 
+  Future<bool>? _startingJourney;
+  Future<Trip?>? _endingJourney;
+
   Future<bool> startJourney({String? riderName, String wristSide = 'Both Hands'}) async {
+    if (_endingJourney != null) await _endingJourney;
+    if (_startingJourney != null) return _startingJourney!;
+    final operation = _startJourney(riderName: riderName, wristSide: wristSide);
+    _startingJourney = operation;
+    try { return await operation; } finally { _startingJourney = null; }
+  }
+
+  Future<bool> _startJourney({String? riderName, String wristSide = 'Both Hands'}) async {
     if (state.isJourneyActive) return true;
 
     final chosenRider = (riderName != null && riderName.trim().isNotEmpty)
@@ -276,6 +288,7 @@ class TripController extends StateNotifier<TripState> {
             peakSpeedKmh: newPeak,
             routePoints: List.unmodifiable(_routePoints),
           );
+
         },
         onError: (error) {
           // GPS stream error ignored cleanly
@@ -288,13 +301,23 @@ class TripController extends StateNotifier<TripState> {
   }
 
   Future<Trip?> endJourney() async {
+    if (_startingJourney != null) await _startingJourney;
+    if (_endingJourney != null) return _endingJourney!;
+    final operation = _endJourney();
+    _endingJourney = operation;
+    try { return await operation; } finally { _endingJourney = null; }
+  }
+
+  Future<Trip?> _endJourney() async {
     if (!state.isJourneyActive) return null;
+    await ref.read(eventRecordingControllerProvider.notifier).stopAndSaveEvent(reason: 'Ride ended');
 
     final tripId = state.activeTripId;
     _elapsedTimer?.cancel();
     _elapsedTimer = null;
     _positionSubscription?.cancel();
     _positionSubscription = null;
+
 
     final repo = ref.read(sensorRepositoryProvider);
     final db = ref.read(appDatabaseProvider);

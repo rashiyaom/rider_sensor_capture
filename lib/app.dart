@@ -11,6 +11,7 @@ import 'features/devices/presentation/devices_screen.dart';
 import 'features/events/presentation/events_screen.dart';
 import 'features/export/presentation/export_screen.dart';
 import 'providers/db_providers.dart';
+import 'providers/ble_providers.dart';
 
 class RideSensorCaptureApp extends StatelessWidget {
   const RideSensorCaptureApp({super.key});
@@ -86,6 +87,8 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
   Widget build(BuildContext context) {
     // Keep BLE-to-DB stream bridge active globally across all navigation tabs
     ref.watch(bleToDbBridgeProvider);
+    // Keep Watch Companion synchronization bridge active globally
+    ref.watch(watchSyncServiceProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,

@@ -147,27 +147,35 @@ class _TripCard extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppColors.accentCyanBg,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.accentCyan.withValues(alpha: 0.3)),
+                    Expanded(
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentCyanBg,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.accentCyan.withValues(alpha: 0.3)),
+                              ),
+                              child: Text(
+                                trip.riderName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(color: AppColors.accentCyan, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
                           ),
-                          child: Text(
-                            trip.riderName,
-                            style: const TextStyle(color: AppColors.accentCyan, fontSize: 11, fontWeight: FontWeight.bold),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Journey #${trip.id}',
+                            style: const TextStyle(color: AppColors.textTertiary, fontSize: 11, fontWeight: FontWeight.w600),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Journey #${trip.id}',
-                          style: const TextStyle(color: AppColors.textTertiary, fontSize: 11, fontWeight: FontWeight.w600),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       dateStr,
                       style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
@@ -177,12 +185,19 @@ class _TripCard extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    _buildStatItem(Icons.timer_outlined, '$durationMins min'),
-                    const SizedBox(width: 14),
-                    _buildStatItem(Icons.route_rounded, '$distanceKm km'),
-                    const SizedBox(width: 14),
-                    _buildStatItem(Icons.storage_rounded, '${trip.totalSensorRows} rows'),
-                    const Spacer(),
+                    Expanded(
+                      child: Wrap(
+                        spacing: 14,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          _buildStatItem(Icons.timer_outlined, '$durationMins min'),
+                          _buildStatItem(Icons.route_rounded, '$distanceKm km'),
+                          _buildStatItem(Icons.storage_rounded, '${trip.totalSensorRows} rows'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
                     const Icon(Icons.chevron_right_rounded, color: AppColors.textSecondary, size: 20),
                   ],
                 ),

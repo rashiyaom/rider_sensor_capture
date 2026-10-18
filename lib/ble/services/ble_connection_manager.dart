@@ -1,11 +1,17 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import '../models/ble_device_model.dart';
 import '../models/raw_sensor_data.dart';
 import '../parsers/polar_verity_parser.dart';
 import '../parsers/esp32_watch_parser.dart';
+
+class WatchCommand {
+  final String deviceId;
+  final List<int> bytes;
+  const WatchCommand(this.deviceId, this.bytes);
+}
 
 class BleConnectionManager {
   static const int maxReconnectAttempts = 6;
@@ -31,6 +37,9 @@ class BleConnectionManager {
   final StreamController<List<int>> _watchCommandController =
       StreamController<List<int>>.broadcast();
 
+  final _watchControlController = StreamController<WatchCommand>.broadcast();
+  Stream<WatchCommand> get watchControlStream => _watchControlController.stream;
+
   final Map<String, BluetoothCharacteristic> _esp32RxCharacteristics = {};
 
   BleConnectionManager() {
@@ -44,26 +53,42 @@ class BleConnectionManager {
 
   Stream<List<int>> get watchCommandStream => _watchCommandController.stream;
 
-  bool get isWatchConnected => _esp32RxCharacteristics.isNotEmpty;
+  final Set<String> _readyWatchIds = {};
+  final Set<String> _controlReadyIds = {};
+  final Map<String, DateTime> _lastDiscoveryAttempt = {};
+  Future<void> _watchWriteTail = Future.value();
+  bool _disposed = false;
+  Set<String> get readyWatchIds => Set.unmodifiable(_readyWatchIds);
+  bool get isWatchConnected => _readyWatchIds.isNotEmpty;
 
   Map<String, BleDeviceModel> get currentDeviceStates =>
       Map.unmodifiable(_deviceModelsMap);
 
-  Future<bool> writeToWatch(List<int> bytes) async {
-    if (_esp32RxCharacteristics.isEmpty) return false;
-    bool anySuccess = false;
-    for (final char in _esp32RxCharacteristics.values) {
-      try {
-        await char.write(bytes, withoutResponse: true);
-        anySuccess = true;
-      } catch (_) {
+  Future<bool> writeToWatch(List<int> bytes, {String? deviceId}) {
+    // Capture connection objects now so queued commands cannot cross a reconnect.
+    final targets = {for (final id in _readyWatchIds)
+      if ((deviceId == null || deviceId == id) && _esp32RxCharacteristics[id] != null) id: _esp32RxCharacteristics[id]!};
+    final payload = List<int>.of(bytes);
+    final result = _watchWriteTail.then((_) async {
+      if (_disposed) return false;
+      bool success = false;
+      for (final entry in targets.entries) {
+        if (!_readyWatchIds.contains(entry.key) ||
+            !identical(_esp32RxCharacteristics[entry.key], entry.value)) {
+          continue;
+        }
         try {
-          await char.write(bytes, withoutResponse: false);
-          anySuccess = true;
-        } catch (_) {}
+          // Prefer acknowledged GATT writes for control reliability.
+          await entry.value.write(payload, withoutResponse: !entry.value.properties.write);
+          success = true;
+        } catch (error) {
+          debugPrint('[BLE] Watch write failed: $error');
+        }
       }
-    }
-    return anySuccess;
+      return success;
+    });
+    _watchWriteTail = result.then<void>((_) {}, onError: (Object error, StackTrace stack) {});
+    return result;
   }
 
   /// 1500ms link health monitor measuring packet gap intervals
@@ -76,6 +101,11 @@ class BleConnectionManager {
       for (final deviceId in _deviceModelsMap.keys) {
         final model = _deviceModelsMap[deviceId]!;
         if (model.connectionState == BleConnectionState.connected) {
+          if (model.type == DeviceType.watch && !_controlReadyIds.contains(deviceId) &&
+              !deviceId.startsWith('sim_') && !deviceId.startsWith('demo_') &&
+              now.difference(_lastDiscoveryAttempt[deviceId] ?? DateTime(2000)).inSeconds >= 5) {
+            unawaited(_discoverServicesAndSubscribe(BluetoothDevice.fromId(deviceId), model));
+          }
           ConnectionHealth newHealth = ConnectionHealth.good;
           if (model.lastPacketTime != null) {
             final gapMs = now.difference(model.lastPacketTime!).inMilliseconds;
@@ -251,7 +281,7 @@ class BleConnectionManager {
 
   void _handleDisconnection(BluetoothDevice device, BleDeviceModel model) {
     final deviceId = model.id;
-    _esp32RxCharacteristics.remove(deviceId);
+    _invalidateWatchConnection(deviceId);
     if (_userConnectedDeviceIds.contains(deviceId)) {
       // Out of range or dropped connection -> trigger exponential auto-reconnect
       _updateState(
@@ -288,7 +318,7 @@ class BleConnectionManager {
     _userConnectedDeviceIds.remove(deviceId);
     _deviceRetryCounts[deviceId] = 0;
     _cancelReconnectTimer(deviceId);
-    _esp32RxCharacteristics.remove(deviceId);
+    _invalidateWatchConnection(deviceId);
 
     _simulatedDeviceTimers[deviceId]?.cancel();
     _simulatedDeviceTimers.remove(deviceId);
@@ -375,28 +405,62 @@ class BleConnectionManager {
     });
   }
 
+  final Set<String> _discoveringDeviceIds = {};
+  final Map<String, int> _connectionGenerations = {};
+  void _invalidateWatchConnection(String deviceId) {
+    _connectionGenerations[deviceId] = (_connectionGenerations[deviceId] ?? 0) + 1;
+    _esp32RxCharacteristics.remove(deviceId);
+    _readyWatchIds.remove(deviceId);
+    _controlReadyIds.remove(deviceId);
+    final keys = _charNotificationSubscriptions.keys.where((key) => key.startsWith(deviceId)).toList();
+    for (final key in keys) { _charNotificationSubscriptions.remove(key)?.cancel(); }
+  }
+
   Future<void> _discoverServicesAndSubscribe(
     BluetoothDevice device,
     BleDeviceModel model,
   ) async {
+    final deviceId = model.id;
+    if (_discoveringDeviceIds.contains(deviceId)) {
+      debugPrint('[BLE] Already discovering services for $deviceId, skipping duplicate run');
+      return;
+    }
+    _discoveringDeviceIds.add(deviceId);
+    _lastDiscoveryAttempt[deviceId] = DateTime.now();
+    final generation = _connectionGenerations[deviceId] ?? 0;
+
     try {
-      // 1. Request 512 MTU for high-throughput 50Hz IMU stream
+      debugPrint('[BLE] Beginning service discovery for ${model.name} ($deviceId)');
+      // 1. Connection settling delay for Android GATT stack stability
+      await Future.delayed(const Duration(milliseconds: 350));
+
+      // 2. Safely negotiate high-throughput MTU (512)
       try {
         await device.requestMtu(512);
-      } catch (_) {}
+        await Future.delayed(const Duration(milliseconds: 200));
+        debugPrint('[BLE] Negotiated MTU for ${model.name}');
+      } catch (e) {
+        debugPrint('[BLE] MTU negotiation non-fatal notice: $e');
+      }
 
+      // 3. Discover GATT services
       final services = await device.discoverServices();
+      debugPrint('[BLE] Discovered ${services.length} services for ${model.name}');
       BluetoothCharacteristic? pmdControlChar;
+      BluetoothCharacteristic? watchRx;
+      bool watchControlSubscribed = false;
 
+      if (_disposed || generation != (_connectionGenerations[deviceId] ?? 0)) return;
       for (BluetoothService service in services) {
         for (BluetoothCharacteristic characteristic in service.characteristics) {
+          if (_disposed || generation != (_connectionGenerations[deviceId] ?? 0)) return;
           final cUuid = characteristic.uuid.toString().toLowerCase();
+          final sUuid = service.uuid.toString().toLowerCase();
 
           if (cUuid.contains('fb005c81')) {
             pmdControlChar = characteristic;
           }
 
-          final sUuid = service.uuid.toString().toLowerCase();
           final isPolarHr = cUuid.contains('2a37');
           final isPolarPmd = cUuid.contains('fb005c82');
           final isEsp32Data = cUuid.contains('ffe1');
@@ -404,8 +468,9 @@ class BleConnectionManager {
           final isEsp32Ctrl = cUuid.contains('ffe3');
           final isEsp32Fallback = sUuid.contains('ffe0') && !isPolarHr && !isPolarPmd && !isEsp32Rx && !isEsp32Ctrl;
 
-          if (isEsp32Rx) {
-            _esp32RxCharacteristics[model.id] = characteristic;
+          if (isEsp32Rx && (characteristic.properties.write || characteristic.properties.writeWithoutResponse)) {
+            watchRx = characteristic;
+            debugPrint('[BLE] Registered ESP32 RX command characteristic 0xFFE2');
           }
 
           if (isEsp32Ctrl) {
@@ -413,11 +478,19 @@ class BleConnectionManager {
               _charNotificationSubscriptions[model.id + cUuid]?.cancel();
               _charNotificationSubscriptions[model.id + cUuid] =
                   characteristic.onValueReceived.listen((valueBytes) {
-                if (valueBytes.isNotEmpty) {
+                if (!_disposed && valueBytes.isNotEmpty) {
                   _watchCommandController.add(valueBytes);
+                  _watchControlController.add(WatchCommand(model.id, List.of(valueBytes)));
                 }
               });
-              await characteristic.setNotifyValue(true);
+              try {
+                await characteristic.setNotifyValue(true);
+                await Future.delayed(const Duration(milliseconds: 150));
+                watchControlSubscribed = characteristic.isNotifying;
+                debugPrint('[BLE] Successfully subscribed to ESP32 Ctrl (0xFFE3)');
+              } catch (e) {
+                debugPrint('[BLE] Error enabling notifications on Ctrl (0xFFE3): $e');
+              }
             }
           }
 
@@ -465,10 +538,26 @@ class BleConnectionManager {
               });
 
               // Subscribe to characteristic notifications via CCCD 0x2902
-              await characteristic.setNotifyValue(true);
+              try {
+                await characteristic.setNotifyValue(true);
+                await Future.delayed(const Duration(milliseconds: 150));
+                debugPrint('[BLE] Successfully subscribed to Data Characteristic: $cUuid for ${model.name}');
+              } catch (e) {
+                debugPrint('[BLE] Error enabling notifications on $cUuid: $e');
+              }
             }
           }
         }
+      }
+
+      if (!_disposed && generation == (_connectionGenerations[deviceId] ?? 0) && watchRx != null &&
+          _deviceModelsMap[deviceId]?.connectionState == BleConnectionState.connected) {
+        _esp32RxCharacteristics[deviceId] = watchRx;
+        _readyWatchIds.add(deviceId);
+        if (watchControlSubscribed) _controlReadyIds.add(deviceId);
+        // RX stays usable even while the control subscription is being retried.
+        // Transport connected happens before discovery; notify again when both directions are ready.
+        _updateState(deviceId, _deviceModelsMap[deviceId]!);
       }
 
       // If Polar PMD control point is present, request ACC stream
@@ -479,7 +568,28 @@ class BleConnectionManager {
           ]);
         } catch (_) {}
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[BLE] Exception during _discoverServicesAndSubscribe for ${model.name}: $e');
+    } finally {
+      _discoveringDeviceIds.remove(deviceId);
+      if (!_disposed && generation != (_connectionGenerations[deviceId] ?? 0) &&
+          _deviceModelsMap[deviceId]?.connectionState == BleConnectionState.connected) {
+        unawaited(_discoverServicesAndSubscribe(device, model));
+      }
+    }
+  }
+
+  Future<void> repairWatchConnection(String deviceId) async {
+    final model = _deviceModelsMap[deviceId];
+    if (model == null || model.connectionState != BleConnectionState.connected) return;
+    final device = BluetoothDevice.fromId(deviceId);
+    _invalidateWatchConnection(deviceId);
+    _updateState(deviceId, model);
+    // Firmware updates can leave Android holding a previous GATT table.
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      try { await device.clearGattCache(); } catch (error) { debugPrint('[BLE] Cache refresh: $error'); }
+    }
+    await _discoverServicesAndSubscribe(device, model);
   }
 
   void _updateState(String deviceId, BleDeviceModel updatedModel) {
@@ -490,6 +600,12 @@ class BleConnectionManager {
   }
 
   void dispose() {
+    _disposed = true;
+    _readyWatchIds.clear();
+    _controlReadyIds.clear();
+    _esp32RxCharacteristics.clear();
+    _watchCommandController.close();
+    _watchControlController.close();
     _healthCheckTimer?.cancel();
     for (var timer in _simulatedDeviceTimers.values) {
       timer?.cancel();

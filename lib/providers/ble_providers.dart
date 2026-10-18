@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../ble/models/ble_device_model.dart';
 import '../ble/models/raw_sensor_data.dart';
 import '../ble/services/ble_scanner.dart';
@@ -25,7 +26,9 @@ final blePermissionsGrantedProvider = FutureProvider<bool>((ref) async {
 });
 
 // Discovered Devices stream provider
-final discoveredDevicesStreamProvider = StreamProvider<List<BleDeviceModel>>((ref) {
+final discoveredDevicesStreamProvider = StreamProvider<List<BleDeviceModel>>((
+  ref,
+) {
   final scanner = ref.watch(bleScannerProvider);
   return scanner.discoveredDevicesStream;
 });
@@ -33,13 +36,14 @@ final discoveredDevicesStreamProvider = StreamProvider<List<BleDeviceModel>>((re
 // Connection States map stream provider
 final connectionStatesStreamProvider =
     StreamProvider<Map<String, BleDeviceModel>>((ref) {
-  final manager = ref.watch(bleConnectionManagerProvider);
-  return manager.deviceStatesStream;
-});
+      final manager = ref.watch(bleConnectionManagerProvider);
+      return manager.deviceStatesStream;
+    });
 
 // Device mount location mappings: deviceId -> 'fork', 'footboard', 'forearm'
-final deviceMountLocationMapProvider =
-    StateProvider<Map<String, String>>((ref) => {});
+final deviceMountLocationMapProvider = StateProvider<Map<String, String>>(
+  (ref) => {},
+);
 
 // Raw Sensor Data stream provider
 final rawSensorDataStreamProvider = StreamProvider<RawSensorData>((ref) {
@@ -59,4 +63,18 @@ final watchSyncServiceProvider = Provider<WatchSyncService>((ref) {
 final watchBatteryStreamProvider = StreamProvider<WatchBatteryInfo>((ref) {
   final service = ref.watch(watchSyncServiceProvider);
   return service.watchBatteryStream;
+});
+
+final watchAppearanceProvider = StreamProvider<WatchAppearance>((ref) async* {
+  final service = ref.watch(watchSyncServiceProvider);
+  yield service.currentAppearance;
+  yield* service.appearanceStream;
+});
+
+final watchPeersProvider = StreamProvider<Map<String, WatchPeerStatus>>((
+  ref,
+) async* {
+  final service = ref.watch(watchSyncServiceProvider);
+  yield service.peers;
+  yield* service.peerStream;
 });

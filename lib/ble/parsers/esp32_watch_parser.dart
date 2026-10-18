@@ -66,7 +66,7 @@ class Esp32WatchParser {
       final isV2 = len >= 32;
 
       // ── Format 1: ASCII CSV String (contains comma 0x2C) ──
-      if (dataBytes.contains(0x2C)) {
+      if (dataBytes.contains(0x2C) && dataBytes.every((b) => b == 10 || b == 13 || (b >= 32 && b <= 126))) {
         final text = utf8.decode(dataBytes, allowMalformed: true).trim();
         final tokens = text.split(',').map((s) => double.tryParse(s.trim())).toList();
         if (tokens.length >= 3 && tokens[0] != null) {
@@ -106,6 +106,18 @@ class Esp32WatchParser {
         gx = byteData.getFloat32(19, Endian.little);
         gy = byteData.getFloat32(23, Endian.little);
         gz = byteData.getFloat32(27, Endian.little);
+      }
+      // ── Format 2b: Truncated 19..23 Byte V2 (Timestamp + Seq + Role + 3 Accel Floats) ──
+      else if (len >= 19 && len < 24) {
+        final roleByte = byteData.getUint8(6);
+        if (roleByte == 1) {
+          inferredMount = 'fork';
+        } else if (roleByte == 2) {
+          inferredMount = 'footboard';
+        }
+        ax = byteData.getFloat32(7, Endian.little);
+        ay = byteData.getFloat32(11, Endian.little);
+        az = byteData.getFloat32(15, Endian.little);
       }
       // ── Format 3: 28-Byte Binary (Timestamp + 6-Axis Floats) ──
       else if (len >= 28) {

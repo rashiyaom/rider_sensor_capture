@@ -88,49 +88,56 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.accentCyanBg,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.accentCyan.withValues(alpha: 0.3)),
+                      Expanded(
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.accentCyanBg,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.accentCyan.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.person_rounded, color: AppColors.accentCyan, size: 14),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    trip.riderName,
+                                    style: const TextStyle(color: AppColors.accentCyan, fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
                             ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.person_rounded, color: AppColors.accentCyan, size: 14),
-                                const SizedBox(width: 4),
-                                Text(
-                                  trip.riderName,
-                                  style: const TextStyle(color: AppColors.accentCyan, fontSize: 12, fontWeight: FontWeight.bold),
-                                ),
-                              ],
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.cardElevated,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppColors.cardBorder),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text('🤚', style: TextStyle(fontSize: 12)),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    trip.wristSide.contains('Hand')
+                                        ? trip.wristSide
+                                        : '${trip.wristSide} Hand',
+                                    style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardElevated,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.cardBorder),
-                            ),
-                            child: Row(
-                              children: [
-                                const Text('🤚', style: TextStyle(fontSize: 12)),
-                                const SizedBox(width: 4),
-                                Text(
-                                  trip.wristSide.contains('Hand')
-                                      ? trip.wristSide
-                                      : '${trip.wristSide} Hand',
-                                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Text(
                         'Journey #${trip.id}',
                         style: const TextStyle(color: AppColors.textTertiary, fontSize: 12, fontWeight: FontWeight.bold),
@@ -187,16 +194,23 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.bluetooth_connected_rounded, color: AppColors.accentCyan, size: 18),
-                            SizedBox(width: 8),
-                            Text(
-                              'BLE Telemetry Continuity',
-                              style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13),
-                            ),
-                          ],
+                        const Expanded(
+                          child: Row(
+                            children: [
+                              Icon(Icons.bluetooth_connected_rounded, color: AppColors.accentCyan, size: 18),
+                              SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'BLE Telemetry Continuity',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
