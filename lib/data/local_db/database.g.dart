@@ -5666,6 +5666,2967 @@ class TripCalibrationsCompanion extends UpdateCompanion<TripCalibration> {
   }
 }
 
+class $RoadEventsTable extends RoadEvents
+    with TableInfo<$RoadEventsTable, RoadEvent> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RoadEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _tripIdMeta = const VerificationMeta('tripId');
+  @override
+  late final GeneratedColumn<int> tripId = GeneratedColumn<int>(
+    'trip_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eventTypeMeta = const VerificationMeta(
+    'eventType',
+  );
+  @override
+  late final GeneratedColumn<String> eventType = GeneratedColumn<String>(
+    'event_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _severityMeta = const VerificationMeta(
+    'severity',
+  );
+  @override
+  late final GeneratedColumn<double> severity = GeneratedColumn<double>(
+    'severity',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+    'confidence',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('ml'),
+  );
+  static const VerificationMeta _detectedAtUtcMeta = const VerificationMeta(
+    'detectedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> detectedAtUtc =
+      GeneratedColumn<DateTime>(
+        'detected_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _speedKmhAtDetectionMeta =
+      const VerificationMeta('speedKmhAtDetection');
+  @override
+  late final GeneratedColumn<double> speedKmhAtDetection =
+      GeneratedColumn<double>(
+        'speed_kmh_at_detection',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _alertCountMeta = const VerificationMeta(
+    'alertCount',
+  );
+  @override
+  late final GeneratedColumn<int> alertCount = GeneratedColumn<int>(
+    'alert_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _feedbackCountMeta = const VerificationMeta(
+    'feedbackCount',
+  );
+  @override
+  late final GeneratedColumn<int> feedbackCount = GeneratedColumn<int>(
+    'feedback_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _lastAlertedAtUtcMeta = const VerificationMeta(
+    'lastAlertedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> lastAlertedAtUtc =
+      GeneratedColumn<DateTime>(
+        'last_alerted_at_utc',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    tripId,
+    eventType,
+    latitude,
+    longitude,
+    severity,
+    confidence,
+    source,
+    detectedAtUtc,
+    speedKmhAtDetection,
+    alertCount,
+    feedbackCount,
+    lastAlertedAtUtc,
+    note,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'road_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<RoadEvent> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('trip_id')) {
+      context.handle(
+        _tripIdMeta,
+        tripId.isAcceptableOrUnknown(data['trip_id']!, _tripIdMeta),
+      );
+    }
+    if (data.containsKey('event_type')) {
+      context.handle(
+        _eventTypeMeta,
+        eventType.isAcceptableOrUnknown(data['event_type']!, _eventTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventTypeMeta);
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_latitudeMeta);
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_longitudeMeta);
+    }
+    if (data.containsKey('severity')) {
+      context.handle(
+        _severityMeta,
+        severity.isAcceptableOrUnknown(data['severity']!, _severityMeta),
+      );
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    }
+    if (data.containsKey('detected_at_utc')) {
+      context.handle(
+        _detectedAtUtcMeta,
+        detectedAtUtc.isAcceptableOrUnknown(
+          data['detected_at_utc']!,
+          _detectedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_detectedAtUtcMeta);
+    }
+    if (data.containsKey('speed_kmh_at_detection')) {
+      context.handle(
+        _speedKmhAtDetectionMeta,
+        speedKmhAtDetection.isAcceptableOrUnknown(
+          data['speed_kmh_at_detection']!,
+          _speedKmhAtDetectionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('alert_count')) {
+      context.handle(
+        _alertCountMeta,
+        alertCount.isAcceptableOrUnknown(data['alert_count']!, _alertCountMeta),
+      );
+    }
+    if (data.containsKey('feedback_count')) {
+      context.handle(
+        _feedbackCountMeta,
+        feedbackCount.isAcceptableOrUnknown(
+          data['feedback_count']!,
+          _feedbackCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_alerted_at_utc')) {
+      context.handle(
+        _lastAlertedAtUtcMeta,
+        lastAlertedAtUtc.isAcceptableOrUnknown(
+          data['last_alerted_at_utc']!,
+          _lastAlertedAtUtcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RoadEvent map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RoadEvent(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      tripId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}trip_id'],
+      ),
+      eventType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_type'],
+      )!,
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      )!,
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      )!,
+      severity: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}severity'],
+      ),
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}confidence'],
+      ),
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      detectedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}detected_at_utc'],
+      )!,
+      speedKmhAtDetection: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}speed_kmh_at_detection'],
+      ),
+      alertCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}alert_count'],
+      )!,
+      feedbackCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}feedback_count'],
+      )!,
+      lastAlertedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}last_alerted_at_utc'],
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+    );
+  }
+
+  @override
+  $RoadEventsTable createAlias(String alias) {
+    return $RoadEventsTable(attachedDatabase, alias);
+  }
+}
+
+class RoadEvent extends DataClass implements Insertable<RoadEvent> {
+  final int id;
+
+  /// Trip that first reported this road event (nullable for seeded hazards).
+  final int? tripId;
+
+  /// bump | pothole | turn | braking | hazard | unknown
+  final String eventType;
+  final double latitude;
+  final double longitude;
+
+  /// Normalized 0..1 severity derived from the ML confidence / g-force.
+  final double? severity;
+
+  /// Model confidence for the detection (0..1).
+  final double? confidence;
+
+  /// ml | camera | voice | manual
+  final String source;
+  final DateTime detectedAtUtc;
+
+  /// Ground speed at the moment the hazard was detected.
+  final double? speedKmhAtDetection;
+
+  /// How many pre-alerts have been spoken for this hazard.
+  final int alertCount;
+
+  /// How many rider feedback records are linked to this hazard.
+  final int feedbackCount;
+  final DateTime? lastAlertedAtUtc;
+  final String? note;
+  const RoadEvent({
+    required this.id,
+    this.tripId,
+    required this.eventType,
+    required this.latitude,
+    required this.longitude,
+    this.severity,
+    this.confidence,
+    required this.source,
+    required this.detectedAtUtc,
+    this.speedKmhAtDetection,
+    required this.alertCount,
+    required this.feedbackCount,
+    this.lastAlertedAtUtc,
+    this.note,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || tripId != null) {
+      map['trip_id'] = Variable<int>(tripId);
+    }
+    map['event_type'] = Variable<String>(eventType);
+    map['latitude'] = Variable<double>(latitude);
+    map['longitude'] = Variable<double>(longitude);
+    if (!nullToAbsent || severity != null) {
+      map['severity'] = Variable<double>(severity);
+    }
+    if (!nullToAbsent || confidence != null) {
+      map['confidence'] = Variable<double>(confidence);
+    }
+    map['source'] = Variable<String>(source);
+    map['detected_at_utc'] = Variable<DateTime>(detectedAtUtc);
+    if (!nullToAbsent || speedKmhAtDetection != null) {
+      map['speed_kmh_at_detection'] = Variable<double>(speedKmhAtDetection);
+    }
+    map['alert_count'] = Variable<int>(alertCount);
+    map['feedback_count'] = Variable<int>(feedbackCount);
+    if (!nullToAbsent || lastAlertedAtUtc != null) {
+      map['last_alerted_at_utc'] = Variable<DateTime>(lastAlertedAtUtc);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    return map;
+  }
+
+  RoadEventsCompanion toCompanion(bool nullToAbsent) {
+    return RoadEventsCompanion(
+      id: Value(id),
+      tripId: tripId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tripId),
+      eventType: Value(eventType),
+      latitude: Value(latitude),
+      longitude: Value(longitude),
+      severity: severity == null && nullToAbsent
+          ? const Value.absent()
+          : Value(severity),
+      confidence: confidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(confidence),
+      source: Value(source),
+      detectedAtUtc: Value(detectedAtUtc),
+      speedKmhAtDetection: speedKmhAtDetection == null && nullToAbsent
+          ? const Value.absent()
+          : Value(speedKmhAtDetection),
+      alertCount: Value(alertCount),
+      feedbackCount: Value(feedbackCount),
+      lastAlertedAtUtc: lastAlertedAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastAlertedAtUtc),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+    );
+  }
+
+  factory RoadEvent.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RoadEvent(
+      id: serializer.fromJson<int>(json['id']),
+      tripId: serializer.fromJson<int?>(json['tripId']),
+      eventType: serializer.fromJson<String>(json['eventType']),
+      latitude: serializer.fromJson<double>(json['latitude']),
+      longitude: serializer.fromJson<double>(json['longitude']),
+      severity: serializer.fromJson<double?>(json['severity']),
+      confidence: serializer.fromJson<double?>(json['confidence']),
+      source: serializer.fromJson<String>(json['source']),
+      detectedAtUtc: serializer.fromJson<DateTime>(json['detectedAtUtc']),
+      speedKmhAtDetection: serializer.fromJson<double?>(
+        json['speedKmhAtDetection'],
+      ),
+      alertCount: serializer.fromJson<int>(json['alertCount']),
+      feedbackCount: serializer.fromJson<int>(json['feedbackCount']),
+      lastAlertedAtUtc: serializer.fromJson<DateTime?>(
+        json['lastAlertedAtUtc'],
+      ),
+      note: serializer.fromJson<String?>(json['note']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'tripId': serializer.toJson<int?>(tripId),
+      'eventType': serializer.toJson<String>(eventType),
+      'latitude': serializer.toJson<double>(latitude),
+      'longitude': serializer.toJson<double>(longitude),
+      'severity': serializer.toJson<double?>(severity),
+      'confidence': serializer.toJson<double?>(confidence),
+      'source': serializer.toJson<String>(source),
+      'detectedAtUtc': serializer.toJson<DateTime>(detectedAtUtc),
+      'speedKmhAtDetection': serializer.toJson<double?>(speedKmhAtDetection),
+      'alertCount': serializer.toJson<int>(alertCount),
+      'feedbackCount': serializer.toJson<int>(feedbackCount),
+      'lastAlertedAtUtc': serializer.toJson<DateTime?>(lastAlertedAtUtc),
+      'note': serializer.toJson<String?>(note),
+    };
+  }
+
+  RoadEvent copyWith({
+    int? id,
+    Value<int?> tripId = const Value.absent(),
+    String? eventType,
+    double? latitude,
+    double? longitude,
+    Value<double?> severity = const Value.absent(),
+    Value<double?> confidence = const Value.absent(),
+    String? source,
+    DateTime? detectedAtUtc,
+    Value<double?> speedKmhAtDetection = const Value.absent(),
+    int? alertCount,
+    int? feedbackCount,
+    Value<DateTime?> lastAlertedAtUtc = const Value.absent(),
+    Value<String?> note = const Value.absent(),
+  }) => RoadEvent(
+    id: id ?? this.id,
+    tripId: tripId.present ? tripId.value : this.tripId,
+    eventType: eventType ?? this.eventType,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
+    severity: severity.present ? severity.value : this.severity,
+    confidence: confidence.present ? confidence.value : this.confidence,
+    source: source ?? this.source,
+    detectedAtUtc: detectedAtUtc ?? this.detectedAtUtc,
+    speedKmhAtDetection: speedKmhAtDetection.present
+        ? speedKmhAtDetection.value
+        : this.speedKmhAtDetection,
+    alertCount: alertCount ?? this.alertCount,
+    feedbackCount: feedbackCount ?? this.feedbackCount,
+    lastAlertedAtUtc: lastAlertedAtUtc.present
+        ? lastAlertedAtUtc.value
+        : this.lastAlertedAtUtc,
+    note: note.present ? note.value : this.note,
+  );
+  RoadEvent copyWithCompanion(RoadEventsCompanion data) {
+    return RoadEvent(
+      id: data.id.present ? data.id.value : this.id,
+      tripId: data.tripId.present ? data.tripId.value : this.tripId,
+      eventType: data.eventType.present ? data.eventType.value : this.eventType,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      severity: data.severity.present ? data.severity.value : this.severity,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      source: data.source.present ? data.source.value : this.source,
+      detectedAtUtc: data.detectedAtUtc.present
+          ? data.detectedAtUtc.value
+          : this.detectedAtUtc,
+      speedKmhAtDetection: data.speedKmhAtDetection.present
+          ? data.speedKmhAtDetection.value
+          : this.speedKmhAtDetection,
+      alertCount: data.alertCount.present
+          ? data.alertCount.value
+          : this.alertCount,
+      feedbackCount: data.feedbackCount.present
+          ? data.feedbackCount.value
+          : this.feedbackCount,
+      lastAlertedAtUtc: data.lastAlertedAtUtc.present
+          ? data.lastAlertedAtUtc.value
+          : this.lastAlertedAtUtc,
+      note: data.note.present ? data.note.value : this.note,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoadEvent(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('eventType: $eventType, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('severity: $severity, ')
+          ..write('confidence: $confidence, ')
+          ..write('source: $source, ')
+          ..write('detectedAtUtc: $detectedAtUtc, ')
+          ..write('speedKmhAtDetection: $speedKmhAtDetection, ')
+          ..write('alertCount: $alertCount, ')
+          ..write('feedbackCount: $feedbackCount, ')
+          ..write('lastAlertedAtUtc: $lastAlertedAtUtc, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    tripId,
+    eventType,
+    latitude,
+    longitude,
+    severity,
+    confidence,
+    source,
+    detectedAtUtc,
+    speedKmhAtDetection,
+    alertCount,
+    feedbackCount,
+    lastAlertedAtUtc,
+    note,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RoadEvent &&
+          other.id == this.id &&
+          other.tripId == this.tripId &&
+          other.eventType == this.eventType &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.severity == this.severity &&
+          other.confidence == this.confidence &&
+          other.source == this.source &&
+          other.detectedAtUtc == this.detectedAtUtc &&
+          other.speedKmhAtDetection == this.speedKmhAtDetection &&
+          other.alertCount == this.alertCount &&
+          other.feedbackCount == this.feedbackCount &&
+          other.lastAlertedAtUtc == this.lastAlertedAtUtc &&
+          other.note == this.note);
+}
+
+class RoadEventsCompanion extends UpdateCompanion<RoadEvent> {
+  final Value<int> id;
+  final Value<int?> tripId;
+  final Value<String> eventType;
+  final Value<double> latitude;
+  final Value<double> longitude;
+  final Value<double?> severity;
+  final Value<double?> confidence;
+  final Value<String> source;
+  final Value<DateTime> detectedAtUtc;
+  final Value<double?> speedKmhAtDetection;
+  final Value<int> alertCount;
+  final Value<int> feedbackCount;
+  final Value<DateTime?> lastAlertedAtUtc;
+  final Value<String?> note;
+  const RoadEventsCompanion({
+    this.id = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.eventType = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.severity = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.source = const Value.absent(),
+    this.detectedAtUtc = const Value.absent(),
+    this.speedKmhAtDetection = const Value.absent(),
+    this.alertCount = const Value.absent(),
+    this.feedbackCount = const Value.absent(),
+    this.lastAlertedAtUtc = const Value.absent(),
+    this.note = const Value.absent(),
+  });
+  RoadEventsCompanion.insert({
+    this.id = const Value.absent(),
+    this.tripId = const Value.absent(),
+    required String eventType,
+    required double latitude,
+    required double longitude,
+    this.severity = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.source = const Value.absent(),
+    required DateTime detectedAtUtc,
+    this.speedKmhAtDetection = const Value.absent(),
+    this.alertCount = const Value.absent(),
+    this.feedbackCount = const Value.absent(),
+    this.lastAlertedAtUtc = const Value.absent(),
+    this.note = const Value.absent(),
+  }) : eventType = Value(eventType),
+       latitude = Value(latitude),
+       longitude = Value(longitude),
+       detectedAtUtc = Value(detectedAtUtc);
+  static Insertable<RoadEvent> custom({
+    Expression<int>? id,
+    Expression<int>? tripId,
+    Expression<String>? eventType,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<double>? severity,
+    Expression<double>? confidence,
+    Expression<String>? source,
+    Expression<DateTime>? detectedAtUtc,
+    Expression<double>? speedKmhAtDetection,
+    Expression<int>? alertCount,
+    Expression<int>? feedbackCount,
+    Expression<DateTime>? lastAlertedAtUtc,
+    Expression<String>? note,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (tripId != null) 'trip_id': tripId,
+      if (eventType != null) 'event_type': eventType,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (severity != null) 'severity': severity,
+      if (confidence != null) 'confidence': confidence,
+      if (source != null) 'source': source,
+      if (detectedAtUtc != null) 'detected_at_utc': detectedAtUtc,
+      if (speedKmhAtDetection != null)
+        'speed_kmh_at_detection': speedKmhAtDetection,
+      if (alertCount != null) 'alert_count': alertCount,
+      if (feedbackCount != null) 'feedback_count': feedbackCount,
+      if (lastAlertedAtUtc != null) 'last_alerted_at_utc': lastAlertedAtUtc,
+      if (note != null) 'note': note,
+    });
+  }
+
+  RoadEventsCompanion copyWith({
+    Value<int>? id,
+    Value<int?>? tripId,
+    Value<String>? eventType,
+    Value<double>? latitude,
+    Value<double>? longitude,
+    Value<double?>? severity,
+    Value<double?>? confidence,
+    Value<String>? source,
+    Value<DateTime>? detectedAtUtc,
+    Value<double?>? speedKmhAtDetection,
+    Value<int>? alertCount,
+    Value<int>? feedbackCount,
+    Value<DateTime?>? lastAlertedAtUtc,
+    Value<String?>? note,
+  }) {
+    return RoadEventsCompanion(
+      id: id ?? this.id,
+      tripId: tripId ?? this.tripId,
+      eventType: eventType ?? this.eventType,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      severity: severity ?? this.severity,
+      confidence: confidence ?? this.confidence,
+      source: source ?? this.source,
+      detectedAtUtc: detectedAtUtc ?? this.detectedAtUtc,
+      speedKmhAtDetection: speedKmhAtDetection ?? this.speedKmhAtDetection,
+      alertCount: alertCount ?? this.alertCount,
+      feedbackCount: feedbackCount ?? this.feedbackCount,
+      lastAlertedAtUtc: lastAlertedAtUtc ?? this.lastAlertedAtUtc,
+      note: note ?? this.note,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (tripId.present) {
+      map['trip_id'] = Variable<int>(tripId.value);
+    }
+    if (eventType.present) {
+      map['event_type'] = Variable<String>(eventType.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (severity.present) {
+      map['severity'] = Variable<double>(severity.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (detectedAtUtc.present) {
+      map['detected_at_utc'] = Variable<DateTime>(detectedAtUtc.value);
+    }
+    if (speedKmhAtDetection.present) {
+      map['speed_kmh_at_detection'] = Variable<double>(
+        speedKmhAtDetection.value,
+      );
+    }
+    if (alertCount.present) {
+      map['alert_count'] = Variable<int>(alertCount.value);
+    }
+    if (feedbackCount.present) {
+      map['feedback_count'] = Variable<int>(feedbackCount.value);
+    }
+    if (lastAlertedAtUtc.present) {
+      map['last_alerted_at_utc'] = Variable<DateTime>(lastAlertedAtUtc.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RoadEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('eventType: $eventType, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('severity: $severity, ')
+          ..write('confidence: $confidence, ')
+          ..write('source: $source, ')
+          ..write('detectedAtUtc: $detectedAtUtc, ')
+          ..write('speedKmhAtDetection: $speedKmhAtDetection, ')
+          ..write('alertCount: $alertCount, ')
+          ..write('feedbackCount: $feedbackCount, ')
+          ..write('lastAlertedAtUtc: $lastAlertedAtUtc, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PreAlertsTable extends PreAlerts
+    with TableInfo<$PreAlertsTable, PreAlert> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PreAlertsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _roadEventIdMeta = const VerificationMeta(
+    'roadEventId',
+  );
+  @override
+  late final GeneratedColumn<int> roadEventId = GeneratedColumn<int>(
+    'road_event_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tripIdMeta = const VerificationMeta('tripId');
+  @override
+  late final GeneratedColumn<int> tripId = GeneratedColumn<int>(
+    'trip_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eventIdMeta = const VerificationMeta(
+    'eventId',
+  );
+  @override
+  late final GeneratedColumn<int> eventId = GeneratedColumn<int>(
+    'event_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eventTypeMeta = const VerificationMeta(
+    'eventType',
+  );
+  @override
+  late final GeneratedColumn<String> eventType = GeneratedColumn<String>(
+    'event_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _distanceMetersMeta = const VerificationMeta(
+    'distanceMeters',
+  );
+  @override
+  late final GeneratedColumn<double> distanceMeters = GeneratedColumn<double>(
+    'distance_meters',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _speedKmhMeta = const VerificationMeta(
+    'speedKmh',
+  );
+  @override
+  late final GeneratedColumn<double> speedKmh = GeneratedColumn<double>(
+    'speed_kmh',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _timeToEventSecondsMeta =
+      const VerificationMeta('timeToEventSeconds');
+  @override
+  late final GeneratedColumn<double> timeToEventSeconds =
+      GeneratedColumn<double>(
+        'time_to_event_seconds',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _recommendedSpeedKmhMeta =
+      const VerificationMeta('recommendedSpeedKmh');
+  @override
+  late final GeneratedColumn<double> recommendedSpeedKmh =
+      GeneratedColumn<double>(
+        'recommended_speed_kmh',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _urgencyMeta = const VerificationMeta(
+    'urgency',
+  );
+  @override
+  late final GeneratedColumn<String> urgency = GeneratedColumn<String>(
+    'urgency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _spokenTextMeta = const VerificationMeta(
+    'spokenText',
+  );
+  @override
+  late final GeneratedColumn<String> spokenText = GeneratedColumn<String>(
+    'spoken_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _alertedAtUtcMeta = const VerificationMeta(
+    'alertedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> alertedAtUtc = GeneratedColumn<DateTime>(
+    'alerted_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _acknowledgedMeta = const VerificationMeta(
+    'acknowledged',
+  );
+  @override
+  late final GeneratedColumn<bool> acknowledged = GeneratedColumn<bool>(
+    'acknowledged',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("acknowledged" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    roadEventId,
+    tripId,
+    eventId,
+    eventType,
+    latitude,
+    longitude,
+    distanceMeters,
+    speedKmh,
+    timeToEventSeconds,
+    recommendedSpeedKmh,
+    urgency,
+    spokenText,
+    alertedAtUtc,
+    acknowledged,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pre_alerts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PreAlert> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('road_event_id')) {
+      context.handle(
+        _roadEventIdMeta,
+        roadEventId.isAcceptableOrUnknown(
+          data['road_event_id']!,
+          _roadEventIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('trip_id')) {
+      context.handle(
+        _tripIdMeta,
+        tripId.isAcceptableOrUnknown(data['trip_id']!, _tripIdMeta),
+      );
+    }
+    if (data.containsKey('event_id')) {
+      context.handle(
+        _eventIdMeta,
+        eventId.isAcceptableOrUnknown(data['event_id']!, _eventIdMeta),
+      );
+    }
+    if (data.containsKey('event_type')) {
+      context.handle(
+        _eventTypeMeta,
+        eventType.isAcceptableOrUnknown(data['event_type']!, _eventTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventTypeMeta);
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_latitudeMeta);
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_longitudeMeta);
+    }
+    if (data.containsKey('distance_meters')) {
+      context.handle(
+        _distanceMetersMeta,
+        distanceMeters.isAcceptableOrUnknown(
+          data['distance_meters']!,
+          _distanceMetersMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_distanceMetersMeta);
+    }
+    if (data.containsKey('speed_kmh')) {
+      context.handle(
+        _speedKmhMeta,
+        speedKmh.isAcceptableOrUnknown(data['speed_kmh']!, _speedKmhMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_speedKmhMeta);
+    }
+    if (data.containsKey('time_to_event_seconds')) {
+      context.handle(
+        _timeToEventSecondsMeta,
+        timeToEventSeconds.isAcceptableOrUnknown(
+          data['time_to_event_seconds']!,
+          _timeToEventSecondsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_timeToEventSecondsMeta);
+    }
+    if (data.containsKey('recommended_speed_kmh')) {
+      context.handle(
+        _recommendedSpeedKmhMeta,
+        recommendedSpeedKmh.isAcceptableOrUnknown(
+          data['recommended_speed_kmh']!,
+          _recommendedSpeedKmhMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_recommendedSpeedKmhMeta);
+    }
+    if (data.containsKey('urgency')) {
+      context.handle(
+        _urgencyMeta,
+        urgency.isAcceptableOrUnknown(data['urgency']!, _urgencyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_urgencyMeta);
+    }
+    if (data.containsKey('spoken_text')) {
+      context.handle(
+        _spokenTextMeta,
+        spokenText.isAcceptableOrUnknown(data['spoken_text']!, _spokenTextMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_spokenTextMeta);
+    }
+    if (data.containsKey('alerted_at_utc')) {
+      context.handle(
+        _alertedAtUtcMeta,
+        alertedAtUtc.isAcceptableOrUnknown(
+          data['alerted_at_utc']!,
+          _alertedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_alertedAtUtcMeta);
+    }
+    if (data.containsKey('acknowledged')) {
+      context.handle(
+        _acknowledgedMeta,
+        acknowledged.isAcceptableOrUnknown(
+          data['acknowledged']!,
+          _acknowledgedMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PreAlert map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PreAlert(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      roadEventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}road_event_id'],
+      ),
+      tripId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}trip_id'],
+      ),
+      eventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}event_id'],
+      ),
+      eventType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_type'],
+      )!,
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      )!,
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      )!,
+      distanceMeters: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}distance_meters'],
+      )!,
+      speedKmh: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}speed_kmh'],
+      )!,
+      timeToEventSeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}time_to_event_seconds'],
+      )!,
+      recommendedSpeedKmh: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}recommended_speed_kmh'],
+      )!,
+      urgency: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}urgency'],
+      )!,
+      spokenText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}spoken_text'],
+      )!,
+      alertedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}alerted_at_utc'],
+      )!,
+      acknowledged: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}acknowledged'],
+      )!,
+    );
+  }
+
+  @override
+  $PreAlertsTable createAlias(String alias) {
+    return $PreAlertsTable(attachedDatabase, alias);
+  }
+}
+
+class PreAlert extends DataClass implements Insertable<PreAlert> {
+  final int id;
+
+  /// The geo-tagged hazard that triggered the warning.
+  final int? roadEventId;
+  final int? tripId;
+
+  /// The labeled event that this pre-alert was associated with, once known.
+  final int? eventId;
+  final String eventType;
+  final double latitude;
+  final double longitude;
+
+  /// Straight-line distance from the rider to the hazard at alert time.
+  final double distanceMeters;
+
+  /// Ground speed at alert time.
+  final double speedKmh;
+
+  /// distance / speed — the number of seconds the rider had to react.
+  final double timeToEventSeconds;
+
+  /// Speed the rider should be at (km/h) to clear the hazard safely.
+  final double recommendedSpeedKmh;
+
+  /// imminent | warning | advisory
+  final String urgency;
+
+  /// The exact text that was spoken by the TTS engine.
+  final String spokenText;
+  final DateTime alertedAtUtc;
+
+  /// Set once the rider passed the hazard (used for timing evaluation).
+  final bool acknowledged;
+  const PreAlert({
+    required this.id,
+    this.roadEventId,
+    this.tripId,
+    this.eventId,
+    required this.eventType,
+    required this.latitude,
+    required this.longitude,
+    required this.distanceMeters,
+    required this.speedKmh,
+    required this.timeToEventSeconds,
+    required this.recommendedSpeedKmh,
+    required this.urgency,
+    required this.spokenText,
+    required this.alertedAtUtc,
+    required this.acknowledged,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || roadEventId != null) {
+      map['road_event_id'] = Variable<int>(roadEventId);
+    }
+    if (!nullToAbsent || tripId != null) {
+      map['trip_id'] = Variable<int>(tripId);
+    }
+    if (!nullToAbsent || eventId != null) {
+      map['event_id'] = Variable<int>(eventId);
+    }
+    map['event_type'] = Variable<String>(eventType);
+    map['latitude'] = Variable<double>(latitude);
+    map['longitude'] = Variable<double>(longitude);
+    map['distance_meters'] = Variable<double>(distanceMeters);
+    map['speed_kmh'] = Variable<double>(speedKmh);
+    map['time_to_event_seconds'] = Variable<double>(timeToEventSeconds);
+    map['recommended_speed_kmh'] = Variable<double>(recommendedSpeedKmh);
+    map['urgency'] = Variable<String>(urgency);
+    map['spoken_text'] = Variable<String>(spokenText);
+    map['alerted_at_utc'] = Variable<DateTime>(alertedAtUtc);
+    map['acknowledged'] = Variable<bool>(acknowledged);
+    return map;
+  }
+
+  PreAlertsCompanion toCompanion(bool nullToAbsent) {
+    return PreAlertsCompanion(
+      id: Value(id),
+      roadEventId: roadEventId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(roadEventId),
+      tripId: tripId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tripId),
+      eventId: eventId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(eventId),
+      eventType: Value(eventType),
+      latitude: Value(latitude),
+      longitude: Value(longitude),
+      distanceMeters: Value(distanceMeters),
+      speedKmh: Value(speedKmh),
+      timeToEventSeconds: Value(timeToEventSeconds),
+      recommendedSpeedKmh: Value(recommendedSpeedKmh),
+      urgency: Value(urgency),
+      spokenText: Value(spokenText),
+      alertedAtUtc: Value(alertedAtUtc),
+      acknowledged: Value(acknowledged),
+    );
+  }
+
+  factory PreAlert.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PreAlert(
+      id: serializer.fromJson<int>(json['id']),
+      roadEventId: serializer.fromJson<int?>(json['roadEventId']),
+      tripId: serializer.fromJson<int?>(json['tripId']),
+      eventId: serializer.fromJson<int?>(json['eventId']),
+      eventType: serializer.fromJson<String>(json['eventType']),
+      latitude: serializer.fromJson<double>(json['latitude']),
+      longitude: serializer.fromJson<double>(json['longitude']),
+      distanceMeters: serializer.fromJson<double>(json['distanceMeters']),
+      speedKmh: serializer.fromJson<double>(json['speedKmh']),
+      timeToEventSeconds: serializer.fromJson<double>(
+        json['timeToEventSeconds'],
+      ),
+      recommendedSpeedKmh: serializer.fromJson<double>(
+        json['recommendedSpeedKmh'],
+      ),
+      urgency: serializer.fromJson<String>(json['urgency']),
+      spokenText: serializer.fromJson<String>(json['spokenText']),
+      alertedAtUtc: serializer.fromJson<DateTime>(json['alertedAtUtc']),
+      acknowledged: serializer.fromJson<bool>(json['acknowledged']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'roadEventId': serializer.toJson<int?>(roadEventId),
+      'tripId': serializer.toJson<int?>(tripId),
+      'eventId': serializer.toJson<int?>(eventId),
+      'eventType': serializer.toJson<String>(eventType),
+      'latitude': serializer.toJson<double>(latitude),
+      'longitude': serializer.toJson<double>(longitude),
+      'distanceMeters': serializer.toJson<double>(distanceMeters),
+      'speedKmh': serializer.toJson<double>(speedKmh),
+      'timeToEventSeconds': serializer.toJson<double>(timeToEventSeconds),
+      'recommendedSpeedKmh': serializer.toJson<double>(recommendedSpeedKmh),
+      'urgency': serializer.toJson<String>(urgency),
+      'spokenText': serializer.toJson<String>(spokenText),
+      'alertedAtUtc': serializer.toJson<DateTime>(alertedAtUtc),
+      'acknowledged': serializer.toJson<bool>(acknowledged),
+    };
+  }
+
+  PreAlert copyWith({
+    int? id,
+    Value<int?> roadEventId = const Value.absent(),
+    Value<int?> tripId = const Value.absent(),
+    Value<int?> eventId = const Value.absent(),
+    String? eventType,
+    double? latitude,
+    double? longitude,
+    double? distanceMeters,
+    double? speedKmh,
+    double? timeToEventSeconds,
+    double? recommendedSpeedKmh,
+    String? urgency,
+    String? spokenText,
+    DateTime? alertedAtUtc,
+    bool? acknowledged,
+  }) => PreAlert(
+    id: id ?? this.id,
+    roadEventId: roadEventId.present ? roadEventId.value : this.roadEventId,
+    tripId: tripId.present ? tripId.value : this.tripId,
+    eventId: eventId.present ? eventId.value : this.eventId,
+    eventType: eventType ?? this.eventType,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
+    distanceMeters: distanceMeters ?? this.distanceMeters,
+    speedKmh: speedKmh ?? this.speedKmh,
+    timeToEventSeconds: timeToEventSeconds ?? this.timeToEventSeconds,
+    recommendedSpeedKmh: recommendedSpeedKmh ?? this.recommendedSpeedKmh,
+    urgency: urgency ?? this.urgency,
+    spokenText: spokenText ?? this.spokenText,
+    alertedAtUtc: alertedAtUtc ?? this.alertedAtUtc,
+    acknowledged: acknowledged ?? this.acknowledged,
+  );
+  PreAlert copyWithCompanion(PreAlertsCompanion data) {
+    return PreAlert(
+      id: data.id.present ? data.id.value : this.id,
+      roadEventId: data.roadEventId.present
+          ? data.roadEventId.value
+          : this.roadEventId,
+      tripId: data.tripId.present ? data.tripId.value : this.tripId,
+      eventId: data.eventId.present ? data.eventId.value : this.eventId,
+      eventType: data.eventType.present ? data.eventType.value : this.eventType,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      distanceMeters: data.distanceMeters.present
+          ? data.distanceMeters.value
+          : this.distanceMeters,
+      speedKmh: data.speedKmh.present ? data.speedKmh.value : this.speedKmh,
+      timeToEventSeconds: data.timeToEventSeconds.present
+          ? data.timeToEventSeconds.value
+          : this.timeToEventSeconds,
+      recommendedSpeedKmh: data.recommendedSpeedKmh.present
+          ? data.recommendedSpeedKmh.value
+          : this.recommendedSpeedKmh,
+      urgency: data.urgency.present ? data.urgency.value : this.urgency,
+      spokenText: data.spokenText.present
+          ? data.spokenText.value
+          : this.spokenText,
+      alertedAtUtc: data.alertedAtUtc.present
+          ? data.alertedAtUtc.value
+          : this.alertedAtUtc,
+      acknowledged: data.acknowledged.present
+          ? data.acknowledged.value
+          : this.acknowledged,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PreAlert(')
+          ..write('id: $id, ')
+          ..write('roadEventId: $roadEventId, ')
+          ..write('tripId: $tripId, ')
+          ..write('eventId: $eventId, ')
+          ..write('eventType: $eventType, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('distanceMeters: $distanceMeters, ')
+          ..write('speedKmh: $speedKmh, ')
+          ..write('timeToEventSeconds: $timeToEventSeconds, ')
+          ..write('recommendedSpeedKmh: $recommendedSpeedKmh, ')
+          ..write('urgency: $urgency, ')
+          ..write('spokenText: $spokenText, ')
+          ..write('alertedAtUtc: $alertedAtUtc, ')
+          ..write('acknowledged: $acknowledged')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    roadEventId,
+    tripId,
+    eventId,
+    eventType,
+    latitude,
+    longitude,
+    distanceMeters,
+    speedKmh,
+    timeToEventSeconds,
+    recommendedSpeedKmh,
+    urgency,
+    spokenText,
+    alertedAtUtc,
+    acknowledged,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PreAlert &&
+          other.id == this.id &&
+          other.roadEventId == this.roadEventId &&
+          other.tripId == this.tripId &&
+          other.eventId == this.eventId &&
+          other.eventType == this.eventType &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.distanceMeters == this.distanceMeters &&
+          other.speedKmh == this.speedKmh &&
+          other.timeToEventSeconds == this.timeToEventSeconds &&
+          other.recommendedSpeedKmh == this.recommendedSpeedKmh &&
+          other.urgency == this.urgency &&
+          other.spokenText == this.spokenText &&
+          other.alertedAtUtc == this.alertedAtUtc &&
+          other.acknowledged == this.acknowledged);
+}
+
+class PreAlertsCompanion extends UpdateCompanion<PreAlert> {
+  final Value<int> id;
+  final Value<int?> roadEventId;
+  final Value<int?> tripId;
+  final Value<int?> eventId;
+  final Value<String> eventType;
+  final Value<double> latitude;
+  final Value<double> longitude;
+  final Value<double> distanceMeters;
+  final Value<double> speedKmh;
+  final Value<double> timeToEventSeconds;
+  final Value<double> recommendedSpeedKmh;
+  final Value<String> urgency;
+  final Value<String> spokenText;
+  final Value<DateTime> alertedAtUtc;
+  final Value<bool> acknowledged;
+  const PreAlertsCompanion({
+    this.id = const Value.absent(),
+    this.roadEventId = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.eventId = const Value.absent(),
+    this.eventType = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.distanceMeters = const Value.absent(),
+    this.speedKmh = const Value.absent(),
+    this.timeToEventSeconds = const Value.absent(),
+    this.recommendedSpeedKmh = const Value.absent(),
+    this.urgency = const Value.absent(),
+    this.spokenText = const Value.absent(),
+    this.alertedAtUtc = const Value.absent(),
+    this.acknowledged = const Value.absent(),
+  });
+  PreAlertsCompanion.insert({
+    this.id = const Value.absent(),
+    this.roadEventId = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.eventId = const Value.absent(),
+    required String eventType,
+    required double latitude,
+    required double longitude,
+    required double distanceMeters,
+    required double speedKmh,
+    required double timeToEventSeconds,
+    required double recommendedSpeedKmh,
+    required String urgency,
+    required String spokenText,
+    required DateTime alertedAtUtc,
+    this.acknowledged = const Value.absent(),
+  }) : eventType = Value(eventType),
+       latitude = Value(latitude),
+       longitude = Value(longitude),
+       distanceMeters = Value(distanceMeters),
+       speedKmh = Value(speedKmh),
+       timeToEventSeconds = Value(timeToEventSeconds),
+       recommendedSpeedKmh = Value(recommendedSpeedKmh),
+       urgency = Value(urgency),
+       spokenText = Value(spokenText),
+       alertedAtUtc = Value(alertedAtUtc);
+  static Insertable<PreAlert> custom({
+    Expression<int>? id,
+    Expression<int>? roadEventId,
+    Expression<int>? tripId,
+    Expression<int>? eventId,
+    Expression<String>? eventType,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<double>? distanceMeters,
+    Expression<double>? speedKmh,
+    Expression<double>? timeToEventSeconds,
+    Expression<double>? recommendedSpeedKmh,
+    Expression<String>? urgency,
+    Expression<String>? spokenText,
+    Expression<DateTime>? alertedAtUtc,
+    Expression<bool>? acknowledged,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (roadEventId != null) 'road_event_id': roadEventId,
+      if (tripId != null) 'trip_id': tripId,
+      if (eventId != null) 'event_id': eventId,
+      if (eventType != null) 'event_type': eventType,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (distanceMeters != null) 'distance_meters': distanceMeters,
+      if (speedKmh != null) 'speed_kmh': speedKmh,
+      if (timeToEventSeconds != null)
+        'time_to_event_seconds': timeToEventSeconds,
+      if (recommendedSpeedKmh != null)
+        'recommended_speed_kmh': recommendedSpeedKmh,
+      if (urgency != null) 'urgency': urgency,
+      if (spokenText != null) 'spoken_text': spokenText,
+      if (alertedAtUtc != null) 'alerted_at_utc': alertedAtUtc,
+      if (acknowledged != null) 'acknowledged': acknowledged,
+    });
+  }
+
+  PreAlertsCompanion copyWith({
+    Value<int>? id,
+    Value<int?>? roadEventId,
+    Value<int?>? tripId,
+    Value<int?>? eventId,
+    Value<String>? eventType,
+    Value<double>? latitude,
+    Value<double>? longitude,
+    Value<double>? distanceMeters,
+    Value<double>? speedKmh,
+    Value<double>? timeToEventSeconds,
+    Value<double>? recommendedSpeedKmh,
+    Value<String>? urgency,
+    Value<String>? spokenText,
+    Value<DateTime>? alertedAtUtc,
+    Value<bool>? acknowledged,
+  }) {
+    return PreAlertsCompanion(
+      id: id ?? this.id,
+      roadEventId: roadEventId ?? this.roadEventId,
+      tripId: tripId ?? this.tripId,
+      eventId: eventId ?? this.eventId,
+      eventType: eventType ?? this.eventType,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      distanceMeters: distanceMeters ?? this.distanceMeters,
+      speedKmh: speedKmh ?? this.speedKmh,
+      timeToEventSeconds: timeToEventSeconds ?? this.timeToEventSeconds,
+      recommendedSpeedKmh: recommendedSpeedKmh ?? this.recommendedSpeedKmh,
+      urgency: urgency ?? this.urgency,
+      spokenText: spokenText ?? this.spokenText,
+      alertedAtUtc: alertedAtUtc ?? this.alertedAtUtc,
+      acknowledged: acknowledged ?? this.acknowledged,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (roadEventId.present) {
+      map['road_event_id'] = Variable<int>(roadEventId.value);
+    }
+    if (tripId.present) {
+      map['trip_id'] = Variable<int>(tripId.value);
+    }
+    if (eventId.present) {
+      map['event_id'] = Variable<int>(eventId.value);
+    }
+    if (eventType.present) {
+      map['event_type'] = Variable<String>(eventType.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (distanceMeters.present) {
+      map['distance_meters'] = Variable<double>(distanceMeters.value);
+    }
+    if (speedKmh.present) {
+      map['speed_kmh'] = Variable<double>(speedKmh.value);
+    }
+    if (timeToEventSeconds.present) {
+      map['time_to_event_seconds'] = Variable<double>(timeToEventSeconds.value);
+    }
+    if (recommendedSpeedKmh.present) {
+      map['recommended_speed_kmh'] = Variable<double>(
+        recommendedSpeedKmh.value,
+      );
+    }
+    if (urgency.present) {
+      map['urgency'] = Variable<String>(urgency.value);
+    }
+    if (spokenText.present) {
+      map['spoken_text'] = Variable<String>(spokenText.value);
+    }
+    if (alertedAtUtc.present) {
+      map['alerted_at_utc'] = Variable<DateTime>(alertedAtUtc.value);
+    }
+    if (acknowledged.present) {
+      map['acknowledged'] = Variable<bool>(acknowledged.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PreAlertsCompanion(')
+          ..write('id: $id, ')
+          ..write('roadEventId: $roadEventId, ')
+          ..write('tripId: $tripId, ')
+          ..write('eventId: $eventId, ')
+          ..write('eventType: $eventType, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('distanceMeters: $distanceMeters, ')
+          ..write('speedKmh: $speedKmh, ')
+          ..write('timeToEventSeconds: $timeToEventSeconds, ')
+          ..write('recommendedSpeedKmh: $recommendedSpeedKmh, ')
+          ..write('urgency: $urgency, ')
+          ..write('spokenText: $spokenText, ')
+          ..write('alertedAtUtc: $alertedAtUtc, ')
+          ..write('acknowledged: $acknowledged')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $EventFeedbacksTable extends EventFeedbacks
+    with TableInfo<$EventFeedbacksTable, EventFeedback> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EventFeedbacksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _eventIdMeta = const VerificationMeta(
+    'eventId',
+  );
+  @override
+  late final GeneratedColumn<int> eventId = GeneratedColumn<int>(
+    'event_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _tripIdMeta = const VerificationMeta('tripId');
+  @override
+  late final GeneratedColumn<int> tripId = GeneratedColumn<int>(
+    'trip_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _roadEventIdMeta = const VerificationMeta(
+    'roadEventId',
+  );
+  @override
+  late final GeneratedColumn<int> roadEventId = GeneratedColumn<int>(
+    'road_event_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _preAlertIdMeta = const VerificationMeta(
+    'preAlertId',
+  );
+  @override
+  late final GeneratedColumn<int> preAlertId = GeneratedColumn<int>(
+    'pre_alert_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eventTypeMeta = const VerificationMeta(
+    'eventType',
+  );
+  @override
+  late final GeneratedColumn<String> eventType = GeneratedColumn<String>(
+    'event_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _promptMeta = const VerificationMeta('prompt');
+  @override
+  late final GeneratedColumn<String> prompt = GeneratedColumn<String>(
+    'prompt',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _responseTextMeta = const VerificationMeta(
+    'responseText',
+  );
+  @override
+  late final GeneratedColumn<String> responseText = GeneratedColumn<String>(
+    'response_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _responseSourceMeta = const VerificationMeta(
+    'responseSource',
+  );
+  @override
+  late final GeneratedColumn<String> responseSource = GeneratedColumn<String>(
+    'response_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _transcriptConfidenceMeta =
+      const VerificationMeta('transcriptConfidence');
+  @override
+  late final GeneratedColumn<double> transcriptConfidence =
+      GeneratedColumn<double>(
+        'transcript_confidence',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _llmAnalysisMeta = const VerificationMeta(
+    'llmAnalysis',
+  );
+  @override
+  late final GeneratedColumn<String> llmAnalysis = GeneratedColumn<String>(
+    'llm_analysis',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _alertEffectivenessMeta =
+      const VerificationMeta('alertEffectiveness');
+  @override
+  late final GeneratedColumn<double> alertEffectiveness =
+      GeneratedColumn<double>(
+        'alert_effectiveness',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _alertTimingAdequacyMeta =
+      const VerificationMeta('alertTimingAdequacy');
+  @override
+  late final GeneratedColumn<String> alertTimingAdequacy =
+      GeneratedColumn<String>(
+        'alert_timing_adequacy',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _difficultyLevelMeta = const VerificationMeta(
+    'difficultyLevel',
+  );
+  @override
+  late final GeneratedColumn<String> difficultyLevel = GeneratedColumn<String>(
+    'difficulty_level',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _riderSummaryMeta = const VerificationMeta(
+    'riderSummary',
+  );
+  @override
+  late final GeneratedColumn<String> riderSummary = GeneratedColumn<String>(
+    'rider_summary',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _improvementSuggestionMeta =
+      const VerificationMeta('improvementSuggestion');
+  @override
+  late final GeneratedColumn<String> improvementSuggestion =
+      GeneratedColumn<String>(
+        'improvement_suggestion',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisConfidenceMeta =
+      const VerificationMeta('analysisConfidence');
+  @override
+  late final GeneratedColumn<double> analysisConfidence =
+      GeneratedColumn<double>(
+        'analysis_confidence',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analyzedByLlmMeta = const VerificationMeta(
+    'analyzedByLlm',
+  );
+  @override
+  late final GeneratedColumn<bool> analyzedByLlm = GeneratedColumn<bool>(
+    'analyzed_by_llm',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("analyzed_by_llm" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAtUtc = GeneratedColumn<DateTime>(
+    'created_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _analyzedAtUtcMeta = const VerificationMeta(
+    'analyzedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> analyzedAtUtc =
+      GeneratedColumn<DateTime>(
+        'analyzed_at_utc',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    eventId,
+    tripId,
+    roadEventId,
+    preAlertId,
+    eventType,
+    prompt,
+    responseText,
+    responseSource,
+    transcriptConfidence,
+    llmAnalysis,
+    alertEffectiveness,
+    alertTimingAdequacy,
+    difficultyLevel,
+    riderSummary,
+    improvementSuggestion,
+    analysisConfidence,
+    analyzedByLlm,
+    createdAtUtc,
+    analyzedAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'event_feedbacks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EventFeedback> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('event_id')) {
+      context.handle(
+        _eventIdMeta,
+        eventId.isAcceptableOrUnknown(data['event_id']!, _eventIdMeta),
+      );
+    }
+    if (data.containsKey('trip_id')) {
+      context.handle(
+        _tripIdMeta,
+        tripId.isAcceptableOrUnknown(data['trip_id']!, _tripIdMeta),
+      );
+    }
+    if (data.containsKey('road_event_id')) {
+      context.handle(
+        _roadEventIdMeta,
+        roadEventId.isAcceptableOrUnknown(
+          data['road_event_id']!,
+          _roadEventIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pre_alert_id')) {
+      context.handle(
+        _preAlertIdMeta,
+        preAlertId.isAcceptableOrUnknown(
+          data['pre_alert_id']!,
+          _preAlertIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('event_type')) {
+      context.handle(
+        _eventTypeMeta,
+        eventType.isAcceptableOrUnknown(data['event_type']!, _eventTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventTypeMeta);
+    }
+    if (data.containsKey('prompt')) {
+      context.handle(
+        _promptMeta,
+        prompt.isAcceptableOrUnknown(data['prompt']!, _promptMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_promptMeta);
+    }
+    if (data.containsKey('response_text')) {
+      context.handle(
+        _responseTextMeta,
+        responseText.isAcceptableOrUnknown(
+          data['response_text']!,
+          _responseTextMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_responseTextMeta);
+    }
+    if (data.containsKey('response_source')) {
+      context.handle(
+        _responseSourceMeta,
+        responseSource.isAcceptableOrUnknown(
+          data['response_source']!,
+          _responseSourceMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_responseSourceMeta);
+    }
+    if (data.containsKey('transcript_confidence')) {
+      context.handle(
+        _transcriptConfidenceMeta,
+        transcriptConfidence.isAcceptableOrUnknown(
+          data['transcript_confidence']!,
+          _transcriptConfidenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('llm_analysis')) {
+      context.handle(
+        _llmAnalysisMeta,
+        llmAnalysis.isAcceptableOrUnknown(
+          data['llm_analysis']!,
+          _llmAnalysisMeta,
+        ),
+      );
+    }
+    if (data.containsKey('alert_effectiveness')) {
+      context.handle(
+        _alertEffectivenessMeta,
+        alertEffectiveness.isAcceptableOrUnknown(
+          data['alert_effectiveness']!,
+          _alertEffectivenessMeta,
+        ),
+      );
+    }
+    if (data.containsKey('alert_timing_adequacy')) {
+      context.handle(
+        _alertTimingAdequacyMeta,
+        alertTimingAdequacy.isAcceptableOrUnknown(
+          data['alert_timing_adequacy']!,
+          _alertTimingAdequacyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('difficulty_level')) {
+      context.handle(
+        _difficultyLevelMeta,
+        difficultyLevel.isAcceptableOrUnknown(
+          data['difficulty_level']!,
+          _difficultyLevelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('rider_summary')) {
+      context.handle(
+        _riderSummaryMeta,
+        riderSummary.isAcceptableOrUnknown(
+          data['rider_summary']!,
+          _riderSummaryMeta,
+        ),
+      );
+    }
+    if (data.containsKey('improvement_suggestion')) {
+      context.handle(
+        _improvementSuggestionMeta,
+        improvementSuggestion.isAcceptableOrUnknown(
+          data['improvement_suggestion']!,
+          _improvementSuggestionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_confidence')) {
+      context.handle(
+        _analysisConfidenceMeta,
+        analysisConfidence.isAcceptableOrUnknown(
+          data['analysis_confidence']!,
+          _analysisConfidenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analyzed_by_llm')) {
+      context.handle(
+        _analyzedByLlmMeta,
+        analyzedByLlm.isAcceptableOrUnknown(
+          data['analyzed_by_llm']!,
+          _analyzedByLlmMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtUtcMeta);
+    }
+    if (data.containsKey('analyzed_at_utc')) {
+      context.handle(
+        _analyzedAtUtcMeta,
+        analyzedAtUtc.isAcceptableOrUnknown(
+          data['analyzed_at_utc']!,
+          _analyzedAtUtcMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EventFeedback map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EventFeedback(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      eventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}event_id'],
+      ),
+      tripId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}trip_id'],
+      ),
+      roadEventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}road_event_id'],
+      ),
+      preAlertId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}pre_alert_id'],
+      ),
+      eventType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_type'],
+      )!,
+      prompt: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}prompt'],
+      )!,
+      responseText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}response_text'],
+      )!,
+      responseSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}response_source'],
+      )!,
+      transcriptConfidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}transcript_confidence'],
+      ),
+      llmAnalysis: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}llm_analysis'],
+      ),
+      alertEffectiveness: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}alert_effectiveness'],
+      ),
+      alertTimingAdequacy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}alert_timing_adequacy'],
+      ),
+      difficultyLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}difficulty_level'],
+      ),
+      riderSummary: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rider_summary'],
+      ),
+      improvementSuggestion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}improvement_suggestion'],
+      ),
+      analysisConfidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}analysis_confidence'],
+      ),
+      analyzedByLlm: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}analyzed_by_llm'],
+      )!,
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at_utc'],
+      )!,
+      analyzedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}analyzed_at_utc'],
+      ),
+    );
+  }
+
+  @override
+  $EventFeedbacksTable createAlias(String alias) {
+    return $EventFeedbacksTable(attachedDatabase, alias);
+  }
+}
+
+class EventFeedback extends DataClass implements Insertable<EventFeedback> {
+  final int id;
+
+  /// The labeled event this feedback belongs to.
+  final int? eventId;
+  final int? tripId;
+
+  /// The geo-tagged hazard the rider was reacting to.
+  final int? roadEventId;
+
+  /// The pre-alert that was spoken before the event, if any.
+  final int? preAlertId;
+  final String eventType;
+
+  /// The question that was asked of the rider.
+  final String prompt;
+
+  /// The rider's answer (transcribed speech or typed text).
+  final String responseText;
+
+  /// voice | text | skipped
+  final String responseSource;
+
+  /// Speech-to-text confidence (0..1) when the answer was spoken.
+  final double? transcriptConfidence;
+
+  /// Full JSON payload of the LLM analysis.
+  final String? llmAnalysis;
+
+  /// LLM-scored effectiveness of the pre-alert (0..1).
+  final double? alertEffectiveness;
+
+  /// too_early | adequate | too_late | unknown
+  final String? alertTimingAdequacy;
+
+  /// none | mild | moderate | severe | unknown
+  final String? difficultyLevel;
+
+  /// One-line natural-language summary of the rider's experience.
+  final String? riderSummary;
+
+  /// Actionable recommendation for improving alert timing / accuracy.
+  final String? improvementSuggestion;
+  final double? analysisConfidence;
+
+  /// False when the heuristic (offline) analyzer was used instead of the LLM.
+  final bool analyzedByLlm;
+  final DateTime createdAtUtc;
+  final DateTime? analyzedAtUtc;
+  const EventFeedback({
+    required this.id,
+    this.eventId,
+    this.tripId,
+    this.roadEventId,
+    this.preAlertId,
+    required this.eventType,
+    required this.prompt,
+    required this.responseText,
+    required this.responseSource,
+    this.transcriptConfidence,
+    this.llmAnalysis,
+    this.alertEffectiveness,
+    this.alertTimingAdequacy,
+    this.difficultyLevel,
+    this.riderSummary,
+    this.improvementSuggestion,
+    this.analysisConfidence,
+    required this.analyzedByLlm,
+    required this.createdAtUtc,
+    this.analyzedAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || eventId != null) {
+      map['event_id'] = Variable<int>(eventId);
+    }
+    if (!nullToAbsent || tripId != null) {
+      map['trip_id'] = Variable<int>(tripId);
+    }
+    if (!nullToAbsent || roadEventId != null) {
+      map['road_event_id'] = Variable<int>(roadEventId);
+    }
+    if (!nullToAbsent || preAlertId != null) {
+      map['pre_alert_id'] = Variable<int>(preAlertId);
+    }
+    map['event_type'] = Variable<String>(eventType);
+    map['prompt'] = Variable<String>(prompt);
+    map['response_text'] = Variable<String>(responseText);
+    map['response_source'] = Variable<String>(responseSource);
+    if (!nullToAbsent || transcriptConfidence != null) {
+      map['transcript_confidence'] = Variable<double>(transcriptConfidence);
+    }
+    if (!nullToAbsent || llmAnalysis != null) {
+      map['llm_analysis'] = Variable<String>(llmAnalysis);
+    }
+    if (!nullToAbsent || alertEffectiveness != null) {
+      map['alert_effectiveness'] = Variable<double>(alertEffectiveness);
+    }
+    if (!nullToAbsent || alertTimingAdequacy != null) {
+      map['alert_timing_adequacy'] = Variable<String>(alertTimingAdequacy);
+    }
+    if (!nullToAbsent || difficultyLevel != null) {
+      map['difficulty_level'] = Variable<String>(difficultyLevel);
+    }
+    if (!nullToAbsent || riderSummary != null) {
+      map['rider_summary'] = Variable<String>(riderSummary);
+    }
+    if (!nullToAbsent || improvementSuggestion != null) {
+      map['improvement_suggestion'] = Variable<String>(improvementSuggestion);
+    }
+    if (!nullToAbsent || analysisConfidence != null) {
+      map['analysis_confidence'] = Variable<double>(analysisConfidence);
+    }
+    map['analyzed_by_llm'] = Variable<bool>(analyzedByLlm);
+    map['created_at_utc'] = Variable<DateTime>(createdAtUtc);
+    if (!nullToAbsent || analyzedAtUtc != null) {
+      map['analyzed_at_utc'] = Variable<DateTime>(analyzedAtUtc);
+    }
+    return map;
+  }
+
+  EventFeedbacksCompanion toCompanion(bool nullToAbsent) {
+    return EventFeedbacksCompanion(
+      id: Value(id),
+      eventId: eventId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(eventId),
+      tripId: tripId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tripId),
+      roadEventId: roadEventId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(roadEventId),
+      preAlertId: preAlertId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(preAlertId),
+      eventType: Value(eventType),
+      prompt: Value(prompt),
+      responseText: Value(responseText),
+      responseSource: Value(responseSource),
+      transcriptConfidence: transcriptConfidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(transcriptConfidence),
+      llmAnalysis: llmAnalysis == null && nullToAbsent
+          ? const Value.absent()
+          : Value(llmAnalysis),
+      alertEffectiveness: alertEffectiveness == null && nullToAbsent
+          ? const Value.absent()
+          : Value(alertEffectiveness),
+      alertTimingAdequacy: alertTimingAdequacy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(alertTimingAdequacy),
+      difficultyLevel: difficultyLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(difficultyLevel),
+      riderSummary: riderSummary == null && nullToAbsent
+          ? const Value.absent()
+          : Value(riderSummary),
+      improvementSuggestion: improvementSuggestion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(improvementSuggestion),
+      analysisConfidence: analysisConfidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisConfidence),
+      analyzedByLlm: Value(analyzedByLlm),
+      createdAtUtc: Value(createdAtUtc),
+      analyzedAtUtc: analyzedAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analyzedAtUtc),
+    );
+  }
+
+  factory EventFeedback.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EventFeedback(
+      id: serializer.fromJson<int>(json['id']),
+      eventId: serializer.fromJson<int?>(json['eventId']),
+      tripId: serializer.fromJson<int?>(json['tripId']),
+      roadEventId: serializer.fromJson<int?>(json['roadEventId']),
+      preAlertId: serializer.fromJson<int?>(json['preAlertId']),
+      eventType: serializer.fromJson<String>(json['eventType']),
+      prompt: serializer.fromJson<String>(json['prompt']),
+      responseText: serializer.fromJson<String>(json['responseText']),
+      responseSource: serializer.fromJson<String>(json['responseSource']),
+      transcriptConfidence: serializer.fromJson<double?>(
+        json['transcriptConfidence'],
+      ),
+      llmAnalysis: serializer.fromJson<String?>(json['llmAnalysis']),
+      alertEffectiveness: serializer.fromJson<double?>(
+        json['alertEffectiveness'],
+      ),
+      alertTimingAdequacy: serializer.fromJson<String?>(
+        json['alertTimingAdequacy'],
+      ),
+      difficultyLevel: serializer.fromJson<String?>(json['difficultyLevel']),
+      riderSummary: serializer.fromJson<String?>(json['riderSummary']),
+      improvementSuggestion: serializer.fromJson<String?>(
+        json['improvementSuggestion'],
+      ),
+      analysisConfidence: serializer.fromJson<double?>(
+        json['analysisConfidence'],
+      ),
+      analyzedByLlm: serializer.fromJson<bool>(json['analyzedByLlm']),
+      createdAtUtc: serializer.fromJson<DateTime>(json['createdAtUtc']),
+      analyzedAtUtc: serializer.fromJson<DateTime?>(json['analyzedAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'eventId': serializer.toJson<int?>(eventId),
+      'tripId': serializer.toJson<int?>(tripId),
+      'roadEventId': serializer.toJson<int?>(roadEventId),
+      'preAlertId': serializer.toJson<int?>(preAlertId),
+      'eventType': serializer.toJson<String>(eventType),
+      'prompt': serializer.toJson<String>(prompt),
+      'responseText': serializer.toJson<String>(responseText),
+      'responseSource': serializer.toJson<String>(responseSource),
+      'transcriptConfidence': serializer.toJson<double?>(transcriptConfidence),
+      'llmAnalysis': serializer.toJson<String?>(llmAnalysis),
+      'alertEffectiveness': serializer.toJson<double?>(alertEffectiveness),
+      'alertTimingAdequacy': serializer.toJson<String?>(alertTimingAdequacy),
+      'difficultyLevel': serializer.toJson<String?>(difficultyLevel),
+      'riderSummary': serializer.toJson<String?>(riderSummary),
+      'improvementSuggestion': serializer.toJson<String?>(
+        improvementSuggestion,
+      ),
+      'analysisConfidence': serializer.toJson<double?>(analysisConfidence),
+      'analyzedByLlm': serializer.toJson<bool>(analyzedByLlm),
+      'createdAtUtc': serializer.toJson<DateTime>(createdAtUtc),
+      'analyzedAtUtc': serializer.toJson<DateTime?>(analyzedAtUtc),
+    };
+  }
+
+  EventFeedback copyWith({
+    int? id,
+    Value<int?> eventId = const Value.absent(),
+    Value<int?> tripId = const Value.absent(),
+    Value<int?> roadEventId = const Value.absent(),
+    Value<int?> preAlertId = const Value.absent(),
+    String? eventType,
+    String? prompt,
+    String? responseText,
+    String? responseSource,
+    Value<double?> transcriptConfidence = const Value.absent(),
+    Value<String?> llmAnalysis = const Value.absent(),
+    Value<double?> alertEffectiveness = const Value.absent(),
+    Value<String?> alertTimingAdequacy = const Value.absent(),
+    Value<String?> difficultyLevel = const Value.absent(),
+    Value<String?> riderSummary = const Value.absent(),
+    Value<String?> improvementSuggestion = const Value.absent(),
+    Value<double?> analysisConfidence = const Value.absent(),
+    bool? analyzedByLlm,
+    DateTime? createdAtUtc,
+    Value<DateTime?> analyzedAtUtc = const Value.absent(),
+  }) => EventFeedback(
+    id: id ?? this.id,
+    eventId: eventId.present ? eventId.value : this.eventId,
+    tripId: tripId.present ? tripId.value : this.tripId,
+    roadEventId: roadEventId.present ? roadEventId.value : this.roadEventId,
+    preAlertId: preAlertId.present ? preAlertId.value : this.preAlertId,
+    eventType: eventType ?? this.eventType,
+    prompt: prompt ?? this.prompt,
+    responseText: responseText ?? this.responseText,
+    responseSource: responseSource ?? this.responseSource,
+    transcriptConfidence: transcriptConfidence.present
+        ? transcriptConfidence.value
+        : this.transcriptConfidence,
+    llmAnalysis: llmAnalysis.present ? llmAnalysis.value : this.llmAnalysis,
+    alertEffectiveness: alertEffectiveness.present
+        ? alertEffectiveness.value
+        : this.alertEffectiveness,
+    alertTimingAdequacy: alertTimingAdequacy.present
+        ? alertTimingAdequacy.value
+        : this.alertTimingAdequacy,
+    difficultyLevel: difficultyLevel.present
+        ? difficultyLevel.value
+        : this.difficultyLevel,
+    riderSummary: riderSummary.present ? riderSummary.value : this.riderSummary,
+    improvementSuggestion: improvementSuggestion.present
+        ? improvementSuggestion.value
+        : this.improvementSuggestion,
+    analysisConfidence: analysisConfidence.present
+        ? analysisConfidence.value
+        : this.analysisConfidence,
+    analyzedByLlm: analyzedByLlm ?? this.analyzedByLlm,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+    analyzedAtUtc: analyzedAtUtc.present
+        ? analyzedAtUtc.value
+        : this.analyzedAtUtc,
+  );
+  EventFeedback copyWithCompanion(EventFeedbacksCompanion data) {
+    return EventFeedback(
+      id: data.id.present ? data.id.value : this.id,
+      eventId: data.eventId.present ? data.eventId.value : this.eventId,
+      tripId: data.tripId.present ? data.tripId.value : this.tripId,
+      roadEventId: data.roadEventId.present
+          ? data.roadEventId.value
+          : this.roadEventId,
+      preAlertId: data.preAlertId.present
+          ? data.preAlertId.value
+          : this.preAlertId,
+      eventType: data.eventType.present ? data.eventType.value : this.eventType,
+      prompt: data.prompt.present ? data.prompt.value : this.prompt,
+      responseText: data.responseText.present
+          ? data.responseText.value
+          : this.responseText,
+      responseSource: data.responseSource.present
+          ? data.responseSource.value
+          : this.responseSource,
+      transcriptConfidence: data.transcriptConfidence.present
+          ? data.transcriptConfidence.value
+          : this.transcriptConfidence,
+      llmAnalysis: data.llmAnalysis.present
+          ? data.llmAnalysis.value
+          : this.llmAnalysis,
+      alertEffectiveness: data.alertEffectiveness.present
+          ? data.alertEffectiveness.value
+          : this.alertEffectiveness,
+      alertTimingAdequacy: data.alertTimingAdequacy.present
+          ? data.alertTimingAdequacy.value
+          : this.alertTimingAdequacy,
+      difficultyLevel: data.difficultyLevel.present
+          ? data.difficultyLevel.value
+          : this.difficultyLevel,
+      riderSummary: data.riderSummary.present
+          ? data.riderSummary.value
+          : this.riderSummary,
+      improvementSuggestion: data.improvementSuggestion.present
+          ? data.improvementSuggestion.value
+          : this.improvementSuggestion,
+      analysisConfidence: data.analysisConfidence.present
+          ? data.analysisConfidence.value
+          : this.analysisConfidence,
+      analyzedByLlm: data.analyzedByLlm.present
+          ? data.analyzedByLlm.value
+          : this.analyzedByLlm,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+      analyzedAtUtc: data.analyzedAtUtc.present
+          ? data.analyzedAtUtc.value
+          : this.analyzedAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EventFeedback(')
+          ..write('id: $id, ')
+          ..write('eventId: $eventId, ')
+          ..write('tripId: $tripId, ')
+          ..write('roadEventId: $roadEventId, ')
+          ..write('preAlertId: $preAlertId, ')
+          ..write('eventType: $eventType, ')
+          ..write('prompt: $prompt, ')
+          ..write('responseText: $responseText, ')
+          ..write('responseSource: $responseSource, ')
+          ..write('transcriptConfidence: $transcriptConfidence, ')
+          ..write('llmAnalysis: $llmAnalysis, ')
+          ..write('alertEffectiveness: $alertEffectiveness, ')
+          ..write('alertTimingAdequacy: $alertTimingAdequacy, ')
+          ..write('difficultyLevel: $difficultyLevel, ')
+          ..write('riderSummary: $riderSummary, ')
+          ..write('improvementSuggestion: $improvementSuggestion, ')
+          ..write('analysisConfidence: $analysisConfidence, ')
+          ..write('analyzedByLlm: $analyzedByLlm, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('analyzedAtUtc: $analyzedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    eventId,
+    tripId,
+    roadEventId,
+    preAlertId,
+    eventType,
+    prompt,
+    responseText,
+    responseSource,
+    transcriptConfidence,
+    llmAnalysis,
+    alertEffectiveness,
+    alertTimingAdequacy,
+    difficultyLevel,
+    riderSummary,
+    improvementSuggestion,
+    analysisConfidence,
+    analyzedByLlm,
+    createdAtUtc,
+    analyzedAtUtc,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EventFeedback &&
+          other.id == this.id &&
+          other.eventId == this.eventId &&
+          other.tripId == this.tripId &&
+          other.roadEventId == this.roadEventId &&
+          other.preAlertId == this.preAlertId &&
+          other.eventType == this.eventType &&
+          other.prompt == this.prompt &&
+          other.responseText == this.responseText &&
+          other.responseSource == this.responseSource &&
+          other.transcriptConfidence == this.transcriptConfidence &&
+          other.llmAnalysis == this.llmAnalysis &&
+          other.alertEffectiveness == this.alertEffectiveness &&
+          other.alertTimingAdequacy == this.alertTimingAdequacy &&
+          other.difficultyLevel == this.difficultyLevel &&
+          other.riderSummary == this.riderSummary &&
+          other.improvementSuggestion == this.improvementSuggestion &&
+          other.analysisConfidence == this.analysisConfidence &&
+          other.analyzedByLlm == this.analyzedByLlm &&
+          other.createdAtUtc == this.createdAtUtc &&
+          other.analyzedAtUtc == this.analyzedAtUtc);
+}
+
+class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
+  final Value<int> id;
+  final Value<int?> eventId;
+  final Value<int?> tripId;
+  final Value<int?> roadEventId;
+  final Value<int?> preAlertId;
+  final Value<String> eventType;
+  final Value<String> prompt;
+  final Value<String> responseText;
+  final Value<String> responseSource;
+  final Value<double?> transcriptConfidence;
+  final Value<String?> llmAnalysis;
+  final Value<double?> alertEffectiveness;
+  final Value<String?> alertTimingAdequacy;
+  final Value<String?> difficultyLevel;
+  final Value<String?> riderSummary;
+  final Value<String?> improvementSuggestion;
+  final Value<double?> analysisConfidence;
+  final Value<bool> analyzedByLlm;
+  final Value<DateTime> createdAtUtc;
+  final Value<DateTime?> analyzedAtUtc;
+  const EventFeedbacksCompanion({
+    this.id = const Value.absent(),
+    this.eventId = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.roadEventId = const Value.absent(),
+    this.preAlertId = const Value.absent(),
+    this.eventType = const Value.absent(),
+    this.prompt = const Value.absent(),
+    this.responseText = const Value.absent(),
+    this.responseSource = const Value.absent(),
+    this.transcriptConfidence = const Value.absent(),
+    this.llmAnalysis = const Value.absent(),
+    this.alertEffectiveness = const Value.absent(),
+    this.alertTimingAdequacy = const Value.absent(),
+    this.difficultyLevel = const Value.absent(),
+    this.riderSummary = const Value.absent(),
+    this.improvementSuggestion = const Value.absent(),
+    this.analysisConfidence = const Value.absent(),
+    this.analyzedByLlm = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+    this.analyzedAtUtc = const Value.absent(),
+  });
+  EventFeedbacksCompanion.insert({
+    this.id = const Value.absent(),
+    this.eventId = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.roadEventId = const Value.absent(),
+    this.preAlertId = const Value.absent(),
+    required String eventType,
+    required String prompt,
+    required String responseText,
+    required String responseSource,
+    this.transcriptConfidence = const Value.absent(),
+    this.llmAnalysis = const Value.absent(),
+    this.alertEffectiveness = const Value.absent(),
+    this.alertTimingAdequacy = const Value.absent(),
+    this.difficultyLevel = const Value.absent(),
+    this.riderSummary = const Value.absent(),
+    this.improvementSuggestion = const Value.absent(),
+    this.analysisConfidence = const Value.absent(),
+    this.analyzedByLlm = const Value.absent(),
+    required DateTime createdAtUtc,
+    this.analyzedAtUtc = const Value.absent(),
+  }) : eventType = Value(eventType),
+       prompt = Value(prompt),
+       responseText = Value(responseText),
+       responseSource = Value(responseSource),
+       createdAtUtc = Value(createdAtUtc);
+  static Insertable<EventFeedback> custom({
+    Expression<int>? id,
+    Expression<int>? eventId,
+    Expression<int>? tripId,
+    Expression<int>? roadEventId,
+    Expression<int>? preAlertId,
+    Expression<String>? eventType,
+    Expression<String>? prompt,
+    Expression<String>? responseText,
+    Expression<String>? responseSource,
+    Expression<double>? transcriptConfidence,
+    Expression<String>? llmAnalysis,
+    Expression<double>? alertEffectiveness,
+    Expression<String>? alertTimingAdequacy,
+    Expression<String>? difficultyLevel,
+    Expression<String>? riderSummary,
+    Expression<String>? improvementSuggestion,
+    Expression<double>? analysisConfidence,
+    Expression<bool>? analyzedByLlm,
+    Expression<DateTime>? createdAtUtc,
+    Expression<DateTime>? analyzedAtUtc,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (eventId != null) 'event_id': eventId,
+      if (tripId != null) 'trip_id': tripId,
+      if (roadEventId != null) 'road_event_id': roadEventId,
+      if (preAlertId != null) 'pre_alert_id': preAlertId,
+      if (eventType != null) 'event_type': eventType,
+      if (prompt != null) 'prompt': prompt,
+      if (responseText != null) 'response_text': responseText,
+      if (responseSource != null) 'response_source': responseSource,
+      if (transcriptConfidence != null)
+        'transcript_confidence': transcriptConfidence,
+      if (llmAnalysis != null) 'llm_analysis': llmAnalysis,
+      if (alertEffectiveness != null) 'alert_effectiveness': alertEffectiveness,
+      if (alertTimingAdequacy != null)
+        'alert_timing_adequacy': alertTimingAdequacy,
+      if (difficultyLevel != null) 'difficulty_level': difficultyLevel,
+      if (riderSummary != null) 'rider_summary': riderSummary,
+      if (improvementSuggestion != null)
+        'improvement_suggestion': improvementSuggestion,
+      if (analysisConfidence != null) 'analysis_confidence': analysisConfidence,
+      if (analyzedByLlm != null) 'analyzed_by_llm': analyzedByLlm,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+      if (analyzedAtUtc != null) 'analyzed_at_utc': analyzedAtUtc,
+    });
+  }
+
+  EventFeedbacksCompanion copyWith({
+    Value<int>? id,
+    Value<int?>? eventId,
+    Value<int?>? tripId,
+    Value<int?>? roadEventId,
+    Value<int?>? preAlertId,
+    Value<String>? eventType,
+    Value<String>? prompt,
+    Value<String>? responseText,
+    Value<String>? responseSource,
+    Value<double?>? transcriptConfidence,
+    Value<String?>? llmAnalysis,
+    Value<double?>? alertEffectiveness,
+    Value<String?>? alertTimingAdequacy,
+    Value<String?>? difficultyLevel,
+    Value<String?>? riderSummary,
+    Value<String?>? improvementSuggestion,
+    Value<double?>? analysisConfidence,
+    Value<bool>? analyzedByLlm,
+    Value<DateTime>? createdAtUtc,
+    Value<DateTime?>? analyzedAtUtc,
+  }) {
+    return EventFeedbacksCompanion(
+      id: id ?? this.id,
+      eventId: eventId ?? this.eventId,
+      tripId: tripId ?? this.tripId,
+      roadEventId: roadEventId ?? this.roadEventId,
+      preAlertId: preAlertId ?? this.preAlertId,
+      eventType: eventType ?? this.eventType,
+      prompt: prompt ?? this.prompt,
+      responseText: responseText ?? this.responseText,
+      responseSource: responseSource ?? this.responseSource,
+      transcriptConfidence: transcriptConfidence ?? this.transcriptConfidence,
+      llmAnalysis: llmAnalysis ?? this.llmAnalysis,
+      alertEffectiveness: alertEffectiveness ?? this.alertEffectiveness,
+      alertTimingAdequacy: alertTimingAdequacy ?? this.alertTimingAdequacy,
+      difficultyLevel: difficultyLevel ?? this.difficultyLevel,
+      riderSummary: riderSummary ?? this.riderSummary,
+      improvementSuggestion:
+          improvementSuggestion ?? this.improvementSuggestion,
+      analysisConfidence: analysisConfidence ?? this.analysisConfidence,
+      analyzedByLlm: analyzedByLlm ?? this.analyzedByLlm,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+      analyzedAtUtc: analyzedAtUtc ?? this.analyzedAtUtc,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (eventId.present) {
+      map['event_id'] = Variable<int>(eventId.value);
+    }
+    if (tripId.present) {
+      map['trip_id'] = Variable<int>(tripId.value);
+    }
+    if (roadEventId.present) {
+      map['road_event_id'] = Variable<int>(roadEventId.value);
+    }
+    if (preAlertId.present) {
+      map['pre_alert_id'] = Variable<int>(preAlertId.value);
+    }
+    if (eventType.present) {
+      map['event_type'] = Variable<String>(eventType.value);
+    }
+    if (prompt.present) {
+      map['prompt'] = Variable<String>(prompt.value);
+    }
+    if (responseText.present) {
+      map['response_text'] = Variable<String>(responseText.value);
+    }
+    if (responseSource.present) {
+      map['response_source'] = Variable<String>(responseSource.value);
+    }
+    if (transcriptConfidence.present) {
+      map['transcript_confidence'] = Variable<double>(
+        transcriptConfidence.value,
+      );
+    }
+    if (llmAnalysis.present) {
+      map['llm_analysis'] = Variable<String>(llmAnalysis.value);
+    }
+    if (alertEffectiveness.present) {
+      map['alert_effectiveness'] = Variable<double>(alertEffectiveness.value);
+    }
+    if (alertTimingAdequacy.present) {
+      map['alert_timing_adequacy'] = Variable<String>(
+        alertTimingAdequacy.value,
+      );
+    }
+    if (difficultyLevel.present) {
+      map['difficulty_level'] = Variable<String>(difficultyLevel.value);
+    }
+    if (riderSummary.present) {
+      map['rider_summary'] = Variable<String>(riderSummary.value);
+    }
+    if (improvementSuggestion.present) {
+      map['improvement_suggestion'] = Variable<String>(
+        improvementSuggestion.value,
+      );
+    }
+    if (analysisConfidence.present) {
+      map['analysis_confidence'] = Variable<double>(analysisConfidence.value);
+    }
+    if (analyzedByLlm.present) {
+      map['analyzed_by_llm'] = Variable<bool>(analyzedByLlm.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<DateTime>(createdAtUtc.value);
+    }
+    if (analyzedAtUtc.present) {
+      map['analyzed_at_utc'] = Variable<DateTime>(analyzedAtUtc.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EventFeedbacksCompanion(')
+          ..write('id: $id, ')
+          ..write('eventId: $eventId, ')
+          ..write('tripId: $tripId, ')
+          ..write('roadEventId: $roadEventId, ')
+          ..write('preAlertId: $preAlertId, ')
+          ..write('eventType: $eventType, ')
+          ..write('prompt: $prompt, ')
+          ..write('responseText: $responseText, ')
+          ..write('responseSource: $responseSource, ')
+          ..write('transcriptConfidence: $transcriptConfidence, ')
+          ..write('llmAnalysis: $llmAnalysis, ')
+          ..write('alertEffectiveness: $alertEffectiveness, ')
+          ..write('alertTimingAdequacy: $alertTimingAdequacy, ')
+          ..write('difficultyLevel: $difficultyLevel, ')
+          ..write('riderSummary: $riderSummary, ')
+          ..write('improvementSuggestion: $improvementSuggestion, ')
+          ..write('analysisConfidence: $analysisConfidence, ')
+          ..write('analyzedByLlm: $analyzedByLlm, ')
+          ..write('createdAtUtc: $createdAtUtc, ')
+          ..write('analyzedAtUtc: $analyzedAtUtc')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5681,6 +8642,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TripCalibrationsTable tripCalibrations = $TripCalibrationsTable(
     this,
   );
+  late final $RoadEventsTable roadEvents = $RoadEventsTable(this);
+  late final $PreAlertsTable preAlerts = $PreAlertsTable(this);
+  late final $EventFeedbacksTable eventFeedbacks = $EventFeedbacksTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5692,6 +8656,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     trips,
     locationReadings,
     tripCalibrations,
+    roadEvents,
+    preAlerts,
+    eventFeedbacks,
   ];
 }
 
@@ -8242,6 +11209,1283 @@ typedef $$TripCalibrationsTableProcessedTableManager =
       TripCalibration,
       PrefetchHooks Function()
     >;
+typedef $$RoadEventsTableCreateCompanionBuilder =
+    RoadEventsCompanion Function({
+      Value<int> id,
+      Value<int?> tripId,
+      required String eventType,
+      required double latitude,
+      required double longitude,
+      Value<double?> severity,
+      Value<double?> confidence,
+      Value<String> source,
+      required DateTime detectedAtUtc,
+      Value<double?> speedKmhAtDetection,
+      Value<int> alertCount,
+      Value<int> feedbackCount,
+      Value<DateTime?> lastAlertedAtUtc,
+      Value<String?> note,
+    });
+typedef $$RoadEventsTableUpdateCompanionBuilder =
+    RoadEventsCompanion Function({
+      Value<int> id,
+      Value<int?> tripId,
+      Value<String> eventType,
+      Value<double> latitude,
+      Value<double> longitude,
+      Value<double?> severity,
+      Value<double?> confidence,
+      Value<String> source,
+      Value<DateTime> detectedAtUtc,
+      Value<double?> speedKmhAtDetection,
+      Value<int> alertCount,
+      Value<int> feedbackCount,
+      Value<DateTime?> lastAlertedAtUtc,
+      Value<String?> note,
+    });
+
+class $$RoadEventsTableFilterComposer
+    extends Composer<_$AppDatabase, $RoadEventsTable> {
+  $$RoadEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get severity => $composableBuilder(
+    column: $table.severity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get detectedAtUtc => $composableBuilder(
+    column: $table.detectedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get speedKmhAtDetection => $composableBuilder(
+    column: $table.speedKmhAtDetection,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get alertCount => $composableBuilder(
+    column: $table.alertCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get feedbackCount => $composableBuilder(
+    column: $table.feedbackCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get lastAlertedAtUtc => $composableBuilder(
+    column: $table.lastAlertedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RoadEventsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RoadEventsTable> {
+  $$RoadEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get severity => $composableBuilder(
+    column: $table.severity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get detectedAtUtc => $composableBuilder(
+    column: $table.detectedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get speedKmhAtDetection => $composableBuilder(
+    column: $table.speedKmhAtDetection,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get alertCount => $composableBuilder(
+    column: $table.alertCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get feedbackCount => $composableBuilder(
+    column: $table.feedbackCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get lastAlertedAtUtc => $composableBuilder(
+    column: $table.lastAlertedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RoadEventsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RoadEventsTable> {
+  $$RoadEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get tripId =>
+      $composableBuilder(column: $table.tripId, builder: (column) => column);
+
+  GeneratedColumn<String> get eventType =>
+      $composableBuilder(column: $table.eventType, builder: (column) => column);
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<double> get severity =>
+      $composableBuilder(column: $table.severity, builder: (column) => column);
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get detectedAtUtc => $composableBuilder(
+    column: $table.detectedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get speedKmhAtDetection => $composableBuilder(
+    column: $table.speedKmhAtDetection,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get alertCount => $composableBuilder(
+    column: $table.alertCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get feedbackCount => $composableBuilder(
+    column: $table.feedbackCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get lastAlertedAtUtc => $composableBuilder(
+    column: $table.lastAlertedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+}
+
+class $$RoadEventsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RoadEventsTable,
+          RoadEvent,
+          $$RoadEventsTableFilterComposer,
+          $$RoadEventsTableOrderingComposer,
+          $$RoadEventsTableAnnotationComposer,
+          $$RoadEventsTableCreateCompanionBuilder,
+          $$RoadEventsTableUpdateCompanionBuilder,
+          (
+            RoadEvent,
+            BaseReferences<_$AppDatabase, $RoadEventsTable, RoadEvent>,
+          ),
+          RoadEvent,
+          PrefetchHooks Function()
+        > {
+  $$RoadEventsTableTableManager(_$AppDatabase db, $RoadEventsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RoadEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RoadEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RoadEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> tripId = const Value.absent(),
+                Value<String> eventType = const Value.absent(),
+                Value<double> latitude = const Value.absent(),
+                Value<double> longitude = const Value.absent(),
+                Value<double?> severity = const Value.absent(),
+                Value<double?> confidence = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<DateTime> detectedAtUtc = const Value.absent(),
+                Value<double?> speedKmhAtDetection = const Value.absent(),
+                Value<int> alertCount = const Value.absent(),
+                Value<int> feedbackCount = const Value.absent(),
+                Value<DateTime?> lastAlertedAtUtc = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+              }) => RoadEventsCompanion(
+                id: id,
+                tripId: tripId,
+                eventType: eventType,
+                latitude: latitude,
+                longitude: longitude,
+                severity: severity,
+                confidence: confidence,
+                source: source,
+                detectedAtUtc: detectedAtUtc,
+                speedKmhAtDetection: speedKmhAtDetection,
+                alertCount: alertCount,
+                feedbackCount: feedbackCount,
+                lastAlertedAtUtc: lastAlertedAtUtc,
+                note: note,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> tripId = const Value.absent(),
+                required String eventType,
+                required double latitude,
+                required double longitude,
+                Value<double?> severity = const Value.absent(),
+                Value<double?> confidence = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                required DateTime detectedAtUtc,
+                Value<double?> speedKmhAtDetection = const Value.absent(),
+                Value<int> alertCount = const Value.absent(),
+                Value<int> feedbackCount = const Value.absent(),
+                Value<DateTime?> lastAlertedAtUtc = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+              }) => RoadEventsCompanion.insert(
+                id: id,
+                tripId: tripId,
+                eventType: eventType,
+                latitude: latitude,
+                longitude: longitude,
+                severity: severity,
+                confidence: confidence,
+                source: source,
+                detectedAtUtc: detectedAtUtc,
+                speedKmhAtDetection: speedKmhAtDetection,
+                alertCount: alertCount,
+                feedbackCount: feedbackCount,
+                lastAlertedAtUtc: lastAlertedAtUtc,
+                note: note,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RoadEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RoadEventsTable,
+      RoadEvent,
+      $$RoadEventsTableFilterComposer,
+      $$RoadEventsTableOrderingComposer,
+      $$RoadEventsTableAnnotationComposer,
+      $$RoadEventsTableCreateCompanionBuilder,
+      $$RoadEventsTableUpdateCompanionBuilder,
+      (RoadEvent, BaseReferences<_$AppDatabase, $RoadEventsTable, RoadEvent>),
+      RoadEvent,
+      PrefetchHooks Function()
+    >;
+typedef $$PreAlertsTableCreateCompanionBuilder =
+    PreAlertsCompanion Function({
+      Value<int> id,
+      Value<int?> roadEventId,
+      Value<int?> tripId,
+      Value<int?> eventId,
+      required String eventType,
+      required double latitude,
+      required double longitude,
+      required double distanceMeters,
+      required double speedKmh,
+      required double timeToEventSeconds,
+      required double recommendedSpeedKmh,
+      required String urgency,
+      required String spokenText,
+      required DateTime alertedAtUtc,
+      Value<bool> acknowledged,
+    });
+typedef $$PreAlertsTableUpdateCompanionBuilder =
+    PreAlertsCompanion Function({
+      Value<int> id,
+      Value<int?> roadEventId,
+      Value<int?> tripId,
+      Value<int?> eventId,
+      Value<String> eventType,
+      Value<double> latitude,
+      Value<double> longitude,
+      Value<double> distanceMeters,
+      Value<double> speedKmh,
+      Value<double> timeToEventSeconds,
+      Value<double> recommendedSpeedKmh,
+      Value<String> urgency,
+      Value<String> spokenText,
+      Value<DateTime> alertedAtUtc,
+      Value<bool> acknowledged,
+    });
+
+class $$PreAlertsTableFilterComposer
+    extends Composer<_$AppDatabase, $PreAlertsTable> {
+  $$PreAlertsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get roadEventId => $composableBuilder(
+    column: $table.roadEventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get distanceMeters => $composableBuilder(
+    column: $table.distanceMeters,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get speedKmh => $composableBuilder(
+    column: $table.speedKmh,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get timeToEventSeconds => $composableBuilder(
+    column: $table.timeToEventSeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get recommendedSpeedKmh => $composableBuilder(
+    column: $table.recommendedSpeedKmh,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get urgency => $composableBuilder(
+    column: $table.urgency,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get spokenText => $composableBuilder(
+    column: $table.spokenText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get alertedAtUtc => $composableBuilder(
+    column: $table.alertedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get acknowledged => $composableBuilder(
+    column: $table.acknowledged,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PreAlertsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PreAlertsTable> {
+  $$PreAlertsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get roadEventId => $composableBuilder(
+    column: $table.roadEventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get distanceMeters => $composableBuilder(
+    column: $table.distanceMeters,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get speedKmh => $composableBuilder(
+    column: $table.speedKmh,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get timeToEventSeconds => $composableBuilder(
+    column: $table.timeToEventSeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get recommendedSpeedKmh => $composableBuilder(
+    column: $table.recommendedSpeedKmh,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get urgency => $composableBuilder(
+    column: $table.urgency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get spokenText => $composableBuilder(
+    column: $table.spokenText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get alertedAtUtc => $composableBuilder(
+    column: $table.alertedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get acknowledged => $composableBuilder(
+    column: $table.acknowledged,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PreAlertsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PreAlertsTable> {
+  $$PreAlertsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get roadEventId => $composableBuilder(
+    column: $table.roadEventId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get tripId =>
+      $composableBuilder(column: $table.tripId, builder: (column) => column);
+
+  GeneratedColumn<int> get eventId =>
+      $composableBuilder(column: $table.eventId, builder: (column) => column);
+
+  GeneratedColumn<String> get eventType =>
+      $composableBuilder(column: $table.eventType, builder: (column) => column);
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<double> get distanceMeters => $composableBuilder(
+    column: $table.distanceMeters,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get speedKmh =>
+      $composableBuilder(column: $table.speedKmh, builder: (column) => column);
+
+  GeneratedColumn<double> get timeToEventSeconds => $composableBuilder(
+    column: $table.timeToEventSeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get recommendedSpeedKmh => $composableBuilder(
+    column: $table.recommendedSpeedKmh,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get urgency =>
+      $composableBuilder(column: $table.urgency, builder: (column) => column);
+
+  GeneratedColumn<String> get spokenText => $composableBuilder(
+    column: $table.spokenText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get alertedAtUtc => $composableBuilder(
+    column: $table.alertedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get acknowledged => $composableBuilder(
+    column: $table.acknowledged,
+    builder: (column) => column,
+  );
+}
+
+class $$PreAlertsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PreAlertsTable,
+          PreAlert,
+          $$PreAlertsTableFilterComposer,
+          $$PreAlertsTableOrderingComposer,
+          $$PreAlertsTableAnnotationComposer,
+          $$PreAlertsTableCreateCompanionBuilder,
+          $$PreAlertsTableUpdateCompanionBuilder,
+          (PreAlert, BaseReferences<_$AppDatabase, $PreAlertsTable, PreAlert>),
+          PreAlert,
+          PrefetchHooks Function()
+        > {
+  $$PreAlertsTableTableManager(_$AppDatabase db, $PreAlertsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PreAlertsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PreAlertsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PreAlertsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> roadEventId = const Value.absent(),
+                Value<int?> tripId = const Value.absent(),
+                Value<int?> eventId = const Value.absent(),
+                Value<String> eventType = const Value.absent(),
+                Value<double> latitude = const Value.absent(),
+                Value<double> longitude = const Value.absent(),
+                Value<double> distanceMeters = const Value.absent(),
+                Value<double> speedKmh = const Value.absent(),
+                Value<double> timeToEventSeconds = const Value.absent(),
+                Value<double> recommendedSpeedKmh = const Value.absent(),
+                Value<String> urgency = const Value.absent(),
+                Value<String> spokenText = const Value.absent(),
+                Value<DateTime> alertedAtUtc = const Value.absent(),
+                Value<bool> acknowledged = const Value.absent(),
+              }) => PreAlertsCompanion(
+                id: id,
+                roadEventId: roadEventId,
+                tripId: tripId,
+                eventId: eventId,
+                eventType: eventType,
+                latitude: latitude,
+                longitude: longitude,
+                distanceMeters: distanceMeters,
+                speedKmh: speedKmh,
+                timeToEventSeconds: timeToEventSeconds,
+                recommendedSpeedKmh: recommendedSpeedKmh,
+                urgency: urgency,
+                spokenText: spokenText,
+                alertedAtUtc: alertedAtUtc,
+                acknowledged: acknowledged,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> roadEventId = const Value.absent(),
+                Value<int?> tripId = const Value.absent(),
+                Value<int?> eventId = const Value.absent(),
+                required String eventType,
+                required double latitude,
+                required double longitude,
+                required double distanceMeters,
+                required double speedKmh,
+                required double timeToEventSeconds,
+                required double recommendedSpeedKmh,
+                required String urgency,
+                required String spokenText,
+                required DateTime alertedAtUtc,
+                Value<bool> acknowledged = const Value.absent(),
+              }) => PreAlertsCompanion.insert(
+                id: id,
+                roadEventId: roadEventId,
+                tripId: tripId,
+                eventId: eventId,
+                eventType: eventType,
+                latitude: latitude,
+                longitude: longitude,
+                distanceMeters: distanceMeters,
+                speedKmh: speedKmh,
+                timeToEventSeconds: timeToEventSeconds,
+                recommendedSpeedKmh: recommendedSpeedKmh,
+                urgency: urgency,
+                spokenText: spokenText,
+                alertedAtUtc: alertedAtUtc,
+                acknowledged: acknowledged,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PreAlertsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PreAlertsTable,
+      PreAlert,
+      $$PreAlertsTableFilterComposer,
+      $$PreAlertsTableOrderingComposer,
+      $$PreAlertsTableAnnotationComposer,
+      $$PreAlertsTableCreateCompanionBuilder,
+      $$PreAlertsTableUpdateCompanionBuilder,
+      (PreAlert, BaseReferences<_$AppDatabase, $PreAlertsTable, PreAlert>),
+      PreAlert,
+      PrefetchHooks Function()
+    >;
+typedef $$EventFeedbacksTableCreateCompanionBuilder =
+    EventFeedbacksCompanion Function({
+      Value<int> id,
+      Value<int?> eventId,
+      Value<int?> tripId,
+      Value<int?> roadEventId,
+      Value<int?> preAlertId,
+      required String eventType,
+      required String prompt,
+      required String responseText,
+      required String responseSource,
+      Value<double?> transcriptConfidence,
+      Value<String?> llmAnalysis,
+      Value<double?> alertEffectiveness,
+      Value<String?> alertTimingAdequacy,
+      Value<String?> difficultyLevel,
+      Value<String?> riderSummary,
+      Value<String?> improvementSuggestion,
+      Value<double?> analysisConfidence,
+      Value<bool> analyzedByLlm,
+      required DateTime createdAtUtc,
+      Value<DateTime?> analyzedAtUtc,
+    });
+typedef $$EventFeedbacksTableUpdateCompanionBuilder =
+    EventFeedbacksCompanion Function({
+      Value<int> id,
+      Value<int?> eventId,
+      Value<int?> tripId,
+      Value<int?> roadEventId,
+      Value<int?> preAlertId,
+      Value<String> eventType,
+      Value<String> prompt,
+      Value<String> responseText,
+      Value<String> responseSource,
+      Value<double?> transcriptConfidence,
+      Value<String?> llmAnalysis,
+      Value<double?> alertEffectiveness,
+      Value<String?> alertTimingAdequacy,
+      Value<String?> difficultyLevel,
+      Value<String?> riderSummary,
+      Value<String?> improvementSuggestion,
+      Value<double?> analysisConfidence,
+      Value<bool> analyzedByLlm,
+      Value<DateTime> createdAtUtc,
+      Value<DateTime?> analyzedAtUtc,
+    });
+
+class $$EventFeedbacksTableFilterComposer
+    extends Composer<_$AppDatabase, $EventFeedbacksTable> {
+  $$EventFeedbacksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get roadEventId => $composableBuilder(
+    column: $table.roadEventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get preAlertId => $composableBuilder(
+    column: $table.preAlertId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get prompt => $composableBuilder(
+    column: $table.prompt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get responseText => $composableBuilder(
+    column: $table.responseText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get responseSource => $composableBuilder(
+    column: $table.responseSource,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get transcriptConfidence => $composableBuilder(
+    column: $table.transcriptConfidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get llmAnalysis => $composableBuilder(
+    column: $table.llmAnalysis,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get alertEffectiveness => $composableBuilder(
+    column: $table.alertEffectiveness,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get alertTimingAdequacy => $composableBuilder(
+    column: $table.alertTimingAdequacy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get difficultyLevel => $composableBuilder(
+    column: $table.difficultyLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get riderSummary => $composableBuilder(
+    column: $table.riderSummary,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get improvementSuggestion => $composableBuilder(
+    column: $table.improvementSuggestion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get analysisConfidence => $composableBuilder(
+    column: $table.analysisConfidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get analyzedByLlm => $composableBuilder(
+    column: $table.analyzedByLlm,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get analyzedAtUtc => $composableBuilder(
+    column: $table.analyzedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$EventFeedbacksTableOrderingComposer
+    extends Composer<_$AppDatabase, $EventFeedbacksTable> {
+  $$EventFeedbacksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get roadEventId => $composableBuilder(
+    column: $table.roadEventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get preAlertId => $composableBuilder(
+    column: $table.preAlertId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get prompt => $composableBuilder(
+    column: $table.prompt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get responseText => $composableBuilder(
+    column: $table.responseText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get responseSource => $composableBuilder(
+    column: $table.responseSource,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get transcriptConfidence => $composableBuilder(
+    column: $table.transcriptConfidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get llmAnalysis => $composableBuilder(
+    column: $table.llmAnalysis,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get alertEffectiveness => $composableBuilder(
+    column: $table.alertEffectiveness,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get alertTimingAdequacy => $composableBuilder(
+    column: $table.alertTimingAdequacy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get difficultyLevel => $composableBuilder(
+    column: $table.difficultyLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get riderSummary => $composableBuilder(
+    column: $table.riderSummary,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get improvementSuggestion => $composableBuilder(
+    column: $table.improvementSuggestion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get analysisConfidence => $composableBuilder(
+    column: $table.analysisConfidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get analyzedByLlm => $composableBuilder(
+    column: $table.analyzedByLlm,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get analyzedAtUtc => $composableBuilder(
+    column: $table.analyzedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EventFeedbacksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EventFeedbacksTable> {
+  $$EventFeedbacksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get eventId =>
+      $composableBuilder(column: $table.eventId, builder: (column) => column);
+
+  GeneratedColumn<int> get tripId =>
+      $composableBuilder(column: $table.tripId, builder: (column) => column);
+
+  GeneratedColumn<int> get roadEventId => $composableBuilder(
+    column: $table.roadEventId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get preAlertId => $composableBuilder(
+    column: $table.preAlertId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get eventType =>
+      $composableBuilder(column: $table.eventType, builder: (column) => column);
+
+  GeneratedColumn<String> get prompt =>
+      $composableBuilder(column: $table.prompt, builder: (column) => column);
+
+  GeneratedColumn<String> get responseText => $composableBuilder(
+    column: $table.responseText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get responseSource => $composableBuilder(
+    column: $table.responseSource,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get transcriptConfidence => $composableBuilder(
+    column: $table.transcriptConfidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get llmAnalysis => $composableBuilder(
+    column: $table.llmAnalysis,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get alertEffectiveness => $composableBuilder(
+    column: $table.alertEffectiveness,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get alertTimingAdequacy => $composableBuilder(
+    column: $table.alertTimingAdequacy,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get difficultyLevel => $composableBuilder(
+    column: $table.difficultyLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get riderSummary => $composableBuilder(
+    column: $table.riderSummary,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get improvementSuggestion => $composableBuilder(
+    column: $table.improvementSuggestion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get analysisConfidence => $composableBuilder(
+    column: $table.analysisConfidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get analyzedByLlm => $composableBuilder(
+    column: $table.analyzedByLlm,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get analyzedAtUtc => $composableBuilder(
+    column: $table.analyzedAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$EventFeedbacksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EventFeedbacksTable,
+          EventFeedback,
+          $$EventFeedbacksTableFilterComposer,
+          $$EventFeedbacksTableOrderingComposer,
+          $$EventFeedbacksTableAnnotationComposer,
+          $$EventFeedbacksTableCreateCompanionBuilder,
+          $$EventFeedbacksTableUpdateCompanionBuilder,
+          (
+            EventFeedback,
+            BaseReferences<_$AppDatabase, $EventFeedbacksTable, EventFeedback>,
+          ),
+          EventFeedback,
+          PrefetchHooks Function()
+        > {
+  $$EventFeedbacksTableTableManager(
+    _$AppDatabase db,
+    $EventFeedbacksTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EventFeedbacksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EventFeedbacksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EventFeedbacksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> eventId = const Value.absent(),
+                Value<int?> tripId = const Value.absent(),
+                Value<int?> roadEventId = const Value.absent(),
+                Value<int?> preAlertId = const Value.absent(),
+                Value<String> eventType = const Value.absent(),
+                Value<String> prompt = const Value.absent(),
+                Value<String> responseText = const Value.absent(),
+                Value<String> responseSource = const Value.absent(),
+                Value<double?> transcriptConfidence = const Value.absent(),
+                Value<String?> llmAnalysis = const Value.absent(),
+                Value<double?> alertEffectiveness = const Value.absent(),
+                Value<String?> alertTimingAdequacy = const Value.absent(),
+                Value<String?> difficultyLevel = const Value.absent(),
+                Value<String?> riderSummary = const Value.absent(),
+                Value<String?> improvementSuggestion = const Value.absent(),
+                Value<double?> analysisConfidence = const Value.absent(),
+                Value<bool> analyzedByLlm = const Value.absent(),
+                Value<DateTime> createdAtUtc = const Value.absent(),
+                Value<DateTime?> analyzedAtUtc = const Value.absent(),
+              }) => EventFeedbacksCompanion(
+                id: id,
+                eventId: eventId,
+                tripId: tripId,
+                roadEventId: roadEventId,
+                preAlertId: preAlertId,
+                eventType: eventType,
+                prompt: prompt,
+                responseText: responseText,
+                responseSource: responseSource,
+                transcriptConfidence: transcriptConfidence,
+                llmAnalysis: llmAnalysis,
+                alertEffectiveness: alertEffectiveness,
+                alertTimingAdequacy: alertTimingAdequacy,
+                difficultyLevel: difficultyLevel,
+                riderSummary: riderSummary,
+                improvementSuggestion: improvementSuggestion,
+                analysisConfidence: analysisConfidence,
+                analyzedByLlm: analyzedByLlm,
+                createdAtUtc: createdAtUtc,
+                analyzedAtUtc: analyzedAtUtc,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> eventId = const Value.absent(),
+                Value<int?> tripId = const Value.absent(),
+                Value<int?> roadEventId = const Value.absent(),
+                Value<int?> preAlertId = const Value.absent(),
+                required String eventType,
+                required String prompt,
+                required String responseText,
+                required String responseSource,
+                Value<double?> transcriptConfidence = const Value.absent(),
+                Value<String?> llmAnalysis = const Value.absent(),
+                Value<double?> alertEffectiveness = const Value.absent(),
+                Value<String?> alertTimingAdequacy = const Value.absent(),
+                Value<String?> difficultyLevel = const Value.absent(),
+                Value<String?> riderSummary = const Value.absent(),
+                Value<String?> improvementSuggestion = const Value.absent(),
+                Value<double?> analysisConfidence = const Value.absent(),
+                Value<bool> analyzedByLlm = const Value.absent(),
+                required DateTime createdAtUtc,
+                Value<DateTime?> analyzedAtUtc = const Value.absent(),
+              }) => EventFeedbacksCompanion.insert(
+                id: id,
+                eventId: eventId,
+                tripId: tripId,
+                roadEventId: roadEventId,
+                preAlertId: preAlertId,
+                eventType: eventType,
+                prompt: prompt,
+                responseText: responseText,
+                responseSource: responseSource,
+                transcriptConfidence: transcriptConfidence,
+                llmAnalysis: llmAnalysis,
+                alertEffectiveness: alertEffectiveness,
+                alertTimingAdequacy: alertTimingAdequacy,
+                difficultyLevel: difficultyLevel,
+                riderSummary: riderSummary,
+                improvementSuggestion: improvementSuggestion,
+                analysisConfidence: analysisConfidence,
+                analyzedByLlm: analyzedByLlm,
+                createdAtUtc: createdAtUtc,
+                analyzedAtUtc: analyzedAtUtc,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$EventFeedbacksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EventFeedbacksTable,
+      EventFeedback,
+      $$EventFeedbacksTableFilterComposer,
+      $$EventFeedbacksTableOrderingComposer,
+      $$EventFeedbacksTableAnnotationComposer,
+      $$EventFeedbacksTableCreateCompanionBuilder,
+      $$EventFeedbacksTableUpdateCompanionBuilder,
+      (
+        EventFeedback,
+        BaseReferences<_$AppDatabase, $EventFeedbacksTable, EventFeedback>,
+      ),
+      EventFeedback,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8258,4 +12502,10 @@ class $AppDatabaseManager {
       $$LocationReadingsTableTableManager(_db, _db.locationReadings);
   $$TripCalibrationsTableTableManager get tripCalibrations =>
       $$TripCalibrationsTableTableManager(_db, _db.tripCalibrations);
+  $$RoadEventsTableTableManager get roadEvents =>
+      $$RoadEventsTableTableManager(_db, _db.roadEvents);
+  $$PreAlertsTableTableManager get preAlerts =>
+      $$PreAlertsTableTableManager(_db, _db.preAlerts);
+  $$EventFeedbacksTableTableManager get eventFeedbacks =>
+      $$EventFeedbacksTableTableManager(_db, _db.eventFeedbacks);
 }

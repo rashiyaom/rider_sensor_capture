@@ -6,18 +6,31 @@ import 'tables/camera_detections_table.dart';
 import 'tables/trips_table.dart';
 import 'tables/location_readings_table.dart';
 import 'tables/trip_calibration_table.dart';
+import 'tables/road_events_table.dart';
+import 'tables/pre_alerts_table.dart';
+import 'tables/event_feedback_table.dart';
 import 'connection/connection.dart';
 
 part 'database.g.dart';
 
-@DriftDatabase(tables: [SensorReadings, EventRecords, CameraDetections, Trips, LocationReadings, TripCalibrations])
+@DriftDatabase(tables: [
+  SensorReadings,
+  EventRecords,
+  CameraDetections,
+  Trips,
+  LocationReadings,
+  TripCalibrations,
+  RoadEvents,
+  PreAlerts,
+  EventFeedbacks,
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openAppDatabase());
 
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -91,6 +104,12 @@ class AppDatabase extends _$AppDatabase {
               try { await fn(); } catch (_) {}
             }
             await addIfMissing9(() => m.addColumn(sensorReadings, sensorReadings.gpsSpeedKmh));
+          }
+          if (from < 10) {
+            // Predictive pre-alert + post-event feedback learning loop.
+            await m.createTable(roadEvents);
+            await m.createTable(preAlerts);
+            await m.createTable(eventFeedbacks);
           }
         },
         beforeOpen: (details) async {

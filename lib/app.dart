@@ -12,6 +12,9 @@ import 'features/events/presentation/events_screen.dart';
 import 'features/export/presentation/export_screen.dart';
 import 'providers/db_providers.dart';
 import 'providers/ble_providers.dart';
+import 'providers/ml_inference_providers.dart';
+import 'providers/pre_alert_providers.dart';
+import 'data/services/live_ml_inference_service.dart';
 
 class RideSensorCaptureApp extends StatelessWidget {
   const RideSensorCaptureApp({super.key});
@@ -89,6 +92,19 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
     ref.watch(bleToDbBridgeProvider);
     // Keep Watch Companion synchronization bridge active globally
     ref.watch(watchSyncServiceProvider);
+    // Keep the predictive pre-alert engine alive (GPS -> spoken warning)
+    ref.watch(preAlertServiceProvider);
+
+    // Feed the live on-device ML classifier into the road-event knowledge
+    // base so newly discovered hazards can be warned about ahead of time.
+    ref.listen<AsyncValue<LiveMlPrediction>>(
+      liveMlPredictionStreamProvider,
+      (_, next) {
+        next.whenData((prediction) {
+          ref.read(roadEventWatcherProvider).handlePrediction(prediction);
+        });
+      },
+    );
 
     return Scaffold(
       backgroundColor: AppColors.background,

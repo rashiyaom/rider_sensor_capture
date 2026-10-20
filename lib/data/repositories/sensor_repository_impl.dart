@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:drift/drift.dart';
 import '../local_db/database.dart';
 import '../../ble/models/raw_sensor_data.dart';
+import '../../location/geo_math.dart';
 import '../../providers/db_providers.dart';
 import 'sensor_repository.dart';
 
@@ -277,6 +279,117 @@ class SensorRepositoryImpl implements SensorRepository {
             (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
           ]))
         .watch();
+  }
+
+  // ── Predictive Pre-Alert & Feedback Persistence Methods ──
+  @override
+  Future<int> insertRoadEvent(RoadEventsCompanion event) async {
+    return await _db.into(_db.roadEvents).insert(event);
+  }
+
+  @override
+  Future<List<RoadEvent>> getRoadEventsNear({
+    required double latitude,
+    required double longitude,
+    required double radiusMeters,
+  }) async {
+    // Bounding-box pre-filter in SQL, exact haversine distance in Dart.
+    final latDelta = radiusMeters / 6371008.8 * 180.0 / math.pi;
+    final cosLat = math.cos(latitude * math.pi / 180.0).abs();
+    final lonDelta = cosLat < 0.0001
+        ? 180.0
+        : radiusMeters / (6371008.8 * cosLat) * 180.0 / math.pi;
+
+    final rows = await (_db.select(_db.roadEvents)
+          ..where((t) =>
+              t.latitude.isBiggerOrEqualValue(latitude - latDelta) &
+              t.latitude.isSmallerOrEqualValue(latitude + latDelta) &
+              t.longitude.isBiggerOrEqualValue(longitude - lonDelta) &
+              t.longitude.isSmallerOrEqualValue(longitude + lonDelta)))
+        .get();
+
+    return rows.where((row) {
+      final distance = GeoMath.distanceMeters(
+        lat1: latitude,
+        lon1: longitude,
+        lat2: row.latitude,
+        lon2: row.longitude,
+      );
+      return distance <= radiusMeters;
+    }).toList();
+  }
+
+  @override
+  Stream<List<RoadEvent>> watchRoadEvents() {
+    return (_db.select(_db.roadEvents)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
+          ]))
+        .watch();
+  }
+
+  @override
+  Future<int> insertPreAlert(PreAlertsCompanion alert) async {
+    return await _db.into(_db.preAlerts).insert(alert);
+  }
+
+  @override
+  Stream<List<PreAlert>> watchPreAlerts() {
+    return (_db.select(_db.preAlerts)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
+          ]))
+        .watch();
+  }
+
+  @override
+  Future<PreAlert?> getMostRecentPreAlert({int? tripId}) async {
+    var query = _db.select(_db.preAlerts)
+      ..orderBy([
+        (t) => OrderingTerm(expression: t.alertedAtUtc, mode: OrderingMode.desc)
+      ])
+      ..limit(1);
+    if (tripId != null) {
+      query = query..where((t) => t.tripId.equals(tripId));
+    }
+    return query.getSingleOrNull();
+  }
+
+  @override
+  Future<int> insertEventFeedback(EventFeedbacksCompanion feedback) async {
+    return await _db.into(_db.eventFeedbacks).insert(feedback);
+  }
+
+  @override
+  Future<void> updateEventFeedback(EventFeedbacksCompanion feedback) async {
+    await _db.update(_db.eventFeedbacks).write(feedback);
+  }
+
+  @override
+  Stream<List<EventFeedback>> watchEventFeedbacks() {
+    return (_db.select(_db.eventFeedbacks)
+          ..orderBy([
+            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
+          ]))
+        .watch();
+  }
+
+  @override
+  Future<List<EventFeedback>> getFeedbackForEvent(int eventId) async {
+    return await (_db.select(_db.eventFeedbacks)
+          ..where((t) => t.eventId.equals(eventId))
+          ..orderBy([(t) => OrderingTerm(expression: t.createdAtUtc)]))
+        .get();
+  }
+
+  @override
+  Future<int> getFeedbackCountForEvent(int eventId) async {
+    final count = _db.eventFeedbacks.id.count();
+    final row = await (_db.selectOnly(_db.eventFeedbacks)
+          ..where(_db.eventFeedbacks.eventId.equals(eventId))
+          ..addColumns([count]))
+        .getSingle();
+    return row.read(count) ?? 0;
   }
 
   // ── Trip / Journey Persistence Methods ──

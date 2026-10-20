@@ -14,6 +14,7 @@ import '../services/hr_event_gate.dart';
 import '../services/ml_starter_script_generator.dart';
 import '../services/windowed_feature_extractor_service.dart';
 import '../../features/export/models/export_options.dart';
+import '../../report/alert_effectiveness_report.dart';
 import 'export_repository.dart';
 
 class ExportRepositoryImpl implements ExportRepository {
@@ -209,6 +210,62 @@ class ExportRepositoryImpl implements ExportRepository {
       }
     }
 
+    // ── Predictive pre-alert + rider feedback linkage ──
+    // Pre-alerts that were linked to a labeled event become the event's
+    // "pre_alert" block; the feedback rows (scored by the LLM evaluator)
+    // become the event's "feedback" list.
+    final preAlertsByEvent = <int, Map<String, dynamic>>{};
+    if (eventMap.isNotEmpty) {
+      final eventIdsList = eventMap.keys.toList();
+      final linkedAlerts = await (_db.select(_db.preAlerts)
+            ..where((t) => t.eventId.isIn(eventIdsList))
+            ..orderBy([(t) => OrderingTerm(expression: t.alertedAtUtc)]))
+          .get();
+      for (final alert in linkedAlerts) {
+        final eventId = alert.eventId;
+        if (eventId == null) continue;
+        preAlertsByEvent[eventId] = {
+          'pre_alert_id': alert.id,
+          'road_event_id': alert.roadEventId,
+          'alerted_at_utc': alert.alertedAtUtc.toIso8601String(),
+          'distance_meters': alert.distanceMeters,
+          'speed_kmh': alert.speedKmh,
+          'time_to_event_seconds': alert.timeToEventSeconds,
+          'recommended_speed_kmh': alert.recommendedSpeedKmh,
+          'urgency': alert.urgency,
+          'spoken_text': alert.spokenText,
+        };
+      }
+    }
+
+    final feedbackByEvent = <int, List<Map<String, dynamic>>>{};
+    if (eventMap.isNotEmpty) {
+      final eventIdsList = eventMap.keys.toList();
+      final feedbackRows = await (_db.select(_db.eventFeedbacks)
+            ..where((t) => t.eventId.isIn(eventIdsList))
+            ..orderBy([(t) => OrderingTerm(expression: t.createdAtUtc)]))
+          .get();
+      for (final fb in feedbackRows) {
+        final eventId = fb.eventId;
+        if (eventId == null) continue;
+        feedbackByEvent.putIfAbsent(eventId, () => []).add({
+          'feedback_id': fb.id,
+          'pre_alert_id': fb.preAlertId,
+          'prompt': fb.prompt,
+          'response_text': fb.responseText,
+          'response_source': fb.responseSource,
+          'alert_effectiveness': fb.alertEffectiveness,
+          'alert_timing_adequacy': fb.alertTimingAdequacy,
+          'difficulty_level': fb.difficultyLevel,
+          'rider_summary': fb.riderSummary,
+          'improvement_suggestion': fb.improvementSuggestion,
+          'analysis_confidence': fb.analysisConfidence,
+          'analyzed_by_llm': fb.analyzedByLlm,
+          'created_at_utc': fb.createdAtUtc.toIso8601String(),
+        });
+      }
+    }
+
     final eventsJson = events.map((e) {
       Map<String, dynamic>? parsedParams;
       if (e.computedParameters != null) {
@@ -247,6 +304,8 @@ class ExportRepositoryImpl implements ExportRepository {
         'gps_speed_at_event_kmh': e.gpsSpeedAtEventKmh,
         'gps_heading_change_deg': e.gpsHeadingChangeDeg,
         'parameters': parsedParams,
+        'pre_alert': preAlertsByEvent[e.id],
+        'feedback': feedbackByEvent[e.id] ?? [],
         'sensor_readings': readingsByEvent[e.id] ?? [],
         'camera_detections': detectionsByEvent[e.id] ?? [],
       };
@@ -286,7 +345,7 @@ class ExportRepositoryImpl implements ExportRepository {
     }).toList();
 
     final exportJson = <String, dynamic>{
-      'export_version': '2.0',
+      'export_version': '2.1',
       'export_generated_at_utc': now.toIso8601String(),
       'time_range': {
         'start_utc': startUtc?.toIso8601String(),
@@ -297,6 +356,12 @@ class ExportRepositoryImpl implements ExportRepository {
       'trip_summary': tripSummaries.isNotEmpty ? tripSummaries.first : null,
       'trips': tripSummaries,
       'total_events': events.length,
+      // Compiled learning-loop insights: how effective the predictive
+      // pre-alerts were, plus the LLM evaluation of each warning.
+      'pre_alert_effectiveness': await buildAlertEffectivenessReport(
+        startUtc: startUtc,
+        endUtc: endUtc,
+      ).then((r) => r.toJson()),
       'events': eventsJson,
     };
 
@@ -703,6 +768,116 @@ class ExportRepositoryImpl implements ExportRepository {
     }
 
     return buffer.toString();
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // FILE 4: pre_alerts_export.csv
+  // ──────────────────────────────────────────────────────────────────────────
+  @override
+  Future<String> buildPreAlertsCsvExport({
+    DateTime? startUtc,
+    DateTime? endUtc,
+  }) async {
+    var query = _db.select(_db.preAlerts)
+      ..orderBy([(t) => OrderingTerm(expression: t.alertedAtUtc)]);
+    if (startUtc != null) {
+      query = query..where((t) => t.alertedAtUtc.isBiggerOrEqualValue(startUtc));
+    }
+    if (endUtc != null) {
+      query = query..where((t) => t.alertedAtUtc.isSmallerOrEqualValue(endUtc));
+    }
+    final alerts = await query.get();
+
+    final buffer = StringBuffer();
+    buffer.writeln(
+      'pre_alert_id,road_event_id,trip_id,event_id,event_type,'
+      'alerted_at_utc,latitude,longitude,'
+      'distance_meters,speed_kmh,time_to_event_seconds,recommended_speed_kmh,'
+      'urgency,spoken_text,acknowledged',
+    );
+
+    for (final a in alerts) {
+      final row = [
+        a.id,
+        a.roadEventId ?? '',
+        a.tripId ?? '',
+        a.eventId ?? '',
+        _csvEscape(a.eventType),
+        a.alertedAtUtc.toIso8601String(),
+        a.latitude.toStringAsFixed(7),
+        a.longitude.toStringAsFixed(7),
+        a.distanceMeters.toStringAsFixed(1),
+        a.speedKmh.toStringAsFixed(2),
+        a.timeToEventSeconds.toStringAsFixed(2),
+        a.recommendedSpeedKmh.toStringAsFixed(1),
+        _csvEscape(a.urgency),
+        _csvEscape(a.spokenText),
+        a.acknowledged,
+      ];
+      buffer.writeln(row.join(','));
+    }
+
+    return buffer.toString();
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // FILE 5: alert_effectiveness_export.csv
+  // ──────────────────────────────────────────────────────────────────────────
+  @override
+  Future<String> buildAlertEffectivenessCsvExport({
+    DateTime? startUtc,
+    DateTime? endUtc,
+  }) async {
+    final report = await buildAlertEffectivenessReport(
+      startUtc: startUtc,
+      endUtc: endUtc,
+    );
+
+    final buffer = StringBuffer();
+    buffer.writeln(
+      'pre_alert_id,event_id,road_event_id,event_type,'
+      'alerted_at_utc,distance_meters,speed_kmh,time_to_event_seconds,'
+      'recommended_speed_kmh,urgency,spoken_text,'
+      'response_source,response_text,'
+      'alert_effectiveness,alert_timing_adequacy,difficulty_level,'
+      'rider_summary,improvement_suggestion,analyzed_by_llm',
+    );
+
+    for (final e in report.entries) {
+      final row = [
+        e.preAlertId,
+        e.eventId ?? '',
+        e.roadEventId ?? '',
+        _csvEscape(e.eventType),
+        e.alertedAtUtc.toIso8601String(),
+        e.distanceMeters.toStringAsFixed(1),
+        e.speedKmh.toStringAsFixed(2),
+        e.timeToEventSeconds.toStringAsFixed(2),
+        e.recommendedSpeedKmh.toStringAsFixed(1),
+        _csvEscape(e.urgency),
+        _csvEscape(e.spokenText),
+        _csvEscape(e.responseSource ?? ''),
+        _csvEscape(e.responseText ?? ''),
+        e.effectiveness?.toStringAsFixed(3) ?? '',
+        _csvEscape(e.timingAdequacy ?? ''),
+        _csvEscape(e.difficulty ?? ''),
+        _csvEscape(e.riderSummary ?? ''),
+        _csvEscape(e.suggestion ?? ''),
+        e.analyzedByLlm,
+      ];
+      buffer.writeln(row.join(','));
+    }
+
+    return buffer.toString();
+  }
+
+  @override
+  Future<AlertEffectivenessReport> buildAlertEffectivenessReport({
+    DateTime? startUtc,
+    DateTime? endUtc,
+  }) async {
+    final builder = AlertEffectivenessReportBuilder(_db);
+    return builder.build(startUtc: startUtc, endUtc: endUtc);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1454,6 +1629,34 @@ class ExportRepositoryImpl implements ExportRepository {
         createdFiles.add(windowedFile);
       }
 
+      // File 5: pre_alerts_export.csv (audit log of every spoken warning)
+      final preAlertsCsv = await buildPreAlertsCsvExport(
+        startUtc: startUtc,
+        endUtc: endUtc,
+      );
+      final preAlertsFile = File(p.join(exportDir.path, 'pre_alerts_export_$timestampStr.csv'));
+      await preAlertsFile.writeAsString(preAlertsCsv);
+      createdFiles.add(preAlertsFile);
+
+      // File 6: alert_effectiveness_export.csv (pre-alerts + LLM-scored rider feedback)
+      final effectivenessCsv = await buildAlertEffectivenessCsvExport(
+        startUtc: startUtc,
+        endUtc: endUtc,
+      );
+      final effectivenessFile =
+          File(p.join(exportDir.path, 'alert_effectiveness_export_$timestampStr.csv'));
+      await effectivenessFile.writeAsString(effectivenessCsv);
+      createdFiles.add(effectivenessFile);
+
+      // File 7: the compiled learning-loop report (Markdown)
+      final report = await buildAlertEffectivenessReport(
+        startUtc: startUtc,
+        endUtc: endUtc,
+      );
+      final reportFile = File(p.join(exportDir.path, 'alert_effectiveness_report_$timestampStr.md'));
+      await reportFile.writeAsString(report.toMarkdown());
+      createdFiles.add(reportFile);
+
       // Bundle ML Starter script directly with exported session CSVs
       final pyScript = MlStarterScriptGenerator.generateTrainBaselineScript(
         defaultCsvFilename: 'features_windowed_session_$timestampStr.csv',
@@ -1487,7 +1690,10 @@ class ExportRepositoryImpl implements ExportRepository {
       final files = exportDir
           .listSync()
           .whereType<File>()
-          .where((f) => f.path.endsWith('.json') || f.path.endsWith('.csv'))
+          .where((f) =>
+              f.path.endsWith('.json') ||
+              f.path.endsWith('.csv') ||
+              f.path.endsWith('.md'))
           .toList();
 
       files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));

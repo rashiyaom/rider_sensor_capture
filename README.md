@@ -20,6 +20,7 @@ Designed for machine learning researchers and embedded developers collecting tim
 8. [Testing & Verification](#-testing--verification)
 9. [Dataset Export Formats (PyTorch / TensorFlow)](#-dataset-export-formats-pytorch--tensorflow)
 10. [Platform Permissions & Manifest Setup](#-platform-permissions--manifest-setup)
+11. [Predictive Pre-Alert & Feedback Learning Loop](#-predictive-pre-alert--feedback-learning-loop)
 
 ---
 
@@ -93,6 +94,8 @@ flowchart TB
 * **Crash-Safe SQLite WAL Storage**: Ingests 50Hz streams using an in-memory batch buffer committed every 250ms with zero database write locks.
 * **Monotonic Sequence Indexing**: Maintains persistent per-device sequence counters (`sequenceNo`) that resume smoothly across restarts and disconnects.
 * **Hands-Free Voice Event Tagging**: Start and stop labeled event windows (bumps, sharp turns, speed tests) while riding using speech keywords.
+* **Predictive Pre-Alert Warnings**: Learns geo-tagged road hazards and speaks a voice warning *before* the rider reaches them, with the distance, the time-to-event and the recommended speed computed from GPS and ground speed.
+* **Post-Event Feedback Learning Loop**: Prompts the rider for feedback after every event, transcribes the answer (voice or text) and scores the warning with an LLM — the resulting insights are compiled into the exported report.
 * **Embedded AI Camera Server**: Built-in HTTP server (`Shelf`) listening for real-time edge vision detections from microcontrollers or Raspberry Pi over local Wi-Fi.
 * **High-Performance 60 FPS Telemetry**: Optimized `FlChart` waveforms isolated with `RepaintBoundary` and zero animation duration to eliminate UI jank.
 * **Direct ML Dataset Export**: Exports time-aligned telemetry with active event labels into structured JSON and CSV formats.
@@ -125,7 +128,25 @@ lib/
 │
 ├── voice/                          # Speech Recognition & Voice Commands
 │   ├── voice_command_config.dart   # Voice triggers ("start bump", "start turn", "stop event")
-│   └── voice_command_listener.dart # Continuous speech listener wrapping speech_to_text
+│   ├── voice_command_listener.dart # Continuous speech listener wrapping speech_to_text
+│   └── voice_alert_service.dart    # flutter_tts wrapper for the spoken pre-alert warnings
+│
+├── prealert/                       # Predictive Pre-Alert System (Feature 1)
+│   ├── pre_alert_engine.dart       # Pure decision engine: distance -> time-to-event -> warning
+│   ├── pre_alert_service.dart      # Orchestrates GPS -> evaluation -> TTS -> audit log
+│   ├── road_event_registry.dart    # Geo-tagged road hazard knowledge base (road_events)
+│   └── road_event_watcher.dart     # Learns new hazards from the live on-device ML classifier
+│
+├── feedback/                       # Post-Event Feedback & Learning Loop (Feature 2)
+│   ├── feedback_service.dart       # Prompt generation, capture, storage and LLM analysis
+│   └── feedback_transcriber.dart   # One-shot speech-to-text capture for spoken answers
+│
+├── llm/                            # LLM Evaluation Layer (Groq only)
+│   ├── groq_client.dart            # Groq chat-completions client (JSON-mode + robust parsing)
+│   └── feedback_analyzer.dart      # Scores warning effectiveness; offline heuristic fallback
+│
+├── report/                         # Compiled Learning-Loop Reporting
+│   └── alert_effectiveness_report.dart # Aggregates warnings + feedback into the final report
 │
 ├── data/                           # Data Persistence Layer
 │   ├── local_db/
@@ -148,7 +169,9 @@ lib/
 │   ├── dashboard/                  # Live 50Hz waveform telemetry & G-Force dashboard
 │   ├── devices/                    # BLE scanner, hardware cards & live ingest terminal
 │   ├── events/                     # Voice-triggered ride labeling & event history detail
-│   └── export/                     # ML Dataset export configurations & share sheet
+│   ├── export/                     # ML Dataset export configurations & share sheet
+│   ├── prealert/                   # Predictive pre-alert banner (spoken warning mirror)
+│   └── feedback/                   # Post-event feedback sheet & feedback badges
 │
 ├── providers/                      # Riverpod Dependency Injection & State Providers
 │   ├── ble_providers.dart          # Scanner, connection manager, and raw sensor streams
@@ -156,7 +179,9 @@ lib/
 │   ├── dashboard_providers.dart    # Rolling telemetry state notifier (8 FPS throttled)
 │   ├── camera_providers.dart       # Camera server state and recent detection streams
 │   ├── battery_providers.dart      # Device battery level and power mode providers
-│   └── export_providers.dart       # Dataset generation controller and filter state
+│   ├── export_providers.dart       # Dataset generation controller and filter state
+│   ├── pre_alert_providers.dart    # Pre-alert service, GPS stream and road-event knowledge base
+│   └── feedback_providers.dart     # Groq client, analyzer, feedback service and report
 │
 └── core/                           # Shared Theme, Constants, and System Services
     ├── services/
@@ -234,6 +259,66 @@ All tables are managed by **Drift** backed by SQLite in **Write-Ahead Logging (W
 | `ppiMs` | `INTEGER` | Nullable | Peak-to-peak cardiac interval |
 | `rawPayload` | `TEXT` | Nullable | Raw byte buffer backup |
 
+### `road_events` Table (Predictive Pre-Alert Knowledge Base)
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PK, autoincrement | |
+| `tripId` | `INTEGER` | Nullable, indexed | Trip that first reported the hazard |
+| `eventType` | `TEXT` | NOT NULL | `bump`, `pothole`, `turn`, `braking`, `hazard` |
+| `latitude` | `REAL` | NOT NULL | Hazard latitude |
+| `longitude` | `REAL` | NOT NULL | Hazard longitude |
+| `severity` | `REAL` | Nullable | Normalized 0..1 severity |
+| `confidence` | `REAL` | Nullable | Model confidence 0..1 |
+| `source` | `TEXT` | Default `ml` | `ml`, `camera`, `voice`, `manual` |
+| `detectedAtUtc` | `DATETIME` | NOT NULL | |
+| `speedKmhAtDetection` | `REAL` | Nullable | Ground speed at detection |
+| `alertCount` | `INTEGER` | Default 0 | Number of pre-alerts spoken |
+| `feedbackCount` | `INTEGER` | Default 0 | Number of feedback records linked |
+| `lastAlertedAtUtc` | `DATETIME` | Nullable | |
+| `note` | `TEXT` | Nullable | Free-form provenance note |
+
+### `pre_alerts` Table (Spoken Warning Audit Log)
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PK, autoincrement | |
+| `roadEventId` | `INTEGER` | Nullable, indexed | Hazard that triggered the warning |
+| `tripId` | `INTEGER` | Nullable, indexed | |
+| `eventId` | `INTEGER` | Nullable, indexed | Labeled event linked after the fact |
+| `eventType` | `TEXT` | NOT NULL | |
+| `latitude` / `longitude` | `REAL` | NOT NULL | Hazard position |
+| `distanceMeters` | `REAL` | NOT NULL | Distance at alert time |
+| `speedKmh` | `REAL` | NOT NULL | Speed at alert time |
+| `timeToEventSeconds` | `REAL` | NOT NULL | `distance / speed` |
+| `recommendedSpeedKmh` | `REAL` | NOT NULL | Advised pass speed |
+| `urgency` | `TEXT` | NOT NULL | `imminent`, `warning`, `advisory` |
+| `spokenText` | `TEXT` | NOT NULL | Exact TTS utterance |
+| `alertedAtUtc` | `DATETIME` | NOT NULL | |
+| `acknowledged` | `BOOLEAN` | Default false | Rider passed the hazard |
+
+### `event_feedbacks` Table (Post-Event Feedback & LLM Evaluation)
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PK, autoincrement | |
+| `eventId` | `INTEGER` | Nullable, indexed | Labeled event |
+| `tripId` | `INTEGER` | Nullable, indexed | |
+| `roadEventId` | `INTEGER` | Nullable, indexed | Hazard the rider reacted to |
+| `preAlertId` | `INTEGER` | Nullable, indexed | Warning that preceded the event |
+| `eventType` | `TEXT` | NOT NULL | |
+| `prompt` | `TEXT` | NOT NULL | Question asked of the rider |
+| `responseText` | `TEXT` | NOT NULL | Transcribed or typed answer |
+| `responseSource` | `TEXT` | NOT NULL | `voice`, `text`, `skipped` |
+| `transcriptConfidence` | `REAL` | Nullable | Speech-to-text confidence |
+| `llmAnalysis` | `TEXT` | Nullable | Full JSON payload of the LLM evaluation |
+| `alertEffectiveness` | `REAL` | Nullable | LLM-scored effectiveness 0..1 |
+| `alertTimingAdequacy` | `TEXT` | Nullable | `too_early`, `adequate`, `too_late`, `unknown` |
+| `difficultyLevel` | `TEXT` | Nullable | `none`, `mild`, `moderate`, `severe` |
+| `riderSummary` | `TEXT` | Nullable | One-line LLM summary |
+| `improvementSuggestion` | `TEXT` | Nullable | Concrete tuning advice |
+| `analysisConfidence` | `REAL` | Nullable | |
+| `analyzedByLlm` | `BOOLEAN` | Default false | False when the offline heuristic was used |
+| `createdAtUtc` | `DATETIME` | NOT NULL | |
+| `analyzedAtUtc` | `DATETIME` | Nullable | |
+
 ---
 
 ## 🛠️ Prerequisites & Development Setup
@@ -281,20 +366,39 @@ flutter run
 flutter run --release
 ```
 
+### Running with the Groq LLM Evaluator
+The post-event feedback analysis uses Groq as its LLM backend. Supply the API key as a
+compile-time define (the app works without it, falling back to the offline heuristic):
+```bash
+flutter run --dart-define=GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxx
+```
+
 ---
 
 ## 🧪 Testing & Verification
 
-The repository contains 34 automated unit and integration tests covering:
+The repository contains **223 automated unit and integration tests** covering:
 * BLE parsing and model validation
 * Monotonic sequence number continuation across database reconnects
 * Camera detection payload verification and bounds checking
 * Drift database batch persistence
 * ML JSON and CSV dataset export formatting
+* Geodesic maths (haversine distance, bearings, dead reckoning)
+* Predictive pre-alert windowing, time-to-event and recommended-speed calculations
+* Pre-alert issuing, de-duplication, audit logging and event linking
+* Groq client request construction, JSON extraction and error classification
+* Post-event feedback capture, offline heuristic analysis and LLM analysis fallbacks
+* Alert-effectiveness report compilation and the new export files
+* Pre-alert banner and feedback sheet widget behaviour
 
 Execute the test suite with:
 ```bash
 flutter test
+```
+
+Static analysis:
+```bash
+flutter analyze
 ```
 
 ---
@@ -342,6 +446,20 @@ id,device_id,device_type,sequence_no,timestamp_utc,sensor_type,event_id,heart_ra
 1,C8:3F:2A:11:22:33,verityBand,1042,2026-08-25T10:55:10.020Z,combined,1,132,0.42,-1.18,12.45,,,465
 ```
 
+### 3. Pre-Alert & Feedback Export Schemas
+
+`pre_alerts_export.csv` — every spoken warning:
+```csv
+pre_alert_id,road_event_id,trip_id,event_id,event_type,alerted_at_utc,latitude,longitude,distance_meters,speed_kmh,time_to_event_seconds,recommended_speed_kmh,urgency,spoken_text,acknowledged
+1,1,1,7,bump,2026-08-25T10:55:00.000Z,12.9716000,77.5946000,400.0,90.00,16.00,40.0,warning,"Speed bump ahead, 400 metres, 16 seconds. Reduce to 40.",false
+```
+
+`alert_effectiveness_export.csv` — every warning joined with the LLM-scored rider feedback:
+```csv
+pre_alert_id,event_id,road_event_id,event_type,alerted_at_utc,distance_meters,speed_kmh,time_to_event_seconds,recommended_speed_kmh,urgency,spoken_text,response_source,response_text,alert_effectiveness,alert_timing_adequacy,difficulty_level,rider_summary,improvement_suggestion,analyzed_by_llm
+1,7,1,bump,2026-08-25T10:55:00.000Z,400.0,90.00,16.00,40.0,warning,"Speed bump ahead, ...",voice,"Perfect timing, I had enough time to slow down.",0.880,adequate,mild,"Rider slowed down comfortably.","Keep the current 20-second warning window for bumps.",true
+```
+
 ---
 
 ## 🔒 Platform Permissions & Manifest Setup
@@ -353,6 +471,8 @@ id,device_id,device_type,sequence_no,timestamp_utc,sensor_type,event_id,heart_ra
 * `android.permission.RECORD_AUDIO`
 * `android.permission.FOREGROUND_SERVICE`
 * `android.permission.WAKE_LOCK`
+* `<queries>` entry for `android.intent.action.TTS_SERVICE` (required on Android 11+ so the
+  predictive pre-alert can use the on-device Text-To-Speech engine)
 
 ### iOS (`ios/Runner/Info.plist`)
 * `NSBluetoothAlwaysUsageDescription`
@@ -361,6 +481,159 @@ id,device_id,device_type,sequence_no,timestamp_utc,sensor_type,event_id,heart_ra
 * `NSLocationAlwaysAndWhenInUseUsageDescription`
 * `NSMicrophoneUsageDescription`
 * `NSSpeechRecognitionUsageDescription`
+
+### Groq LLM (optional, compile-time)
+* `GROQ_API_KEY` — the GroqCloud API key (`--dart-define=GROQ_API_KEY=...`)
+* `GROQ_MODEL` — optional model override (default `openai/gpt-oss-120b`)
+* `GROQ_BASE_URL` — optional base URL override (proxies / mock servers)
+
+Place these in a local `.env` file (git-ignored) and use `./tool/run.sh` to have them
+injected automatically. Without a key the app stays fully functional: the feedback
+analyzer falls back to the offline heuristic evaluator.
+
+---
+
+## 📣 Predictive Pre-Alert & Feedback Learning Loop
+
+This module turns the app from a *reactive* recorder into a *proactive* safety assistant:
+it warns the rider about a road hazard **before** they physically reach it, and then
+measures how well that warning actually worked.
+
+```mermaid
+flowchart LR
+    subgraph Learn ["1. Learn the road"]
+        ML["On-device ML classifier<br/>(bump / pothole / turn / brake)"] --> RE["road_events table<br/>geo-tagged hazard knowledge base"]
+        EV["Labeled event (voice / tap)"] --> RE
+    end
+
+    subgraph Warn ["2. Warn ahead of time"]
+        GPS["GPS fix + ground speed"] --> PE["PreAlertEngine<br/>distance to time-to-event"]
+        RE --> PE
+        PE --> TTS["VoiceAlertService (flutter_tts)<br/>spoken warning"]
+        PE --> LOG["pre_alerts table<br/>audit log"]
+    end
+
+    subgraph Learn2 ["3. Learn from the rider"]
+        LOG --> FB["event_feedbacks table"]
+        TTS --> FB
+        FB --> LLM["FeedbackAnalyzer (Groq)<br/>scores the warning"]
+        LLM --> REP["Alert Effectiveness Report<br/>(JSON + CSV + Markdown)"]
+    end
+```
+
+### 2.1 The warning maths
+
+`lib/prealert/pre_alert_engine.dart` is a **pure, side-effect free** decision engine so the
+safety-critical arithmetic is fully unit-testable.
+
+| Quantity | Formula |
+|---|---|
+| Distance | Haversine great-circle distance to the hazard |
+| Time-to-event | `timeToEvent = distance / speed` (speed in m/s) |
+| Warning window | Speak when `2 s <= timeToEvent <= 20 s` |
+| Urgency | `imminent` <= 4 s, `warning` <= 9 s, otherwise `advisory` |
+| Pass speed | Linear interpolation between 55 km/h (harmless) and 25 km/h (severe) by hazard severity |
+| Recommended speed | Pass speed when the runway suffices, otherwise the analytic maximum speed reachable given `reactionTime` (1.2 s) and `maxDeceleration` (3.5 m/s²) |
+
+**Worked example (the spec case).** A bump is known to be **400 m ahead** and the rider is doing
+**90 km/h** (25 m/s):
+
+```
+timeToEvent = 400 m / 25 m/s = 16 s      -> inside the warning window -> speak now
+passSpeed   = 55 - 30 x 0.5 (severity)  = 40 km/h
+runway      = 400 m  >=  (25^2 - 11.1^2)/(2 x 3.5) + 25 x 1.2 = 113.7 m  -> comfortable
+spoken      -> "Speed bump ahead, 400 metres, 16 seconds. Reduce to 40."
+```
+
+The same calculation is applied to **every** event type (bumps, potholes, sharp turns,
+braking zones and generic hazards) — only the wording and the pass speed differ.
+
+### 2.2 The road-event knowledge base
+
+| Table | Purpose |
+|---|---|
+| `road_events` | Geo-tagged hazards (`latitude`, `longitude`, `eventType`, `severity`, `confidence`, `source`, `alertCount`, `feedbackCount`) |
+| `pre_alerts` | Audit log of every spoken warning (`distanceMeters`, `speedKmh`, `timeToEventSeconds`, `recommendedSpeedKmh`, `urgency`, `spokenText`) |
+| `event_feedbacks` | The rider's answer plus the LLM evaluation (`responseText`, `alertEffectiveness`, `alertTimingAdequacy`, `difficultyLevel`, `improvementSuggestion`, `analyzedByLlm`) |
+
+Hazards enter the knowledge base from three places:
+
+1. **Live on-device ML** (`RoadEventWatcher`) — a confident `severeBump` / `sharpTurn`
+   classification is geo-tagged with the current GPS fix.
+2. **Labeled events** (`EventRecordingController`) — completing a voice- or tap-labelled
+   event registers it as a hazard.
+3. **Manual seeding** via the `RoadEventRegistry` API.
+
+On every subsequent pass the engine finds the hazards ahead of the rider, computes the
+warning and speaks it through the TTS engine.
+
+### 2.3 The feedback loop
+
+When an event is saved, the rider is asked a contextual question:
+
+| Event type | Question |
+|---|---|
+| Bump / Pothole | "How smooth was the bump?" |
+| Turn | "Did you face any difficulty navigating that turn?" |
+| Braking / Speed | "Did you face any difficulty navigating that event?" |
+
+The answer can be given by voice (one-shot dictation via `speech_to_text`, transcribed) or
+typed, with one-tap quick replies. The answer — together with the telemetry of the warning
+that preceded the event (distance, speed, time-to-event, recommended speed, severity) — is
+sent to the LLM evaluator, which returns structured JSON:
+
+```json
+{
+  "alertEffectiveness": 0.86,
+  "alertTimingAdequacy": "adequate",
+  "difficultyLevel": "mild",
+  "riderSummary": "The rider had enough time to slow down comfortably.",
+  "improvementSuggestion": "Keep the current 20-second warning window for bumps.",
+  "confidence": 0.91
+}
+```
+
+**Groq is the only LLM provider used.** The key is supplied at build/run time:
+
+```bash
+# Option 1 — the .env file (recommended, key stays out of your shell history)
+cp .env.example .env      # then put your key in .env
+./tool/run.sh             # loads .env and injects the dart-defines
+./tool/run.sh build apk   # ...or build a release APK the same way
+
+# Option 2 — pass the define directly
+flutter run --dart-define=GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxx
+
+# Optional model override (default: openai/gpt-oss-120b)
+flutter run --dart-define=GROQ_API_KEY=gsk_xxx --dart-define=GROQ_MODEL=openai/gpt-oss-20b
+```
+
+`.env` is git-ignored and never committed. To confirm the live LLM path works:
+
+```bash
+dart run tool/verify_llm.dart
+# -> prints the structured evaluation the app would store
+```
+
+> **Offline behaviour.** When no API key is configured (or the API call fails) the analyzer
+> degrades gracefully to a deterministic keyword heuristic, so the app keeps working end to
+> end without a network connection. The `analyzedByLlm` column records which path was used.
+
+### 2.4 The compiled report
+
+`lib/report/alert_effectiveness_report.dart` aggregates every warning and its feedback
+into a single verdict that is included in the export:
+
+* `alert_effectiveness_export.csv` — one row per warning, joined with the scored feedback.
+* `pre_alerts_export.csv` — the raw audit log of every spoken warning.
+* `alert_effectiveness_report_<timestamp>.md` — a human-readable report (summary, timing
+  breakdown, per-event-type effectiveness, compiled insights, per-alert detail).
+* `ride_dataset_ml_<timestamp>.json` — now at `export_version: 2.1`; every event carries a
+  `pre_alert` block and a `feedback` list, and the file carries a top-level
+  `pre_alert_effectiveness` report object.
+
+The Export screen also shows a live "Pre-Alert Effectiveness" card with the mean
+effectiveness, the average warning lead time and the compiled insights.
 
 ---
 

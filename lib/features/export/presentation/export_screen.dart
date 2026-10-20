@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/export_options.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../providers/export_providers.dart';
+import '../../../providers/feedback_providers.dart';
 
 class ExportScreen extends ConsumerWidget {
   const ExportScreen({super.key});
@@ -48,6 +49,11 @@ class ExportScreen extends ConsumerWidget {
 
             // ── 2. Three-Column Export Metric Bento ──
             _buildThreeColumnExportBento(summary),
+
+            const SizedBox(height: 14),
+
+            // ── 2b. Predictive Pre-Alert Effectiveness (learning loop) ──
+            _buildAlertEffectivenessCard(ref),
 
             const SizedBox(height: 14),
 
@@ -233,6 +239,150 @@ class ExportScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+
+  /// Shows how effective the predictive pre-alerts have been, together with
+  /// the compiled insights from the post-event feedback loop.
+  Widget _buildAlertEffectivenessCard(WidgetRef ref) {
+    final reportAsync = ref.watch(alertEffectivenessReportProvider);
+    final report = reportAsync.value;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: AppStyles.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.campaign_rounded, color: AppColors.accentCyan, size: 17),
+              const SizedBox(width: 8),
+              const Text(
+                'Pre-Alert Effectiveness',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              if (report != null && report.totalAlerts > 0)
+                Text(
+                  '${report.totalAlerts} alerts',
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 11.5,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (report == null)
+            const Text(
+              'Loading warning statistics…',
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            )
+          else if (report.isEmpty)
+            const Text(
+              'No predictive pre-alerts recorded yet. Learn a road hazard and the '
+              'app will warn you before you reach it on your next ride.',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                height: 1.4,
+              ),
+            )
+          else ...[
+            Row(
+              children: [
+                _statChip(
+                  'Mean effectiveness',
+                  report.averageEffectiveness.toStringAsFixed(2),
+                ),
+                const SizedBox(width: 8),
+                _statChip(
+                  'Avg warning lead',
+                  '${report.averageTimeToEventSeconds.toStringAsFixed(1)} s',
+                ),
+                const SizedBox(width: 8),
+                _statChip(
+                  'Feedback',
+                  '${report.alertsWithFeedback}',
+                ),
+              ],
+            ),
+            if (report.insights.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              ...report.insights.take(4).map(
+                    (insight) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Padding(
+                            padding: EdgeInsets.only(top: 4),
+                            child: Icon(
+                              Icons.arrow_right_rounded,
+                              size: 13,
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              insight,
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 11.5,
+                                height: 1.35,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _statChip(String label, String value) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.cardBorder),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textTertiary,
+                fontSize: 9.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
