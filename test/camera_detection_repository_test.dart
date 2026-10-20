@@ -82,6 +82,33 @@ class _StubSensorRepository implements SensorRepository {
   @override
   Future<void> flushPendingBuffer() async {}
   @override
+  Future<int> insertRoadEvent(RoadEventsCompanion event) async => 0;
+  @override
+  Future<List<RoadEvent>> getRoadEventsNear({
+    required double latitude,
+    required double longitude,
+    required double radiusMeters,
+  }) async =>
+      [];
+  @override
+  Stream<List<RoadEvent>> watchRoadEvents() => const Stream.empty();
+  @override
+  Future<int> insertPreAlert(PreAlertsCompanion alert) async => 0;
+  @override
+  Stream<List<PreAlert>> watchPreAlerts() => const Stream.empty();
+  @override
+  Future<PreAlert?> getMostRecentPreAlert({int? tripId}) async => null;
+  @override
+  Future<int> insertEventFeedback(EventFeedbacksCompanion feedback) async => 0;
+  @override
+  Future<void> updateEventFeedback(EventFeedbacksCompanion feedback) async {}
+  @override
+  Stream<List<EventFeedback>> watchEventFeedbacks() => const Stream.empty();
+  @override
+  Future<List<EventFeedback>> getFeedbackForEvent(int eventId) async => [];
+  @override
+  Future<int> getFeedbackCountForEvent(int eventId) async => 0;
+  @override
   void dispose() {}
 }
 

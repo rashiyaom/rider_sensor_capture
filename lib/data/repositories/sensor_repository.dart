@@ -41,6 +41,45 @@ abstract class SensorRepository {
   /// Analyzes BLE sequence numbers for the trip to detect packet loss and continuity
   Future<BleQualityStats> getTripBleQuality(int tripId);
 
+  // ── Predictive pre-alert & feedback learning loop ────────────────────────
+
+  /// Registers a geo-tagged road event (hazard) in the knowledge base.
+  Future<int> insertRoadEvent(RoadEventsCompanion event);
+
+  /// Loads the geo-tagged road events within [radiusMeters] of a position.
+  Future<List<RoadEvent>> getRoadEventsNear({
+    required double latitude,
+    required double longitude,
+    required double radiusMeters,
+  });
+
+  /// All known road events (hazards), newest first.
+  Stream<List<RoadEvent>> watchRoadEvents();
+
+  /// Persists a spoken pre-alert.
+  Future<int> insertPreAlert(PreAlertsCompanion alert);
+
+  /// Watch stream of all pre-alerts (newest first).
+  Stream<List<PreAlert>> watchPreAlerts();
+
+  /// The most recent pre-alert, optionally restricted to a trip.
+  Future<PreAlert?> getMostRecentPreAlert({int? tripId});
+
+  /// Persists a rider feedback record.
+  Future<int> insertEventFeedback(EventFeedbacksCompanion feedback);
+
+  /// Updates a feedback record with the LLM analysis.
+  Future<void> updateEventFeedback(EventFeedbacksCompanion feedback);
+
+  /// Watch stream of all feedback records (newest first).
+  Stream<List<EventFeedback>> watchEventFeedbacks();
+
+  /// Feedback recorded for a specific labeled event.
+  Future<List<EventFeedback>> getFeedbackForEvent(int eventId);
+
+  /// Number of feedback records recorded for an event.
+  Future<int> getFeedbackCountForEvent(int eventId);
+
   /// Deletes raw continuous sensor readings that are not associated with any labeled event,
   /// preserving labeled ground-truth event segments and freeing SQLite storage.
   Future<int> deleteUntaggedReadingsForTrip(int tripId);

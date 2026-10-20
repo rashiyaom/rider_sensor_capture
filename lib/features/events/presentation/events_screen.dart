@@ -8,13 +8,30 @@ import '../../../core/theme/app_theme.dart';
 import '../../../data/local_db/database.dart';
 import '../../../data/models/event_parameters.dart';
 import '../../../providers/db_providers.dart';
+import '../../../providers/feedback_providers.dart';
+import '../../feedback/presentation/feedback_sheet.dart';
 import 'event_detail_screen.dart';
 
-class EventsScreen extends StatelessWidget {
+class EventsScreen extends ConsumerWidget {
   const EventsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // ── Post-event feedback prompt ──
+    // When an event finishes saving we ask the rider how it went. The answer
+    // is scored by the LLM evaluator and feeds the pre-alert learning loop.
+    ref.listen<EventRecordingSessionState>(eventRecordingControllerProvider,
+        (previous, next) {
+      if (next.state != RecordingState.saved) return;
+      if (previous?.state == RecordingState.saved) return;
+      final eventId = next.activeEventId;
+      if (eventId == null) return;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _promptForFeedback(context, ref, next, eventId);
+      });
+    });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -47,6 +64,39 @@ class EventsScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// Opens the feedback sheet unless the rider already answered for this event.
+  static Future<void> _promptForFeedback(
+    BuildContext context,
+    WidgetRef ref,
+    EventRecordingSessionState session,
+    int eventId,
+  ) async {
+    if (!context.mounted) return;
+
+    final service = ref.read(feedbackServiceProvider);
+    try {
+      final alreadyAnswered = await service.hasFeedbackForEvent(eventId);
+      if (alreadyAnswered) return;
+    } catch (_) {
+      // Fall through and ask anyway.
+    }
+    if (!context.mounted) return;
+
+    final preAlert = session.lastPreAlertContext;
+    await FeedbackSheet.show(
+      context,
+      eventId: eventId,
+      eventType: session.currentEventType?.name ?? 'unknown',
+      tripId: session.tripId,
+      roadEventId: preAlert.roadEventId,
+      preAlertId: preAlert.preAlertId,
+      timeToEventSeconds: preAlert.timeToEventSeconds,
+      distanceMeters: preAlert.distanceMeters,
+      speedKmh: preAlert.speedKmh,
+      recommendedSpeedKmh: preAlert.recommendedSpeedKmh,
     );
   }
 }
@@ -747,17 +797,18 @@ class _SwipeToDeleteEventCard extends ConsumerWidget {
   }
 }
 
-class _EventCard extends StatelessWidget {
+class _EventCard extends ConsumerWidget {
   final EventRecord item;
   const _EventCard({super.key, required this.item});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final start = DateFormat('HH:mm:ss').format(item.startTimestamp.toLocal());
     final duration = item.endTimestamp != null
         ? '${(item.endTimestamp!.difference(item.startTimestamp).inMilliseconds / 1000).toStringAsFixed(1)}s'
         : 'In progress';
     final params = EventParameters.fromJsonString(item.computedParameters);
+    final feedbackCount = ref.watch(feedbackForEventProvider(item.id)).value?.length ?? 0;
 
     return GestureDetector(
       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => EventDetailScreen(event: item))),
@@ -798,6 +849,39 @@ class _EventCard extends StatelessWidget {
                   Text('Peak: ${params!.bump!.peakGForce.toStringAsFixed(1)}g',
                       style: const TextStyle(color: AppColors.accentCyan, fontSize: 12, fontWeight: FontWeight.bold)),
                 ],
+                const Spacer(),
+                if (feedbackCount > 0) ...[
+                  FeedbackBadge(count: feedbackCount),
+                  const SizedBox(width: 8),
+                ],
+                GestureDetector(
+                  onTap: () => FeedbackSheet.show(
+                    context,
+                    eventId: item.id,
+                    eventType: item.eventType,
+                    tripId: item.tripId,
+                  ),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentCyanBg,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.rate_review_rounded, size: 12, color: AppColors.accentCyan),
+                        SizedBox(width: 4),
+                        Text('Feedback',
+                            style: TextStyle(
+                                color: AppColors.accentCyan,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ],

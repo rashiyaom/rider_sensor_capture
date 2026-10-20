@@ -1,5 +1,6 @@
 import 'dart:io';
 import '../../features/export/models/export_options.dart';
+import '../../report/alert_effectiveness_report.dart';
 
 abstract class ExportRepository {
   /// Calculate summary of data in the given range and mode
@@ -35,6 +36,25 @@ abstract class ExportRepository {
 
   /// Build File 3: trip_summary_export.csv (one row per trip summary)
   Future<String> buildTripSummaryCsvExport({
+    DateTime? startUtc,
+    DateTime? endUtc,
+  });
+
+  /// Build File 4: pre_alerts_export.csv (one row per spoken pre-alert)
+  Future<String> buildPreAlertsCsvExport({
+    DateTime? startUtc,
+    DateTime? endUtc,
+  });
+
+  /// Build File 5: alert_effectiveness_export.csv (pre-alert + rider feedback,
+  /// scored by the LLM evaluator)
+  Future<String> buildAlertEffectivenessCsvExport({
+    DateTime? startUtc,
+    DateTime? endUtc,
+  });
+
+  /// Compile the predictive pre-alert effectiveness report (LLM insights).
+  Future<AlertEffectivenessReport> buildAlertEffectivenessReport({
     DateTime? startUtc,
     DateTime? endUtc,
   });

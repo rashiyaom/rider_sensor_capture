@@ -8,6 +8,7 @@ import 'package:drift/drift.dart' as drift;
 import '../../core/services/rider_feedback_service.dart';
 import '../../data/local_db/database.dart';
 import '../../providers/db_providers.dart';
+import '../../providers/pre_alert_providers.dart';
 import '../../providers/ride_recording_provider.dart';
 import '../events/event_recording_controller.dart';
 
@@ -203,6 +204,14 @@ class TripController extends StateNotifier<TripState> {
     repo.setActiveTripId(tripId);
     ref.read(rideRecordingProvider.notifier).startRecording();
     unawaited(RiderFeedbackService.onTripStarted());
+
+    // Start the predictive pre-alert engine for this journey so the rider is
+    // warned about known road hazards before reaching them.
+    try {
+      final preAlert = ref.read(preAlertServiceProvider);
+      preAlert.setActiveTripId(tripId);
+      unawaited(preAlert.start());
+    } catch (_) {}
 
     _lastGpsPoint = startPos;
     state = TripState(
@@ -462,6 +471,13 @@ class TripController extends StateNotifier<TripState> {
     } finally {
       try {
         repo.setActiveTripId(null);
+      } catch (_) {}
+
+      // Stop the predictive pre-alert engine when the journey ends.
+      try {
+        final preAlert = ref.read(preAlertServiceProvider);
+        await preAlert.stop();
+        preAlert.setActiveTripId(null);
       } catch (_) {}
 
       state = state.copyWith(

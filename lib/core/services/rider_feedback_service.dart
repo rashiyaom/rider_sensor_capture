@@ -47,4 +47,23 @@ class RiderFeedbackService {
       await SystemSound.play(SystemSoundType.click);
     } catch (_) {}
   }
+
+  /// Light double pulse used when a predictive pre-alert is issued.
+  static Future<void> onPreAlertWarning() async {
+    try {
+      await HapticFeedback.lightImpact();
+      await Future.delayed(const Duration(milliseconds: 90));
+      await HapticFeedback.lightImpact();
+    } catch (_) {}
+  }
+
+  /// Strong double pulse used for imminent road hazards (pothole / severe bump).
+  static Future<void> onPreAlertUrgent() async {
+    try {
+      await HapticFeedback.heavyImpact();
+      await Future.delayed(const Duration(milliseconds: 110));
+      await HapticFeedback.heavyImpact();
+      await SystemSound.play(SystemSoundType.alert);
+    } catch (_) {}
+  }
 }

@@ -26,8 +26,27 @@ import '../../../providers/ml_inference_providers.dart';
 import 'speedometer_widget.dart';
 import 'live_map_widget.dart';
 import '../../events/event_recording_controller.dart';
+import '../../../providers/pre_alert_providers.dart';
+import '../../prealert/presentation/pre_alert_banner.dart';
 
 final isStoppingJourneyProvider = StateProvider<bool>((ref) => false);
+
+/// Shows the active predictive pre-alert (if any) at the top of the
+/// dashboard, mirroring the spoken voice warning.
+class _PreAlertBannerSection extends ConsumerWidget {
+  const _PreAlertBannerSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final decision = ref.watch(activePreAlertProvider);
+    if (decision == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 4),
+      child: PreAlertBanner(decision: decision),
+    );
+  }
+}
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -99,6 +118,9 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             // ── 0. Device Selector Bar (Cumulative vs Individual Sensors) ──
             const _DashboardDeviceSelectorSection(),
+
+            // ── 0b. Predictive Pre-Alert Banner (spoken road-event warnings) ──
+            const _PreAlertBannerSection(),
 
             // ── 1. Hero Card (or Zero-State CTA if no devices) ──
             const _HeroActionSection(),
