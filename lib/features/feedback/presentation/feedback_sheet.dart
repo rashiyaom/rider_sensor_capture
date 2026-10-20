@@ -111,10 +111,15 @@ class _FeedbackSheetState extends ConsumerState<FeedbackSheet> {
     try {
       final service = ref.read(feedbackServiceProvider);
       if (source == 'voice') {
-        await service.recordVoiceFeedback(
+        // The transcript was already captured by [_recordVoice]. Persist that
+        // result directly instead of starting a second speech-recognition
+        // session and discarding what the rider just said.
+        await service.recordTextFeedback(
           eventId: widget.eventId,
           eventType: widget.eventType,
           prompt: _prompt.question,
+          responseText: response,
+          responseSource: 'voice',
           tripId: widget.tripId,
           roadEventId: widget.roadEventId,
           preAlertId: widget.preAlertId,

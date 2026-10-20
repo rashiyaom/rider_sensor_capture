@@ -86,6 +86,19 @@ void main() {
       expect(row.responseText, isEmpty);
     });
 
+    test('stores an existing voice transcript without listening again', () async {
+      final feedback = await service.recordTextFeedback(
+        eventId: 3,
+        eventType: 'turn',
+        prompt: 'Did you face any difficulty navigating that turn?',
+        responseText: 'It was easy.',
+        responseSource: 'voice',
+      );
+
+      expect(feedback.responseText, 'It was easy.');
+      expect(feedback.responseSource, 'voice');
+    });
+
     test('detects existing feedback for an event', () async {
       expect(await service.hasFeedbackForEvent(5), isFalse);
       await service.recordTextFeedback(

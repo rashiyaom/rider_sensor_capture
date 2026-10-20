@@ -99,6 +99,7 @@ class FeedbackService {
     required String eventType,
     required String prompt,
     required String responseText,
+    String responseSource = 'text',
     int? tripId,
     int? roadEventId,
     int? preAlertId,
@@ -118,7 +119,7 @@ class FeedbackService {
             eventType: eventType,
             prompt: prompt,
             responseText: responseText,
-            responseSource: 'text',
+            responseSource: responseSource,
             createdAtUtc: DateTime.now().toUtc(),
           ),
         );
