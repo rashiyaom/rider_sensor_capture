@@ -14,6 +14,15 @@ class RawSensorData {
   final double? gyroY;
   final double? gyroZ;
   final int? ppiMs;
+  final double? linearAccelX;
+  final double? linearAccelY;
+  final double? linearAccelZ;
+  final double? quatW;
+  final double? quatX;
+  final double? quatY;
+  final double? quatZ;
+  final int? timestampMonotonicMicros;
+  final double? barometerAltitudeM;
   final List<int> rawBytes;
 
   const RawSensorData({
@@ -30,11 +39,29 @@ class RawSensorData {
     this.gyroY,
     this.gyroZ,
     this.ppiMs,
+    this.linearAccelX,
+    this.linearAccelY,
+    this.linearAccelZ,
+    this.quatW,
+    this.quatX,
+    this.quatY,
+    this.quatZ,
+    this.timestampMonotonicMicros,
+    this.barometerAltitudeM,
     required this.rawBytes,
   });
 
   RawSensorData copyWith({
     String? mountLocation,
+    double? linearAccelX,
+    double? linearAccelY,
+    double? linearAccelZ,
+    double? quatW,
+    double? quatX,
+    double? quatY,
+    double? quatZ,
+    int? timestampMonotonicMicros,
+    double? barometerAltitudeM,
   }) {
     return RawSensorData(
       deviceId: deviceId,
@@ -50,6 +77,15 @@ class RawSensorData {
       gyroY: gyroY,
       gyroZ: gyroZ,
       ppiMs: ppiMs,
+      linearAccelX: linearAccelX ?? this.linearAccelX,
+      linearAccelY: linearAccelY ?? this.linearAccelY,
+      linearAccelZ: linearAccelZ ?? this.linearAccelZ,
+      quatW: quatW ?? this.quatW,
+      quatX: quatX ?? this.quatX,
+      quatY: quatY ?? this.quatY,
+      quatZ: quatZ ?? this.quatZ,
+      timestampMonotonicMicros: timestampMonotonicMicros ?? this.timestampMonotonicMicros,
+      barometerAltitudeM: barometerAltitudeM ?? this.barometerAltitudeM,
       rawBytes: rawBytes,
     );
   }

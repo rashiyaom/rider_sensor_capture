@@ -263,6 +263,14 @@ class BleConnectionManager {
           gyroX: gyroX,
           gyroY: gyroY,
           gyroZ: gyroZ,
+          linearAccelX: accelX,
+          linearAccelY: accelY,
+          linearAccelZ: accelZ - 9.80665,
+          quatW: 0.995,
+          quatX: 0.01,
+          quatY: 0.02,
+          quatZ: 0.0,
+          timestampMonotonicMicros: simTick * 20000,
           rawBytes: rawPayload,
         );
       }

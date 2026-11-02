@@ -8,6 +8,7 @@ import '../../data/local_db/database.dart';
 import '../../data/models/event_parameters.dart';
 import '../../prealert/pre_alert_engine.dart';
 import '../../providers/db_providers.dart';
+import '../../providers/handsfree_providers.dart';
 import '../../providers/pre_alert_providers.dart';
 import '../../voice/voice_command_config.dart';
 import '../trips/trip_controller.dart';
@@ -304,6 +305,30 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       lastPreAlertContext: preAlertContext,
       statusMessage: 'Saved #$activeId: ${computedParams.summary}',
     );
+
+    // ── Hands-free spoken confirmation ──
+    // Notify the rider through their earbuds that the event was stored.
+    try {
+      final hf = ref.read(handsfreeSessionServiceProvider);
+      String? peakUnit;
+      double? peakVal2;
+      if (computedParams.bump != null) {
+        peakVal2 = computedParams.bump!.peakGForce;
+        peakUnit = 'g';
+      } else if (computedParams.turn != null) {
+        peakVal2 = computedParams.turn!.peakLateralAccel;
+        peakUnit = 'metres per second squared';
+      } else if (computedParams.speed != null) {
+        peakVal2 = computedParams.speed!.peakSpeedKmh;
+        peakUnit = 'kilometres per hour';
+      }
+      unawaited(hf.announceEventSaved(
+        eventType: eventTypeStr,
+        classification: classVal,
+        peakMetric: peakVal2,
+        peakUnit: peakUnit,
+      ));
+    } catch (_) {}
 
     _savedResetTimer?.cancel();
     _savedResetTimer = Timer(const Duration(seconds: 2), () {

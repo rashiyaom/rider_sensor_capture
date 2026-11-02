@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import '../../core/utils/angular_units.dart';
 import '../models/raw_sensor_data.dart';
@@ -55,6 +56,7 @@ class Esp32WatchParser {
     double? ax, ay, az;
     double? gx, gy, gz;
     String? inferredMount;
+    int? rawTimestampMs;
 
     try {
       final uint8List = dataBytes is Uint8List
@@ -72,6 +74,7 @@ class Esp32WatchParser {
         if (tokens.length >= 3 && tokens[0] != null) {
           // Check if first token is timestamp
           if (tokens.length >= 7 && (tokens[0]! > 1000 || tokens[0]! == tokens[0]!.roundToDouble())) {
+            rawTimestampMs = tokens[0]!.toInt();
             ax = tokens[1];
             ay = tokens[2];
             az = tokens[3];
@@ -94,6 +97,7 @@ class Esp32WatchParser {
       }
       // ── Format 2: 32-Byte Binary V2 (Timestamp + Seq + Role + 6-Axis Floats + Battery) ──
       else if (isV2) {
+        rawTimestampMs = byteData.getUint32(0, Endian.little);
         final roleByte = byteData.getUint8(6);
         if (roleByte == 1) {
           inferredMount = 'fork';
@@ -109,6 +113,7 @@ class Esp32WatchParser {
       }
       // ── Format 2b: Truncated 19..23 Byte V2 (Timestamp + Seq + Role + 3 Accel Floats) ──
       else if (len >= 19 && len < 24) {
+        rawTimestampMs = byteData.getUint32(0, Endian.little);
         final roleByte = byteData.getUint8(6);
         if (roleByte == 1) {
           inferredMount = 'fork';
@@ -121,6 +126,7 @@ class Esp32WatchParser {
       }
       // ── Format 3: 28-Byte Binary (Timestamp + 6-Axis Floats) ──
       else if (len >= 28) {
+        rawTimestampMs = byteData.getUint32(0, Endian.little);
         ax = byteData.getFloat32(4, Endian.little);
         ay = byteData.getFloat32(8, Endian.little);
         az = byteData.getFloat32(12, Endian.little);
@@ -133,6 +139,7 @@ class Esp32WatchParser {
         ax = byteData.getFloat32(0, Endian.little);
         ay = byteData.getFloat32(4, Endian.little);
         az = byteData.getFloat32(8, Endian.little);
+
         gx = byteData.getFloat32(12, Endian.little);
         gy = byteData.getFloat32(16, Endian.little);
         gz = byteData.getFloat32(20, Endian.little);
@@ -199,6 +206,33 @@ class Esp32WatchParser {
       return null;
     }
 
+    final monotonicMicros = rawTimestampMs != null ? rawTimestampMs * 1000 : null;
+    double? linAx, linAy, linAz;
+    double? qW, qX, qY, qZ;
+
+    if (ax != null && ay != null && az != null) {
+      final roll = math.atan2(ay, az);
+      final pitch = math.atan2(-ax, math.sqrt(ay * ay + az * az));
+      final cr = math.cos(roll * 0.5);
+      final sr = math.sin(roll * 0.5);
+      final cp = math.cos(pitch * 0.5);
+      final sp = math.sin(pitch * 0.5);
+
+      qW = cr * cp;
+      qX = sr * cp;
+      qY = cr * sp;
+      qZ = -sr * sp;
+
+      // Project 9.80665 m/s^2 gravity vector into body frame using quaternion attitude
+      final gxEst = 2.0 * (qX * qZ - qW * qY) * 9.80665;
+      final gyEst = 2.0 * (qW * qX + qY * qZ) * 9.80665;
+      final gzEst = (qW * qW - qX * qX - qY * qY + qZ * qZ) * 9.80665;
+
+      linAx = ax - gxEst;
+      linAy = ay - gyEst;
+      linAz = az - gzEst;
+    }
+
     return RawSensorData(
       deviceId: deviceId,
       deviceName: deviceName.isNotEmpty ? deviceName : esp32DeviceName,
@@ -212,7 +246,16 @@ class Esp32WatchParser {
       gyroX: gx,
       gyroY: gy,
       gyroZ: gz,
+      linearAccelX: linAx,
+      linearAccelY: linAy,
+      linearAccelZ: linAz,
+      quatW: qW,
+      quatX: qX,
+      quatY: qY,
+      quatZ: qZ,
+      timestampMonotonicMicros: monotonicMicros,
       rawBytes: dataBytes,
     );
   }
 }
+

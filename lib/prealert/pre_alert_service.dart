@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/local_db/database.dart';
 import '../location/location_service.dart';
+import '../voice/handsfree_session_service.dart';
 import '../voice/voice_alert_service.dart';
 import 'pre_alert_engine.dart';
 import 'road_event_registry.dart';
@@ -49,9 +50,15 @@ class PreAlertService {
     PreAlertEngine? engine,
     this.locationService,
     this.reAlertCooldown = const Duration(minutes: 2),
+    HandsfreeSessionService? handsfreeService,
   })  : registry = RoadEventRegistry(db),
         voiceService = voiceService ?? VoiceAlertService(),
-        engine = engine ?? const PreAlertEngine();
+        engine = engine ?? const PreAlertEngine(),
+        _handsfreeService = handsfreeService;
+
+  /// Optional hands-free orchestrator — when set, spoken alerts are routed
+  /// through it (which pauses the mic, speaks, then resumes listening).
+  final HandsfreeSessionService? _handsfreeService;
 
   /// Stream of warnings that were actually issued.
   Stream<PreAlertDecision> get alertStream => _alertController.stream;
@@ -140,11 +147,18 @@ class PreAlertService {
   Future<int?> issueAlert(PreAlertDecision decision) async {
     final message = PreAlertMessageBuilder.build(decision);
 
-    // Haptics first so the rider perceives the warning even if TTS is slow.
-    if (decision.urgency == PreAlertUrgency.imminent) {
-      unawaited(voiceService.speak(message, pitch: 1.1, hapticFallback: false));
+    // Route through hands-free orchestrator if active (manages mic pause);
+    // otherwise fall back to the raw VoiceAlertService.
+    final hf = _handsfreeService;
+    if (hf != null && hf.state.mode != HandsfreeMode.off) {
+      unawaited(hf.announcePreAlert(decision));
     } else {
-      unawaited(voiceService.speak(message, hapticFallback: false));
+      // Haptics first so the rider perceives the warning even if TTS is slow.
+      if (decision.urgency == PreAlertUrgency.imminent) {
+        unawaited(voiceService.speak(message, pitch: 1.1, hapticFallback: false));
+      } else {
+        unawaited(voiceService.speak(message, hapticFallback: false));
+      }
     }
 
     try {

@@ -9,7 +9,11 @@ import '../../../data/local_db/database.dart';
 import '../../../data/models/event_parameters.dart';
 import '../../../providers/db_providers.dart';
 import '../../../providers/feedback_providers.dart';
+import '../../../providers/pre_alert_providers.dart';
 import '../../feedback/presentation/feedback_sheet.dart';
+import '../../prealert/presentation/bulk_import_hazards_sheet.dart';
+import '../../prealert/presentation/hazard_inspect_sheet.dart';
+import '../../prealert/presentation/seed_road_hazard_sheet.dart';
 import 'event_detail_screen.dart';
 
 class EventsScreen extends ConsumerWidget {
@@ -47,6 +51,8 @@ class EventsScreen extends ConsumerWidget {
             _EventsThreeColumnBento(),
             SizedBox(height: 14),
             _QuickActionTriggers(),
+            SizedBox(height: 18),
+            _PreCodedHazardsSection(),
             SizedBox(height: 18),
             _RecordedEventsSection(),
             SizedBox(height: 20),
@@ -915,3 +921,249 @@ class _EmptyEventsPlaceholder extends StatelessWidget {
     );
   }
 }
+
+/// Dedicated section in the Event Labeler tab for viewing, adding, and importing
+/// pre-coded road hazards (ground truth) that power predictive pre-alerts.
+class _PreCodedHazardsSection extends ConsumerWidget {
+  const _PreCodedHazardsSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final roadEventsAsync = ref.watch(roadEventsStreamProvider);
+    final hazards = roadEventsAsync.value ?? const <RoadEvent>[];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppStyles.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.accentAmber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.pin_drop_rounded,
+                        color: AppColors.accentAmber, size: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Pre-Coded Road Hazards',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${hazards.length} ground-truth locations saved',
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+
+              // Action buttons
+              Row(
+                children: [
+                  // Add button
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.add_location_alt_rounded, size: 13),
+                    label: const Text(
+                      'Add Pin',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () => SeedRoadHazardSheet.show(context),
+                  ),
+                  const SizedBox(width: 6),
+                  // Bulk import button
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => BulkImportHazardsSheet.show(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.file_upload_outlined,
+                          size: 16, color: AppColors.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Content body
+          if (hazards.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF191920),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.cardBorder),
+              ),
+              child: Column(
+                children: [
+                  Icon(Icons.add_road_rounded,
+                      color: Colors.white.withValues(alpha: 0.25), size: 28),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'No pre-coded hazards yet',
+                    style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Precode speed breakers or potholes at exact GPS coordinates to test predictive pre-alerts.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFF383842)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        icon: const Icon(Icons.add_rounded, size: 14, color: AppColors.accentAmber),
+                        label: const Text('Add Hazard',
+                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                        onPressed: () => SeedRoadHazardSheet.show(context),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.accentAmber,
+                          foregroundColor: Colors.black,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          elevation: 0,
+                        ),
+                        icon: const Icon(Icons.auto_awesome_rounded, size: 14),
+                        label: const Text('Seed Test Track',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        onPressed: () => BulkImportHazardsSheet.show(context),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            // Horizontal scroll list of hazards
+            SizedBox(
+              height: 78,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: hazards.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (context, idx) {
+                  final h = hazards[idx];
+                  final (color, icon) = HazardInspectSheet.getEventStyle(h.eventType);
+                  final severityPct = ((h.severity ?? 0.5) * 100).round();
+
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () => HazardInspectSheet.showRoadEvent(context, h),
+                    child: Container(
+                      width: 148,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A1A22),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: color.withValues(alpha: 0.3)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(icon, color: color, size: 14),
+                              const SizedBox(width: 5),
+                              Expanded(
+                                child: Text(
+                                  h.eventType.toUpperCase(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: color,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '$severityPct%',
+                                style: TextStyle(
+                                  color: color.withValues(alpha: 0.8),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            '${h.latitude.toStringAsFixed(4)}, ${h.longitude.toStringAsFixed(4)}',
+                            style: const TextStyle(
+                              color: AppColors.textTertiary,
+                              fontSize: 9.5,
+                              fontFamily: 'monospace',
+                            ),
+                          ),
+                          Text(
+                            h.note ?? (h.source == 'seeded' ? 'Ground truth' : h.source),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 9.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+

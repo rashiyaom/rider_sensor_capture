@@ -194,6 +194,97 @@ class $SensorReadingsTable extends SensorReadings
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _linearAccelXMeta = const VerificationMeta(
+    'linearAccelX',
+  );
+  @override
+  late final GeneratedColumn<double> linearAccelX = GeneratedColumn<double>(
+    'linear_accel_x',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _linearAccelYMeta = const VerificationMeta(
+    'linearAccelY',
+  );
+  @override
+  late final GeneratedColumn<double> linearAccelY = GeneratedColumn<double>(
+    'linear_accel_y',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _linearAccelZMeta = const VerificationMeta(
+    'linearAccelZ',
+  );
+  @override
+  late final GeneratedColumn<double> linearAccelZ = GeneratedColumn<double>(
+    'linear_accel_z',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _quatWMeta = const VerificationMeta('quatW');
+  @override
+  late final GeneratedColumn<double> quatW = GeneratedColumn<double>(
+    'quat_w',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _quatXMeta = const VerificationMeta('quatX');
+  @override
+  late final GeneratedColumn<double> quatX = GeneratedColumn<double>(
+    'quat_x',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _quatYMeta = const VerificationMeta('quatY');
+  @override
+  late final GeneratedColumn<double> quatY = GeneratedColumn<double>(
+    'quat_y',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _quatZMeta = const VerificationMeta('quatZ');
+  @override
+  late final GeneratedColumn<double> quatZ = GeneratedColumn<double>(
+    'quat_z',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _timestampMonotonicMicrosMeta =
+      const VerificationMeta('timestampMonotonicMicros');
+  @override
+  late final GeneratedColumn<int> timestampMonotonicMicros =
+      GeneratedColumn<int>(
+        'timestamp_monotonic_micros',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _barometerAltitudeMMeta =
+      const VerificationMeta('barometerAltitudeM');
+  @override
+  late final GeneratedColumn<double> barometerAltitudeM =
+      GeneratedColumn<double>(
+        'barometer_altitude_m',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _rawPayloadMeta = const VerificationMeta(
     'rawPayload',
   );
@@ -225,6 +316,15 @@ class $SensorReadingsTable extends SensorReadings
     gyroZ,
     ppiMs,
     gpsSpeedKmh,
+    linearAccelX,
+    linearAccelY,
+    linearAccelZ,
+    quatW,
+    quatX,
+    quatY,
+    quatZ,
+    timestampMonotonicMicros,
+    barometerAltitudeM,
     rawPayload,
   ];
   @override
@@ -363,6 +463,75 @@ class $SensorReadingsTable extends SensorReadings
         ),
       );
     }
+    if (data.containsKey('linear_accel_x')) {
+      context.handle(
+        _linearAccelXMeta,
+        linearAccelX.isAcceptableOrUnknown(
+          data['linear_accel_x']!,
+          _linearAccelXMeta,
+        ),
+      );
+    }
+    if (data.containsKey('linear_accel_y')) {
+      context.handle(
+        _linearAccelYMeta,
+        linearAccelY.isAcceptableOrUnknown(
+          data['linear_accel_y']!,
+          _linearAccelYMeta,
+        ),
+      );
+    }
+    if (data.containsKey('linear_accel_z')) {
+      context.handle(
+        _linearAccelZMeta,
+        linearAccelZ.isAcceptableOrUnknown(
+          data['linear_accel_z']!,
+          _linearAccelZMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quat_w')) {
+      context.handle(
+        _quatWMeta,
+        quatW.isAcceptableOrUnknown(data['quat_w']!, _quatWMeta),
+      );
+    }
+    if (data.containsKey('quat_x')) {
+      context.handle(
+        _quatXMeta,
+        quatX.isAcceptableOrUnknown(data['quat_x']!, _quatXMeta),
+      );
+    }
+    if (data.containsKey('quat_y')) {
+      context.handle(
+        _quatYMeta,
+        quatY.isAcceptableOrUnknown(data['quat_y']!, _quatYMeta),
+      );
+    }
+    if (data.containsKey('quat_z')) {
+      context.handle(
+        _quatZMeta,
+        quatZ.isAcceptableOrUnknown(data['quat_z']!, _quatZMeta),
+      );
+    }
+    if (data.containsKey('timestamp_monotonic_micros')) {
+      context.handle(
+        _timestampMonotonicMicrosMeta,
+        timestampMonotonicMicros.isAcceptableOrUnknown(
+          data['timestamp_monotonic_micros']!,
+          _timestampMonotonicMicrosMeta,
+        ),
+      );
+    }
+    if (data.containsKey('barometer_altitude_m')) {
+      context.handle(
+        _barometerAltitudeMMeta,
+        barometerAltitudeM.isAcceptableOrUnknown(
+          data['barometer_altitude_m']!,
+          _barometerAltitudeMMeta,
+        ),
+      );
+    }
     if (data.containsKey('raw_payload')) {
       context.handle(
         _rawPayloadMeta,
@@ -450,6 +619,42 @@ class $SensorReadingsTable extends SensorReadings
         DriftSqlType.double,
         data['${effectivePrefix}gps_speed_kmh'],
       ),
+      linearAccelX: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}linear_accel_x'],
+      ),
+      linearAccelY: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}linear_accel_y'],
+      ),
+      linearAccelZ: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}linear_accel_z'],
+      ),
+      quatW: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}quat_w'],
+      ),
+      quatX: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}quat_x'],
+      ),
+      quatY: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}quat_y'],
+      ),
+      quatZ: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}quat_z'],
+      ),
+      timestampMonotonicMicros: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}timestamp_monotonic_micros'],
+      ),
+      barometerAltitudeM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}barometer_altitude_m'],
+      ),
       rawPayload: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}raw_payload'],
@@ -482,6 +687,15 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
   final double? gyroZ;
   final int? ppiMs;
   final double? gpsSpeedKmh;
+  final double? linearAccelX;
+  final double? linearAccelY;
+  final double? linearAccelZ;
+  final double? quatW;
+  final double? quatX;
+  final double? quatY;
+  final double? quatZ;
+  final int? timestampMonotonicMicros;
+  final double? barometerAltitudeM;
   final String? rawPayload;
   const SensorReading({
     required this.id,
@@ -502,6 +716,15 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
     this.gyroZ,
     this.ppiMs,
     this.gpsSpeedKmh,
+    this.linearAccelX,
+    this.linearAccelY,
+    this.linearAccelZ,
+    this.quatW,
+    this.quatX,
+    this.quatY,
+    this.quatZ,
+    this.timestampMonotonicMicros,
+    this.barometerAltitudeM,
     this.rawPayload,
   });
   @override
@@ -546,6 +769,35 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
     }
     if (!nullToAbsent || gpsSpeedKmh != null) {
       map['gps_speed_kmh'] = Variable<double>(gpsSpeedKmh);
+    }
+    if (!nullToAbsent || linearAccelX != null) {
+      map['linear_accel_x'] = Variable<double>(linearAccelX);
+    }
+    if (!nullToAbsent || linearAccelY != null) {
+      map['linear_accel_y'] = Variable<double>(linearAccelY);
+    }
+    if (!nullToAbsent || linearAccelZ != null) {
+      map['linear_accel_z'] = Variable<double>(linearAccelZ);
+    }
+    if (!nullToAbsent || quatW != null) {
+      map['quat_w'] = Variable<double>(quatW);
+    }
+    if (!nullToAbsent || quatX != null) {
+      map['quat_x'] = Variable<double>(quatX);
+    }
+    if (!nullToAbsent || quatY != null) {
+      map['quat_y'] = Variable<double>(quatY);
+    }
+    if (!nullToAbsent || quatZ != null) {
+      map['quat_z'] = Variable<double>(quatZ);
+    }
+    if (!nullToAbsent || timestampMonotonicMicros != null) {
+      map['timestamp_monotonic_micros'] = Variable<int>(
+        timestampMonotonicMicros,
+      );
+    }
+    if (!nullToAbsent || barometerAltitudeM != null) {
+      map['barometer_altitude_m'] = Variable<double>(barometerAltitudeM);
     }
     if (!nullToAbsent || rawPayload != null) {
       map['raw_payload'] = Variable<String>(rawPayload);
@@ -595,6 +847,33 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
       gpsSpeedKmh: gpsSpeedKmh == null && nullToAbsent
           ? const Value.absent()
           : Value(gpsSpeedKmh),
+      linearAccelX: linearAccelX == null && nullToAbsent
+          ? const Value.absent()
+          : Value(linearAccelX),
+      linearAccelY: linearAccelY == null && nullToAbsent
+          ? const Value.absent()
+          : Value(linearAccelY),
+      linearAccelZ: linearAccelZ == null && nullToAbsent
+          ? const Value.absent()
+          : Value(linearAccelZ),
+      quatW: quatW == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quatW),
+      quatX: quatX == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quatX),
+      quatY: quatY == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quatY),
+      quatZ: quatZ == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quatZ),
+      timestampMonotonicMicros: timestampMonotonicMicros == null && nullToAbsent
+          ? const Value.absent()
+          : Value(timestampMonotonicMicros),
+      barometerAltitudeM: barometerAltitudeM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(barometerAltitudeM),
       rawPayload: rawPayload == null && nullToAbsent
           ? const Value.absent()
           : Value(rawPayload),
@@ -625,6 +904,19 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
       gyroZ: serializer.fromJson<double?>(json['gyroZ']),
       ppiMs: serializer.fromJson<int?>(json['ppiMs']),
       gpsSpeedKmh: serializer.fromJson<double?>(json['gpsSpeedKmh']),
+      linearAccelX: serializer.fromJson<double?>(json['linearAccelX']),
+      linearAccelY: serializer.fromJson<double?>(json['linearAccelY']),
+      linearAccelZ: serializer.fromJson<double?>(json['linearAccelZ']),
+      quatW: serializer.fromJson<double?>(json['quatW']),
+      quatX: serializer.fromJson<double?>(json['quatX']),
+      quatY: serializer.fromJson<double?>(json['quatY']),
+      quatZ: serializer.fromJson<double?>(json['quatZ']),
+      timestampMonotonicMicros: serializer.fromJson<int?>(
+        json['timestampMonotonicMicros'],
+      ),
+      barometerAltitudeM: serializer.fromJson<double?>(
+        json['barometerAltitudeM'],
+      ),
       rawPayload: serializer.fromJson<String?>(json['rawPayload']),
     );
   }
@@ -650,6 +942,17 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
       'gyroZ': serializer.toJson<double?>(gyroZ),
       'ppiMs': serializer.toJson<int?>(ppiMs),
       'gpsSpeedKmh': serializer.toJson<double?>(gpsSpeedKmh),
+      'linearAccelX': serializer.toJson<double?>(linearAccelX),
+      'linearAccelY': serializer.toJson<double?>(linearAccelY),
+      'linearAccelZ': serializer.toJson<double?>(linearAccelZ),
+      'quatW': serializer.toJson<double?>(quatW),
+      'quatX': serializer.toJson<double?>(quatX),
+      'quatY': serializer.toJson<double?>(quatY),
+      'quatZ': serializer.toJson<double?>(quatZ),
+      'timestampMonotonicMicros': serializer.toJson<int?>(
+        timestampMonotonicMicros,
+      ),
+      'barometerAltitudeM': serializer.toJson<double?>(barometerAltitudeM),
       'rawPayload': serializer.toJson<String?>(rawPayload),
     };
   }
@@ -673,6 +976,15 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
     Value<double?> gyroZ = const Value.absent(),
     Value<int?> ppiMs = const Value.absent(),
     Value<double?> gpsSpeedKmh = const Value.absent(),
+    Value<double?> linearAccelX = const Value.absent(),
+    Value<double?> linearAccelY = const Value.absent(),
+    Value<double?> linearAccelZ = const Value.absent(),
+    Value<double?> quatW = const Value.absent(),
+    Value<double?> quatX = const Value.absent(),
+    Value<double?> quatY = const Value.absent(),
+    Value<double?> quatZ = const Value.absent(),
+    Value<int?> timestampMonotonicMicros = const Value.absent(),
+    Value<double?> barometerAltitudeM = const Value.absent(),
     Value<String?> rawPayload = const Value.absent(),
   }) => SensorReading(
     id: id ?? this.id,
@@ -693,6 +1005,19 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
     gyroZ: gyroZ.present ? gyroZ.value : this.gyroZ,
     ppiMs: ppiMs.present ? ppiMs.value : this.ppiMs,
     gpsSpeedKmh: gpsSpeedKmh.present ? gpsSpeedKmh.value : this.gpsSpeedKmh,
+    linearAccelX: linearAccelX.present ? linearAccelX.value : this.linearAccelX,
+    linearAccelY: linearAccelY.present ? linearAccelY.value : this.linearAccelY,
+    linearAccelZ: linearAccelZ.present ? linearAccelZ.value : this.linearAccelZ,
+    quatW: quatW.present ? quatW.value : this.quatW,
+    quatX: quatX.present ? quatX.value : this.quatX,
+    quatY: quatY.present ? quatY.value : this.quatY,
+    quatZ: quatZ.present ? quatZ.value : this.quatZ,
+    timestampMonotonicMicros: timestampMonotonicMicros.present
+        ? timestampMonotonicMicros.value
+        : this.timestampMonotonicMicros,
+    barometerAltitudeM: barometerAltitudeM.present
+        ? barometerAltitudeM.value
+        : this.barometerAltitudeM,
     rawPayload: rawPayload.present ? rawPayload.value : this.rawPayload,
   );
   SensorReading copyWithCompanion(SensorReadingsCompanion data) {
@@ -727,6 +1052,25 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
       gpsSpeedKmh: data.gpsSpeedKmh.present
           ? data.gpsSpeedKmh.value
           : this.gpsSpeedKmh,
+      linearAccelX: data.linearAccelX.present
+          ? data.linearAccelX.value
+          : this.linearAccelX,
+      linearAccelY: data.linearAccelY.present
+          ? data.linearAccelY.value
+          : this.linearAccelY,
+      linearAccelZ: data.linearAccelZ.present
+          ? data.linearAccelZ.value
+          : this.linearAccelZ,
+      quatW: data.quatW.present ? data.quatW.value : this.quatW,
+      quatX: data.quatX.present ? data.quatX.value : this.quatX,
+      quatY: data.quatY.present ? data.quatY.value : this.quatY,
+      quatZ: data.quatZ.present ? data.quatZ.value : this.quatZ,
+      timestampMonotonicMicros: data.timestampMonotonicMicros.present
+          ? data.timestampMonotonicMicros.value
+          : this.timestampMonotonicMicros,
+      barometerAltitudeM: data.barometerAltitudeM.present
+          ? data.barometerAltitudeM.value
+          : this.barometerAltitudeM,
       rawPayload: data.rawPayload.present
           ? data.rawPayload.value
           : this.rawPayload,
@@ -754,13 +1098,22 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
           ..write('gyroZ: $gyroZ, ')
           ..write('ppiMs: $ppiMs, ')
           ..write('gpsSpeedKmh: $gpsSpeedKmh, ')
+          ..write('linearAccelX: $linearAccelX, ')
+          ..write('linearAccelY: $linearAccelY, ')
+          ..write('linearAccelZ: $linearAccelZ, ')
+          ..write('quatW: $quatW, ')
+          ..write('quatX: $quatX, ')
+          ..write('quatY: $quatY, ')
+          ..write('quatZ: $quatZ, ')
+          ..write('timestampMonotonicMicros: $timestampMonotonicMicros, ')
+          ..write('barometerAltitudeM: $barometerAltitudeM, ')
           ..write('rawPayload: $rawPayload')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     deviceId,
     deviceType,
@@ -779,8 +1132,17 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
     gyroZ,
     ppiMs,
     gpsSpeedKmh,
+    linearAccelX,
+    linearAccelY,
+    linearAccelZ,
+    quatW,
+    quatX,
+    quatY,
+    quatZ,
+    timestampMonotonicMicros,
+    barometerAltitudeM,
     rawPayload,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -803,6 +1165,15 @@ class SensorReading extends DataClass implements Insertable<SensorReading> {
           other.gyroZ == this.gyroZ &&
           other.ppiMs == this.ppiMs &&
           other.gpsSpeedKmh == this.gpsSpeedKmh &&
+          other.linearAccelX == this.linearAccelX &&
+          other.linearAccelY == this.linearAccelY &&
+          other.linearAccelZ == this.linearAccelZ &&
+          other.quatW == this.quatW &&
+          other.quatX == this.quatX &&
+          other.quatY == this.quatY &&
+          other.quatZ == this.quatZ &&
+          other.timestampMonotonicMicros == this.timestampMonotonicMicros &&
+          other.barometerAltitudeM == this.barometerAltitudeM &&
           other.rawPayload == this.rawPayload);
 }
 
@@ -825,6 +1196,15 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
   final Value<double?> gyroZ;
   final Value<int?> ppiMs;
   final Value<double?> gpsSpeedKmh;
+  final Value<double?> linearAccelX;
+  final Value<double?> linearAccelY;
+  final Value<double?> linearAccelZ;
+  final Value<double?> quatW;
+  final Value<double?> quatX;
+  final Value<double?> quatY;
+  final Value<double?> quatZ;
+  final Value<int?> timestampMonotonicMicros;
+  final Value<double?> barometerAltitudeM;
   final Value<String?> rawPayload;
   const SensorReadingsCompanion({
     this.id = const Value.absent(),
@@ -845,6 +1225,15 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
     this.gyroZ = const Value.absent(),
     this.ppiMs = const Value.absent(),
     this.gpsSpeedKmh = const Value.absent(),
+    this.linearAccelX = const Value.absent(),
+    this.linearAccelY = const Value.absent(),
+    this.linearAccelZ = const Value.absent(),
+    this.quatW = const Value.absent(),
+    this.quatX = const Value.absent(),
+    this.quatY = const Value.absent(),
+    this.quatZ = const Value.absent(),
+    this.timestampMonotonicMicros = const Value.absent(),
+    this.barometerAltitudeM = const Value.absent(),
     this.rawPayload = const Value.absent(),
   });
   SensorReadingsCompanion.insert({
@@ -866,6 +1255,15 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
     this.gyroZ = const Value.absent(),
     this.ppiMs = const Value.absent(),
     this.gpsSpeedKmh = const Value.absent(),
+    this.linearAccelX = const Value.absent(),
+    this.linearAccelY = const Value.absent(),
+    this.linearAccelZ = const Value.absent(),
+    this.quatW = const Value.absent(),
+    this.quatX = const Value.absent(),
+    this.quatY = const Value.absent(),
+    this.quatZ = const Value.absent(),
+    this.timestampMonotonicMicros = const Value.absent(),
+    this.barometerAltitudeM = const Value.absent(),
     this.rawPayload = const Value.absent(),
   }) : deviceId = Value(deviceId),
        deviceType = Value(deviceType),
@@ -891,6 +1289,15 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
     Expression<double>? gyroZ,
     Expression<int>? ppiMs,
     Expression<double>? gpsSpeedKmh,
+    Expression<double>? linearAccelX,
+    Expression<double>? linearAccelY,
+    Expression<double>? linearAccelZ,
+    Expression<double>? quatW,
+    Expression<double>? quatX,
+    Expression<double>? quatY,
+    Expression<double>? quatZ,
+    Expression<int>? timestampMonotonicMicros,
+    Expression<double>? barometerAltitudeM,
     Expression<String>? rawPayload,
   }) {
     return RawValuesInsertable({
@@ -912,6 +1319,17 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
       if (gyroZ != null) 'gyro_z': gyroZ,
       if (ppiMs != null) 'ppi_ms': ppiMs,
       if (gpsSpeedKmh != null) 'gps_speed_kmh': gpsSpeedKmh,
+      if (linearAccelX != null) 'linear_accel_x': linearAccelX,
+      if (linearAccelY != null) 'linear_accel_y': linearAccelY,
+      if (linearAccelZ != null) 'linear_accel_z': linearAccelZ,
+      if (quatW != null) 'quat_w': quatW,
+      if (quatX != null) 'quat_x': quatX,
+      if (quatY != null) 'quat_y': quatY,
+      if (quatZ != null) 'quat_z': quatZ,
+      if (timestampMonotonicMicros != null)
+        'timestamp_monotonic_micros': timestampMonotonicMicros,
+      if (barometerAltitudeM != null)
+        'barometer_altitude_m': barometerAltitudeM,
       if (rawPayload != null) 'raw_payload': rawPayload,
     });
   }
@@ -935,6 +1353,15 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
     Value<double?>? gyroZ,
     Value<int?>? ppiMs,
     Value<double?>? gpsSpeedKmh,
+    Value<double?>? linearAccelX,
+    Value<double?>? linearAccelY,
+    Value<double?>? linearAccelZ,
+    Value<double?>? quatW,
+    Value<double?>? quatX,
+    Value<double?>? quatY,
+    Value<double?>? quatZ,
+    Value<int?>? timestampMonotonicMicros,
+    Value<double?>? barometerAltitudeM,
     Value<String?>? rawPayload,
   }) {
     return SensorReadingsCompanion(
@@ -956,6 +1383,16 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
       gyroZ: gyroZ ?? this.gyroZ,
       ppiMs: ppiMs ?? this.ppiMs,
       gpsSpeedKmh: gpsSpeedKmh ?? this.gpsSpeedKmh,
+      linearAccelX: linearAccelX ?? this.linearAccelX,
+      linearAccelY: linearAccelY ?? this.linearAccelY,
+      linearAccelZ: linearAccelZ ?? this.linearAccelZ,
+      quatW: quatW ?? this.quatW,
+      quatX: quatX ?? this.quatX,
+      quatY: quatY ?? this.quatY,
+      quatZ: quatZ ?? this.quatZ,
+      timestampMonotonicMicros:
+          timestampMonotonicMicros ?? this.timestampMonotonicMicros,
+      barometerAltitudeM: barometerAltitudeM ?? this.barometerAltitudeM,
       rawPayload: rawPayload ?? this.rawPayload,
     );
   }
@@ -1017,6 +1454,35 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
     if (gpsSpeedKmh.present) {
       map['gps_speed_kmh'] = Variable<double>(gpsSpeedKmh.value);
     }
+    if (linearAccelX.present) {
+      map['linear_accel_x'] = Variable<double>(linearAccelX.value);
+    }
+    if (linearAccelY.present) {
+      map['linear_accel_y'] = Variable<double>(linearAccelY.value);
+    }
+    if (linearAccelZ.present) {
+      map['linear_accel_z'] = Variable<double>(linearAccelZ.value);
+    }
+    if (quatW.present) {
+      map['quat_w'] = Variable<double>(quatW.value);
+    }
+    if (quatX.present) {
+      map['quat_x'] = Variable<double>(quatX.value);
+    }
+    if (quatY.present) {
+      map['quat_y'] = Variable<double>(quatY.value);
+    }
+    if (quatZ.present) {
+      map['quat_z'] = Variable<double>(quatZ.value);
+    }
+    if (timestampMonotonicMicros.present) {
+      map['timestamp_monotonic_micros'] = Variable<int>(
+        timestampMonotonicMicros.value,
+      );
+    }
+    if (barometerAltitudeM.present) {
+      map['barometer_altitude_m'] = Variable<double>(barometerAltitudeM.value);
+    }
     if (rawPayload.present) {
       map['raw_payload'] = Variable<String>(rawPayload.value);
     }
@@ -1044,6 +1510,15 @@ class SensorReadingsCompanion extends UpdateCompanion<SensorReading> {
           ..write('gyroZ: $gyroZ, ')
           ..write('ppiMs: $ppiMs, ')
           ..write('gpsSpeedKmh: $gpsSpeedKmh, ')
+          ..write('linearAccelX: $linearAccelX, ')
+          ..write('linearAccelY: $linearAccelY, ')
+          ..write('linearAccelZ: $linearAccelZ, ')
+          ..write('quatW: $quatW, ')
+          ..write('quatX: $quatX, ')
+          ..write('quatY: $quatY, ')
+          ..write('quatZ: $quatZ, ')
+          ..write('timestampMonotonicMicros: $timestampMonotonicMicros, ')
+          ..write('barometerAltitudeM: $barometerAltitudeM, ')
           ..write('rawPayload: $rawPayload')
           ..write(')'))
         .toString();
@@ -8627,6 +9102,1815 @@ class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
   }
 }
 
+class $UnknownEventsTable extends UnknownEvents
+    with TableInfo<$UnknownEventsTable, UnknownEvent> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $UnknownEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _tripIdMeta = const VerificationMeta('tripId');
+  @override
+  late final GeneratedColumn<int> tripId = GeneratedColumn<int>(
+    'trip_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _imuSnapshotJsonMeta = const VerificationMeta(
+    'imuSnapshotJson',
+  );
+  @override
+  late final GeneratedColumn<String> imuSnapshotJson = GeneratedColumn<String>(
+    'imu_snapshot_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _peakAccelMagnitudeMeta =
+      const VerificationMeta('peakAccelMagnitude');
+  @override
+  late final GeneratedColumn<double> peakAccelMagnitude =
+      GeneratedColumn<double>(
+        'peak_accel_magnitude',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta(
+    'durationMs',
+  );
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _questionSpokenMeta = const VerificationMeta(
+    'questionSpoken',
+  );
+  @override
+  late final GeneratedColumn<String> questionSpoken = GeneratedColumn<String>(
+    'question_spoken',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _riderAnswerRawMeta = const VerificationMeta(
+    'riderAnswerRaw',
+  );
+  @override
+  late final GeneratedColumn<String> riderAnswerRaw = GeneratedColumn<String>(
+    'rider_answer_raw',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _transcriptConfidenceMeta =
+      const VerificationMeta('transcriptConfidence');
+  @override
+  late final GeneratedColumn<double> transcriptConfidence =
+      GeneratedColumn<double>(
+        'transcript_confidence',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _resolvedLabelMeta = const VerificationMeta(
+    'resolvedLabel',
+  );
+  @override
+  late final GeneratedColumn<String> resolvedLabel = GeneratedColumn<String>(
+    'resolved_label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _promotedMeta = const VerificationMeta(
+    'promoted',
+  );
+  @override
+  late final GeneratedColumn<bool> promoted = GeneratedColumn<bool>(
+    'promoted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("promoted" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _promotedRoadEventIdMeta =
+      const VerificationMeta('promotedRoadEventId');
+  @override
+  late final GeneratedColumn<int> promotedRoadEventId = GeneratedColumn<int>(
+    'promoted_road_event_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _detectedAtUtcMeta = const VerificationMeta(
+    'detectedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> detectedAtUtc =
+      GeneratedColumn<DateTime>(
+        'detected_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _answeredAtUtcMeta = const VerificationMeta(
+    'answeredAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> answeredAtUtc =
+      GeneratedColumn<DateTime>(
+        'answered_at_utc',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    tripId,
+    latitude,
+    longitude,
+    imuSnapshotJson,
+    peakAccelMagnitude,
+    durationMs,
+    questionSpoken,
+    riderAnswerRaw,
+    transcriptConfidence,
+    resolvedLabel,
+    promoted,
+    promotedRoadEventId,
+    detectedAtUtc,
+    answeredAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'unknown_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<UnknownEvent> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('trip_id')) {
+      context.handle(
+        _tripIdMeta,
+        tripId.isAcceptableOrUnknown(data['trip_id']!, _tripIdMeta),
+      );
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    }
+    if (data.containsKey('imu_snapshot_json')) {
+      context.handle(
+        _imuSnapshotJsonMeta,
+        imuSnapshotJson.isAcceptableOrUnknown(
+          data['imu_snapshot_json']!,
+          _imuSnapshotJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('peak_accel_magnitude')) {
+      context.handle(
+        _peakAccelMagnitudeMeta,
+        peakAccelMagnitude.isAcceptableOrUnknown(
+          data['peak_accel_magnitude']!,
+          _peakAccelMagnitudeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('question_spoken')) {
+      context.handle(
+        _questionSpokenMeta,
+        questionSpoken.isAcceptableOrUnknown(
+          data['question_spoken']!,
+          _questionSpokenMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_questionSpokenMeta);
+    }
+    if (data.containsKey('rider_answer_raw')) {
+      context.handle(
+        _riderAnswerRawMeta,
+        riderAnswerRaw.isAcceptableOrUnknown(
+          data['rider_answer_raw']!,
+          _riderAnswerRawMeta,
+        ),
+      );
+    }
+    if (data.containsKey('transcript_confidence')) {
+      context.handle(
+        _transcriptConfidenceMeta,
+        transcriptConfidence.isAcceptableOrUnknown(
+          data['transcript_confidence']!,
+          _transcriptConfidenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('resolved_label')) {
+      context.handle(
+        _resolvedLabelMeta,
+        resolvedLabel.isAcceptableOrUnknown(
+          data['resolved_label']!,
+          _resolvedLabelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('promoted')) {
+      context.handle(
+        _promotedMeta,
+        promoted.isAcceptableOrUnknown(data['promoted']!, _promotedMeta),
+      );
+    }
+    if (data.containsKey('promoted_road_event_id')) {
+      context.handle(
+        _promotedRoadEventIdMeta,
+        promotedRoadEventId.isAcceptableOrUnknown(
+          data['promoted_road_event_id']!,
+          _promotedRoadEventIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('detected_at_utc')) {
+      context.handle(
+        _detectedAtUtcMeta,
+        detectedAtUtc.isAcceptableOrUnknown(
+          data['detected_at_utc']!,
+          _detectedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_detectedAtUtcMeta);
+    }
+    if (data.containsKey('answered_at_utc')) {
+      context.handle(
+        _answeredAtUtcMeta,
+        answeredAtUtc.isAcceptableOrUnknown(
+          data['answered_at_utc']!,
+          _answeredAtUtcMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  UnknownEvent map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return UnknownEvent(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      tripId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}trip_id'],
+      ),
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      ),
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      ),
+      imuSnapshotJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}imu_snapshot_json'],
+      ),
+      peakAccelMagnitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}peak_accel_magnitude'],
+      ),
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      questionSpoken: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}question_spoken'],
+      )!,
+      riderAnswerRaw: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}rider_answer_raw'],
+      ),
+      transcriptConfidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}transcript_confidence'],
+      ),
+      resolvedLabel: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}resolved_label'],
+      ),
+      promoted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}promoted'],
+      )!,
+      promotedRoadEventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}promoted_road_event_id'],
+      ),
+      detectedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}detected_at_utc'],
+      )!,
+      answeredAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}answered_at_utc'],
+      ),
+    );
+  }
+
+  @override
+  $UnknownEventsTable createAlias(String alias) {
+    return $UnknownEventsTable(attachedDatabase, alias);
+  }
+}
+
+class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
+  final int id;
+
+  /// The trip during which the anomaly was detected.
+  final int? tripId;
+
+  /// GPS latitude at the moment the anomaly was detected.
+  final double? latitude;
+
+  /// GPS longitude at the moment the anomaly was detected.
+  final double? longitude;
+
+  /// Raw IMU signal statistics captured around the event window (JSON).
+  final String? imuSnapshotJson;
+
+  /// Peak acceleration magnitude (m/s²) during the anomaly window.
+  final double? peakAccelMagnitude;
+
+  /// Duration of the anomaly window in milliseconds.
+  final int? durationMs;
+
+  /// The exact text spoken to the rider when asking "what was that?".
+  final String questionSpoken;
+
+  /// The rider's raw transcribed answer.
+  final String? riderAnswerRaw;
+
+  /// STT confidence (0..1) for the rider's answer.
+  final double? transcriptConfidence;
+
+  /// Normalised event label derived from the rider's answer (e.g. "speed_bump").
+  final String? resolvedLabel;
+
+  /// Whether the resolved label was promoted to road_events.
+  final bool promoted;
+
+  /// The road_event row id created when the event was promoted (if any).
+  final int? promotedRoadEventId;
+
+  /// Timestamp when the anomaly was first detected.
+  final DateTime detectedAtUtc;
+
+  /// Timestamp when the rider's answer was recorded.
+  final DateTime? answeredAtUtc;
+  const UnknownEvent({
+    required this.id,
+    this.tripId,
+    this.latitude,
+    this.longitude,
+    this.imuSnapshotJson,
+    this.peakAccelMagnitude,
+    this.durationMs,
+    required this.questionSpoken,
+    this.riderAnswerRaw,
+    this.transcriptConfidence,
+    this.resolvedLabel,
+    required this.promoted,
+    this.promotedRoadEventId,
+    required this.detectedAtUtc,
+    this.answeredAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    if (!nullToAbsent || tripId != null) {
+      map['trip_id'] = Variable<int>(tripId);
+    }
+    if (!nullToAbsent || latitude != null) {
+      map['latitude'] = Variable<double>(latitude);
+    }
+    if (!nullToAbsent || longitude != null) {
+      map['longitude'] = Variable<double>(longitude);
+    }
+    if (!nullToAbsent || imuSnapshotJson != null) {
+      map['imu_snapshot_json'] = Variable<String>(imuSnapshotJson);
+    }
+    if (!nullToAbsent || peakAccelMagnitude != null) {
+      map['peak_accel_magnitude'] = Variable<double>(peakAccelMagnitude);
+    }
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    map['question_spoken'] = Variable<String>(questionSpoken);
+    if (!nullToAbsent || riderAnswerRaw != null) {
+      map['rider_answer_raw'] = Variable<String>(riderAnswerRaw);
+    }
+    if (!nullToAbsent || transcriptConfidence != null) {
+      map['transcript_confidence'] = Variable<double>(transcriptConfidence);
+    }
+    if (!nullToAbsent || resolvedLabel != null) {
+      map['resolved_label'] = Variable<String>(resolvedLabel);
+    }
+    map['promoted'] = Variable<bool>(promoted);
+    if (!nullToAbsent || promotedRoadEventId != null) {
+      map['promoted_road_event_id'] = Variable<int>(promotedRoadEventId);
+    }
+    map['detected_at_utc'] = Variable<DateTime>(detectedAtUtc);
+    if (!nullToAbsent || answeredAtUtc != null) {
+      map['answered_at_utc'] = Variable<DateTime>(answeredAtUtc);
+    }
+    return map;
+  }
+
+  UnknownEventsCompanion toCompanion(bool nullToAbsent) {
+    return UnknownEventsCompanion(
+      id: Value(id),
+      tripId: tripId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tripId),
+      latitude: latitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(latitude),
+      longitude: longitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(longitude),
+      imuSnapshotJson: imuSnapshotJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(imuSnapshotJson),
+      peakAccelMagnitude: peakAccelMagnitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(peakAccelMagnitude),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      questionSpoken: Value(questionSpoken),
+      riderAnswerRaw: riderAnswerRaw == null && nullToAbsent
+          ? const Value.absent()
+          : Value(riderAnswerRaw),
+      transcriptConfidence: transcriptConfidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(transcriptConfidence),
+      resolvedLabel: resolvedLabel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resolvedLabel),
+      promoted: Value(promoted),
+      promotedRoadEventId: promotedRoadEventId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(promotedRoadEventId),
+      detectedAtUtc: Value(detectedAtUtc),
+      answeredAtUtc: answeredAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(answeredAtUtc),
+    );
+  }
+
+  factory UnknownEvent.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return UnknownEvent(
+      id: serializer.fromJson<int>(json['id']),
+      tripId: serializer.fromJson<int?>(json['tripId']),
+      latitude: serializer.fromJson<double?>(json['latitude']),
+      longitude: serializer.fromJson<double?>(json['longitude']),
+      imuSnapshotJson: serializer.fromJson<String?>(json['imuSnapshotJson']),
+      peakAccelMagnitude: serializer.fromJson<double?>(
+        json['peakAccelMagnitude'],
+      ),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      questionSpoken: serializer.fromJson<String>(json['questionSpoken']),
+      riderAnswerRaw: serializer.fromJson<String?>(json['riderAnswerRaw']),
+      transcriptConfidence: serializer.fromJson<double?>(
+        json['transcriptConfidence'],
+      ),
+      resolvedLabel: serializer.fromJson<String?>(json['resolvedLabel']),
+      promoted: serializer.fromJson<bool>(json['promoted']),
+      promotedRoadEventId: serializer.fromJson<int?>(
+        json['promotedRoadEventId'],
+      ),
+      detectedAtUtc: serializer.fromJson<DateTime>(json['detectedAtUtc']),
+      answeredAtUtc: serializer.fromJson<DateTime?>(json['answeredAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'tripId': serializer.toJson<int?>(tripId),
+      'latitude': serializer.toJson<double?>(latitude),
+      'longitude': serializer.toJson<double?>(longitude),
+      'imuSnapshotJson': serializer.toJson<String?>(imuSnapshotJson),
+      'peakAccelMagnitude': serializer.toJson<double?>(peakAccelMagnitude),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'questionSpoken': serializer.toJson<String>(questionSpoken),
+      'riderAnswerRaw': serializer.toJson<String?>(riderAnswerRaw),
+      'transcriptConfidence': serializer.toJson<double?>(transcriptConfidence),
+      'resolvedLabel': serializer.toJson<String?>(resolvedLabel),
+      'promoted': serializer.toJson<bool>(promoted),
+      'promotedRoadEventId': serializer.toJson<int?>(promotedRoadEventId),
+      'detectedAtUtc': serializer.toJson<DateTime>(detectedAtUtc),
+      'answeredAtUtc': serializer.toJson<DateTime?>(answeredAtUtc),
+    };
+  }
+
+  UnknownEvent copyWith({
+    int? id,
+    Value<int?> tripId = const Value.absent(),
+    Value<double?> latitude = const Value.absent(),
+    Value<double?> longitude = const Value.absent(),
+    Value<String?> imuSnapshotJson = const Value.absent(),
+    Value<double?> peakAccelMagnitude = const Value.absent(),
+    Value<int?> durationMs = const Value.absent(),
+    String? questionSpoken,
+    Value<String?> riderAnswerRaw = const Value.absent(),
+    Value<double?> transcriptConfidence = const Value.absent(),
+    Value<String?> resolvedLabel = const Value.absent(),
+    bool? promoted,
+    Value<int?> promotedRoadEventId = const Value.absent(),
+    DateTime? detectedAtUtc,
+    Value<DateTime?> answeredAtUtc = const Value.absent(),
+  }) => UnknownEvent(
+    id: id ?? this.id,
+    tripId: tripId.present ? tripId.value : this.tripId,
+    latitude: latitude.present ? latitude.value : this.latitude,
+    longitude: longitude.present ? longitude.value : this.longitude,
+    imuSnapshotJson: imuSnapshotJson.present
+        ? imuSnapshotJson.value
+        : this.imuSnapshotJson,
+    peakAccelMagnitude: peakAccelMagnitude.present
+        ? peakAccelMagnitude.value
+        : this.peakAccelMagnitude,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    questionSpoken: questionSpoken ?? this.questionSpoken,
+    riderAnswerRaw: riderAnswerRaw.present
+        ? riderAnswerRaw.value
+        : this.riderAnswerRaw,
+    transcriptConfidence: transcriptConfidence.present
+        ? transcriptConfidence.value
+        : this.transcriptConfidence,
+    resolvedLabel: resolvedLabel.present
+        ? resolvedLabel.value
+        : this.resolvedLabel,
+    promoted: promoted ?? this.promoted,
+    promotedRoadEventId: promotedRoadEventId.present
+        ? promotedRoadEventId.value
+        : this.promotedRoadEventId,
+    detectedAtUtc: detectedAtUtc ?? this.detectedAtUtc,
+    answeredAtUtc: answeredAtUtc.present
+        ? answeredAtUtc.value
+        : this.answeredAtUtc,
+  );
+  UnknownEvent copyWithCompanion(UnknownEventsCompanion data) {
+    return UnknownEvent(
+      id: data.id.present ? data.id.value : this.id,
+      tripId: data.tripId.present ? data.tripId.value : this.tripId,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      imuSnapshotJson: data.imuSnapshotJson.present
+          ? data.imuSnapshotJson.value
+          : this.imuSnapshotJson,
+      peakAccelMagnitude: data.peakAccelMagnitude.present
+          ? data.peakAccelMagnitude.value
+          : this.peakAccelMagnitude,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      questionSpoken: data.questionSpoken.present
+          ? data.questionSpoken.value
+          : this.questionSpoken,
+      riderAnswerRaw: data.riderAnswerRaw.present
+          ? data.riderAnswerRaw.value
+          : this.riderAnswerRaw,
+      transcriptConfidence: data.transcriptConfidence.present
+          ? data.transcriptConfidence.value
+          : this.transcriptConfidence,
+      resolvedLabel: data.resolvedLabel.present
+          ? data.resolvedLabel.value
+          : this.resolvedLabel,
+      promoted: data.promoted.present ? data.promoted.value : this.promoted,
+      promotedRoadEventId: data.promotedRoadEventId.present
+          ? data.promotedRoadEventId.value
+          : this.promotedRoadEventId,
+      detectedAtUtc: data.detectedAtUtc.present
+          ? data.detectedAtUtc.value
+          : this.detectedAtUtc,
+      answeredAtUtc: data.answeredAtUtc.present
+          ? data.answeredAtUtc.value
+          : this.answeredAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UnknownEvent(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('imuSnapshotJson: $imuSnapshotJson, ')
+          ..write('peakAccelMagnitude: $peakAccelMagnitude, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('questionSpoken: $questionSpoken, ')
+          ..write('riderAnswerRaw: $riderAnswerRaw, ')
+          ..write('transcriptConfidence: $transcriptConfidence, ')
+          ..write('resolvedLabel: $resolvedLabel, ')
+          ..write('promoted: $promoted, ')
+          ..write('promotedRoadEventId: $promotedRoadEventId, ')
+          ..write('detectedAtUtc: $detectedAtUtc, ')
+          ..write('answeredAtUtc: $answeredAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    tripId,
+    latitude,
+    longitude,
+    imuSnapshotJson,
+    peakAccelMagnitude,
+    durationMs,
+    questionSpoken,
+    riderAnswerRaw,
+    transcriptConfidence,
+    resolvedLabel,
+    promoted,
+    promotedRoadEventId,
+    detectedAtUtc,
+    answeredAtUtc,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is UnknownEvent &&
+          other.id == this.id &&
+          other.tripId == this.tripId &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.imuSnapshotJson == this.imuSnapshotJson &&
+          other.peakAccelMagnitude == this.peakAccelMagnitude &&
+          other.durationMs == this.durationMs &&
+          other.questionSpoken == this.questionSpoken &&
+          other.riderAnswerRaw == this.riderAnswerRaw &&
+          other.transcriptConfidence == this.transcriptConfidence &&
+          other.resolvedLabel == this.resolvedLabel &&
+          other.promoted == this.promoted &&
+          other.promotedRoadEventId == this.promotedRoadEventId &&
+          other.detectedAtUtc == this.detectedAtUtc &&
+          other.answeredAtUtc == this.answeredAtUtc);
+}
+
+class UnknownEventsCompanion extends UpdateCompanion<UnknownEvent> {
+  final Value<int> id;
+  final Value<int?> tripId;
+  final Value<double?> latitude;
+  final Value<double?> longitude;
+  final Value<String?> imuSnapshotJson;
+  final Value<double?> peakAccelMagnitude;
+  final Value<int?> durationMs;
+  final Value<String> questionSpoken;
+  final Value<String?> riderAnswerRaw;
+  final Value<double?> transcriptConfidence;
+  final Value<String?> resolvedLabel;
+  final Value<bool> promoted;
+  final Value<int?> promotedRoadEventId;
+  final Value<DateTime> detectedAtUtc;
+  final Value<DateTime?> answeredAtUtc;
+  const UnknownEventsCompanion({
+    this.id = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.imuSnapshotJson = const Value.absent(),
+    this.peakAccelMagnitude = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.questionSpoken = const Value.absent(),
+    this.riderAnswerRaw = const Value.absent(),
+    this.transcriptConfidence = const Value.absent(),
+    this.resolvedLabel = const Value.absent(),
+    this.promoted = const Value.absent(),
+    this.promotedRoadEventId = const Value.absent(),
+    this.detectedAtUtc = const Value.absent(),
+    this.answeredAtUtc = const Value.absent(),
+  });
+  UnknownEventsCompanion.insert({
+    this.id = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.imuSnapshotJson = const Value.absent(),
+    this.peakAccelMagnitude = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    required String questionSpoken,
+    this.riderAnswerRaw = const Value.absent(),
+    this.transcriptConfidence = const Value.absent(),
+    this.resolvedLabel = const Value.absent(),
+    this.promoted = const Value.absent(),
+    this.promotedRoadEventId = const Value.absent(),
+    required DateTime detectedAtUtc,
+    this.answeredAtUtc = const Value.absent(),
+  }) : questionSpoken = Value(questionSpoken),
+       detectedAtUtc = Value(detectedAtUtc);
+  static Insertable<UnknownEvent> custom({
+    Expression<int>? id,
+    Expression<int>? tripId,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<String>? imuSnapshotJson,
+    Expression<double>? peakAccelMagnitude,
+    Expression<int>? durationMs,
+    Expression<String>? questionSpoken,
+    Expression<String>? riderAnswerRaw,
+    Expression<double>? transcriptConfidence,
+    Expression<String>? resolvedLabel,
+    Expression<bool>? promoted,
+    Expression<int>? promotedRoadEventId,
+    Expression<DateTime>? detectedAtUtc,
+    Expression<DateTime>? answeredAtUtc,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (tripId != null) 'trip_id': tripId,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (imuSnapshotJson != null) 'imu_snapshot_json': imuSnapshotJson,
+      if (peakAccelMagnitude != null)
+        'peak_accel_magnitude': peakAccelMagnitude,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (questionSpoken != null) 'question_spoken': questionSpoken,
+      if (riderAnswerRaw != null) 'rider_answer_raw': riderAnswerRaw,
+      if (transcriptConfidence != null)
+        'transcript_confidence': transcriptConfidence,
+      if (resolvedLabel != null) 'resolved_label': resolvedLabel,
+      if (promoted != null) 'promoted': promoted,
+      if (promotedRoadEventId != null)
+        'promoted_road_event_id': promotedRoadEventId,
+      if (detectedAtUtc != null) 'detected_at_utc': detectedAtUtc,
+      if (answeredAtUtc != null) 'answered_at_utc': answeredAtUtc,
+    });
+  }
+
+  UnknownEventsCompanion copyWith({
+    Value<int>? id,
+    Value<int?>? tripId,
+    Value<double?>? latitude,
+    Value<double?>? longitude,
+    Value<String?>? imuSnapshotJson,
+    Value<double?>? peakAccelMagnitude,
+    Value<int?>? durationMs,
+    Value<String>? questionSpoken,
+    Value<String?>? riderAnswerRaw,
+    Value<double?>? transcriptConfidence,
+    Value<String?>? resolvedLabel,
+    Value<bool>? promoted,
+    Value<int?>? promotedRoadEventId,
+    Value<DateTime>? detectedAtUtc,
+    Value<DateTime?>? answeredAtUtc,
+  }) {
+    return UnknownEventsCompanion(
+      id: id ?? this.id,
+      tripId: tripId ?? this.tripId,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      imuSnapshotJson: imuSnapshotJson ?? this.imuSnapshotJson,
+      peakAccelMagnitude: peakAccelMagnitude ?? this.peakAccelMagnitude,
+      durationMs: durationMs ?? this.durationMs,
+      questionSpoken: questionSpoken ?? this.questionSpoken,
+      riderAnswerRaw: riderAnswerRaw ?? this.riderAnswerRaw,
+      transcriptConfidence: transcriptConfidence ?? this.transcriptConfidence,
+      resolvedLabel: resolvedLabel ?? this.resolvedLabel,
+      promoted: promoted ?? this.promoted,
+      promotedRoadEventId: promotedRoadEventId ?? this.promotedRoadEventId,
+      detectedAtUtc: detectedAtUtc ?? this.detectedAtUtc,
+      answeredAtUtc: answeredAtUtc ?? this.answeredAtUtc,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (tripId.present) {
+      map['trip_id'] = Variable<int>(tripId.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (imuSnapshotJson.present) {
+      map['imu_snapshot_json'] = Variable<String>(imuSnapshotJson.value);
+    }
+    if (peakAccelMagnitude.present) {
+      map['peak_accel_magnitude'] = Variable<double>(peakAccelMagnitude.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (questionSpoken.present) {
+      map['question_spoken'] = Variable<String>(questionSpoken.value);
+    }
+    if (riderAnswerRaw.present) {
+      map['rider_answer_raw'] = Variable<String>(riderAnswerRaw.value);
+    }
+    if (transcriptConfidence.present) {
+      map['transcript_confidence'] = Variable<double>(
+        transcriptConfidence.value,
+      );
+    }
+    if (resolvedLabel.present) {
+      map['resolved_label'] = Variable<String>(resolvedLabel.value);
+    }
+    if (promoted.present) {
+      map['promoted'] = Variable<bool>(promoted.value);
+    }
+    if (promotedRoadEventId.present) {
+      map['promoted_road_event_id'] = Variable<int>(promotedRoadEventId.value);
+    }
+    if (detectedAtUtc.present) {
+      map['detected_at_utc'] = Variable<DateTime>(detectedAtUtc.value);
+    }
+    if (answeredAtUtc.present) {
+      map['answered_at_utc'] = Variable<DateTime>(answeredAtUtc.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('UnknownEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('imuSnapshotJson: $imuSnapshotJson, ')
+          ..write('peakAccelMagnitude: $peakAccelMagnitude, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('questionSpoken: $questionSpoken, ')
+          ..write('riderAnswerRaw: $riderAnswerRaw, ')
+          ..write('transcriptConfidence: $transcriptConfidence, ')
+          ..write('resolvedLabel: $resolvedLabel, ')
+          ..write('promoted: $promoted, ')
+          ..write('promotedRoadEventId: $promotedRoadEventId, ')
+          ..write('detectedAtUtc: $detectedAtUtc, ')
+          ..write('answeredAtUtc: $answeredAtUtc')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CameraCapturesTable extends CameraCaptures
+    with TableInfo<$CameraCapturesTable, CameraCapture> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CameraCapturesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _captureKeyMeta = const VerificationMeta(
+    'captureKey',
+  );
+  @override
+  late final GeneratedColumn<String> captureKey = GeneratedColumn<String>(
+    'capture_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sequenceNoMeta = const VerificationMeta(
+    'sequenceNo',
+  );
+  @override
+  late final GeneratedColumn<int> sequenceNo = GeneratedColumn<int>(
+    'sequence_no',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _capturedAtUtcMeta = const VerificationMeta(
+    'capturedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> capturedAtUtc =
+      GeneratedColumn<DateTime>(
+        'captured_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _receivedAtUtcMeta = const VerificationMeta(
+    'receivedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> receivedAtUtc =
+      GeneratedColumn<DateTime>(
+        'received_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _tripIdMeta = const VerificationMeta('tripId');
+  @override
+  late final GeneratedColumn<int> tripId = GeneratedColumn<int>(
+    'trip_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _linkedEventIdMeta = const VerificationMeta(
+    'linkedEventId',
+  );
+  @override
+  late final GeneratedColumn<int> linkedEventId = GeneratedColumn<int>(
+    'linked_event_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _filePathMeta = const VerificationMeta(
+    'filePath',
+  );
+  @override
+  late final GeneratedColumn<String> filePath = GeneratedColumn<String>(
+    'file_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mimeTypeMeta = const VerificationMeta(
+    'mimeType',
+  );
+  @override
+  late final GeneratedColumn<String> mimeType = GeneratedColumn<String>(
+    'mime_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('image/jpeg'),
+  );
+  static const VerificationMeta _widthMeta = const VerificationMeta('width');
+  @override
+  late final GeneratedColumn<int> width = GeneratedColumn<int>(
+    'width',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _heightMeta = const VerificationMeta('height');
+  @override
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+    'height',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _byteLengthMeta = const VerificationMeta(
+    'byteLength',
+  );
+  @override
+  late final GeneratedColumn<int> byteLength = GeneratedColumn<int>(
+    'byte_length',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sha256Meta = const VerificationMeta('sha256');
+  @override
+  late final GeneratedColumn<String> sha256 = GeneratedColumn<String>(
+    'sha256',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _triggerMeta = const VerificationMeta(
+    'trigger',
+  );
+  @override
+  late final GeneratedColumn<String> trigger = GeneratedColumn<String>(
+    'trigger',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('manual'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    captureKey,
+    deviceId,
+    sequenceNo,
+    capturedAtUtc,
+    receivedAtUtc,
+    tripId,
+    linkedEventId,
+    filePath,
+    mimeType,
+    width,
+    height,
+    byteLength,
+    sha256,
+    trigger,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'camera_captures';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CameraCapture> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('capture_key')) {
+      context.handle(
+        _captureKeyMeta,
+        captureKey.isAcceptableOrUnknown(data['capture_key']!, _captureKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_captureKeyMeta);
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('sequence_no')) {
+      context.handle(
+        _sequenceNoMeta,
+        sequenceNo.isAcceptableOrUnknown(data['sequence_no']!, _sequenceNoMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sequenceNoMeta);
+    }
+    if (data.containsKey('captured_at_utc')) {
+      context.handle(
+        _capturedAtUtcMeta,
+        capturedAtUtc.isAcceptableOrUnknown(
+          data['captured_at_utc']!,
+          _capturedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_capturedAtUtcMeta);
+    }
+    if (data.containsKey('received_at_utc')) {
+      context.handle(
+        _receivedAtUtcMeta,
+        receivedAtUtc.isAcceptableOrUnknown(
+          data['received_at_utc']!,
+          _receivedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_receivedAtUtcMeta);
+    }
+    if (data.containsKey('trip_id')) {
+      context.handle(
+        _tripIdMeta,
+        tripId.isAcceptableOrUnknown(data['trip_id']!, _tripIdMeta),
+      );
+    }
+    if (data.containsKey('linked_event_id')) {
+      context.handle(
+        _linkedEventIdMeta,
+        linkedEventId.isAcceptableOrUnknown(
+          data['linked_event_id']!,
+          _linkedEventIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('file_path')) {
+      context.handle(
+        _filePathMeta,
+        filePath.isAcceptableOrUnknown(data['file_path']!, _filePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_filePathMeta);
+    }
+    if (data.containsKey('mime_type')) {
+      context.handle(
+        _mimeTypeMeta,
+        mimeType.isAcceptableOrUnknown(data['mime_type']!, _mimeTypeMeta),
+      );
+    }
+    if (data.containsKey('width')) {
+      context.handle(
+        _widthMeta,
+        width.isAcceptableOrUnknown(data['width']!, _widthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_widthMeta);
+    }
+    if (data.containsKey('height')) {
+      context.handle(
+        _heightMeta,
+        height.isAcceptableOrUnknown(data['height']!, _heightMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_heightMeta);
+    }
+    if (data.containsKey('byte_length')) {
+      context.handle(
+        _byteLengthMeta,
+        byteLength.isAcceptableOrUnknown(data['byte_length']!, _byteLengthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_byteLengthMeta);
+    }
+    if (data.containsKey('sha256')) {
+      context.handle(
+        _sha256Meta,
+        sha256.isAcceptableOrUnknown(data['sha256']!, _sha256Meta),
+      );
+    } else if (isInserting) {
+      context.missing(_sha256Meta);
+    }
+    if (data.containsKey('trigger')) {
+      context.handle(
+        _triggerMeta,
+        trigger.isAcceptableOrUnknown(data['trigger']!, _triggerMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {deviceId, sequenceNo},
+  ];
+  @override
+  CameraCapture map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CameraCapture(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      captureKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}capture_key'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      sequenceNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sequence_no'],
+      )!,
+      capturedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}captured_at_utc'],
+      )!,
+      receivedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}received_at_utc'],
+      )!,
+      tripId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}trip_id'],
+      ),
+      linkedEventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}linked_event_id'],
+      ),
+      filePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_path'],
+      )!,
+      mimeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime_type'],
+      )!,
+      width: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width'],
+      )!,
+      height: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height'],
+      )!,
+      byteLength: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}byte_length'],
+      )!,
+      sha256: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sha256'],
+      )!,
+      trigger: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}trigger'],
+      )!,
+    );
+  }
+
+  @override
+  $CameraCapturesTable createAlias(String alias) {
+    return $CameraCapturesTable(attachedDatabase, alias);
+  }
+}
+
+class CameraCapture extends DataClass implements Insertable<CameraCapture> {
+  final int id;
+  final String captureKey;
+  final String deviceId;
+  final int sequenceNo;
+  final DateTime capturedAtUtc;
+  final DateTime receivedAtUtc;
+  final int? tripId;
+  final int? linkedEventId;
+  final String filePath;
+  final String mimeType;
+  final int width;
+  final int height;
+  final int byteLength;
+  final String sha256;
+
+  /// manual | camera_button | incident | interval
+  final String trigger;
+  const CameraCapture({
+    required this.id,
+    required this.captureKey,
+    required this.deviceId,
+    required this.sequenceNo,
+    required this.capturedAtUtc,
+    required this.receivedAtUtc,
+    this.tripId,
+    this.linkedEventId,
+    required this.filePath,
+    required this.mimeType,
+    required this.width,
+    required this.height,
+    required this.byteLength,
+    required this.sha256,
+    required this.trigger,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['capture_key'] = Variable<String>(captureKey);
+    map['device_id'] = Variable<String>(deviceId);
+    map['sequence_no'] = Variable<int>(sequenceNo);
+    map['captured_at_utc'] = Variable<DateTime>(capturedAtUtc);
+    map['received_at_utc'] = Variable<DateTime>(receivedAtUtc);
+    if (!nullToAbsent || tripId != null) {
+      map['trip_id'] = Variable<int>(tripId);
+    }
+    if (!nullToAbsent || linkedEventId != null) {
+      map['linked_event_id'] = Variable<int>(linkedEventId);
+    }
+    map['file_path'] = Variable<String>(filePath);
+    map['mime_type'] = Variable<String>(mimeType);
+    map['width'] = Variable<int>(width);
+    map['height'] = Variable<int>(height);
+    map['byte_length'] = Variable<int>(byteLength);
+    map['sha256'] = Variable<String>(sha256);
+    map['trigger'] = Variable<String>(trigger);
+    return map;
+  }
+
+  CameraCapturesCompanion toCompanion(bool nullToAbsent) {
+    return CameraCapturesCompanion(
+      id: Value(id),
+      captureKey: Value(captureKey),
+      deviceId: Value(deviceId),
+      sequenceNo: Value(sequenceNo),
+      capturedAtUtc: Value(capturedAtUtc),
+      receivedAtUtc: Value(receivedAtUtc),
+      tripId: tripId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tripId),
+      linkedEventId: linkedEventId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(linkedEventId),
+      filePath: Value(filePath),
+      mimeType: Value(mimeType),
+      width: Value(width),
+      height: Value(height),
+      byteLength: Value(byteLength),
+      sha256: Value(sha256),
+      trigger: Value(trigger),
+    );
+  }
+
+  factory CameraCapture.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CameraCapture(
+      id: serializer.fromJson<int>(json['id']),
+      captureKey: serializer.fromJson<String>(json['captureKey']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      sequenceNo: serializer.fromJson<int>(json['sequenceNo']),
+      capturedAtUtc: serializer.fromJson<DateTime>(json['capturedAtUtc']),
+      receivedAtUtc: serializer.fromJson<DateTime>(json['receivedAtUtc']),
+      tripId: serializer.fromJson<int?>(json['tripId']),
+      linkedEventId: serializer.fromJson<int?>(json['linkedEventId']),
+      filePath: serializer.fromJson<String>(json['filePath']),
+      mimeType: serializer.fromJson<String>(json['mimeType']),
+      width: serializer.fromJson<int>(json['width']),
+      height: serializer.fromJson<int>(json['height']),
+      byteLength: serializer.fromJson<int>(json['byteLength']),
+      sha256: serializer.fromJson<String>(json['sha256']),
+      trigger: serializer.fromJson<String>(json['trigger']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'captureKey': serializer.toJson<String>(captureKey),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'sequenceNo': serializer.toJson<int>(sequenceNo),
+      'capturedAtUtc': serializer.toJson<DateTime>(capturedAtUtc),
+      'receivedAtUtc': serializer.toJson<DateTime>(receivedAtUtc),
+      'tripId': serializer.toJson<int?>(tripId),
+      'linkedEventId': serializer.toJson<int?>(linkedEventId),
+      'filePath': serializer.toJson<String>(filePath),
+      'mimeType': serializer.toJson<String>(mimeType),
+      'width': serializer.toJson<int>(width),
+      'height': serializer.toJson<int>(height),
+      'byteLength': serializer.toJson<int>(byteLength),
+      'sha256': serializer.toJson<String>(sha256),
+      'trigger': serializer.toJson<String>(trigger),
+    };
+  }
+
+  CameraCapture copyWith({
+    int? id,
+    String? captureKey,
+    String? deviceId,
+    int? sequenceNo,
+    DateTime? capturedAtUtc,
+    DateTime? receivedAtUtc,
+    Value<int?> tripId = const Value.absent(),
+    Value<int?> linkedEventId = const Value.absent(),
+    String? filePath,
+    String? mimeType,
+    int? width,
+    int? height,
+    int? byteLength,
+    String? sha256,
+    String? trigger,
+  }) => CameraCapture(
+    id: id ?? this.id,
+    captureKey: captureKey ?? this.captureKey,
+    deviceId: deviceId ?? this.deviceId,
+    sequenceNo: sequenceNo ?? this.sequenceNo,
+    capturedAtUtc: capturedAtUtc ?? this.capturedAtUtc,
+    receivedAtUtc: receivedAtUtc ?? this.receivedAtUtc,
+    tripId: tripId.present ? tripId.value : this.tripId,
+    linkedEventId: linkedEventId.present
+        ? linkedEventId.value
+        : this.linkedEventId,
+    filePath: filePath ?? this.filePath,
+    mimeType: mimeType ?? this.mimeType,
+    width: width ?? this.width,
+    height: height ?? this.height,
+    byteLength: byteLength ?? this.byteLength,
+    sha256: sha256 ?? this.sha256,
+    trigger: trigger ?? this.trigger,
+  );
+  CameraCapture copyWithCompanion(CameraCapturesCompanion data) {
+    return CameraCapture(
+      id: data.id.present ? data.id.value : this.id,
+      captureKey: data.captureKey.present
+          ? data.captureKey.value
+          : this.captureKey,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      sequenceNo: data.sequenceNo.present
+          ? data.sequenceNo.value
+          : this.sequenceNo,
+      capturedAtUtc: data.capturedAtUtc.present
+          ? data.capturedAtUtc.value
+          : this.capturedAtUtc,
+      receivedAtUtc: data.receivedAtUtc.present
+          ? data.receivedAtUtc.value
+          : this.receivedAtUtc,
+      tripId: data.tripId.present ? data.tripId.value : this.tripId,
+      linkedEventId: data.linkedEventId.present
+          ? data.linkedEventId.value
+          : this.linkedEventId,
+      filePath: data.filePath.present ? data.filePath.value : this.filePath,
+      mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
+      width: data.width.present ? data.width.value : this.width,
+      height: data.height.present ? data.height.value : this.height,
+      byteLength: data.byteLength.present
+          ? data.byteLength.value
+          : this.byteLength,
+      sha256: data.sha256.present ? data.sha256.value : this.sha256,
+      trigger: data.trigger.present ? data.trigger.value : this.trigger,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CameraCapture(')
+          ..write('id: $id, ')
+          ..write('captureKey: $captureKey, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('sequenceNo: $sequenceNo, ')
+          ..write('capturedAtUtc: $capturedAtUtc, ')
+          ..write('receivedAtUtc: $receivedAtUtc, ')
+          ..write('tripId: $tripId, ')
+          ..write('linkedEventId: $linkedEventId, ')
+          ..write('filePath: $filePath, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('byteLength: $byteLength, ')
+          ..write('sha256: $sha256, ')
+          ..write('trigger: $trigger')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    captureKey,
+    deviceId,
+    sequenceNo,
+    capturedAtUtc,
+    receivedAtUtc,
+    tripId,
+    linkedEventId,
+    filePath,
+    mimeType,
+    width,
+    height,
+    byteLength,
+    sha256,
+    trigger,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CameraCapture &&
+          other.id == this.id &&
+          other.captureKey == this.captureKey &&
+          other.deviceId == this.deviceId &&
+          other.sequenceNo == this.sequenceNo &&
+          other.capturedAtUtc == this.capturedAtUtc &&
+          other.receivedAtUtc == this.receivedAtUtc &&
+          other.tripId == this.tripId &&
+          other.linkedEventId == this.linkedEventId &&
+          other.filePath == this.filePath &&
+          other.mimeType == this.mimeType &&
+          other.width == this.width &&
+          other.height == this.height &&
+          other.byteLength == this.byteLength &&
+          other.sha256 == this.sha256 &&
+          other.trigger == this.trigger);
+}
+
+class CameraCapturesCompanion extends UpdateCompanion<CameraCapture> {
+  final Value<int> id;
+  final Value<String> captureKey;
+  final Value<String> deviceId;
+  final Value<int> sequenceNo;
+  final Value<DateTime> capturedAtUtc;
+  final Value<DateTime> receivedAtUtc;
+  final Value<int?> tripId;
+  final Value<int?> linkedEventId;
+  final Value<String> filePath;
+  final Value<String> mimeType;
+  final Value<int> width;
+  final Value<int> height;
+  final Value<int> byteLength;
+  final Value<String> sha256;
+  final Value<String> trigger;
+  const CameraCapturesCompanion({
+    this.id = const Value.absent(),
+    this.captureKey = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.sequenceNo = const Value.absent(),
+    this.capturedAtUtc = const Value.absent(),
+    this.receivedAtUtc = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.linkedEventId = const Value.absent(),
+    this.filePath = const Value.absent(),
+    this.mimeType = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    this.byteLength = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.trigger = const Value.absent(),
+  });
+  CameraCapturesCompanion.insert({
+    this.id = const Value.absent(),
+    required String captureKey,
+    required String deviceId,
+    required int sequenceNo,
+    required DateTime capturedAtUtc,
+    required DateTime receivedAtUtc,
+    this.tripId = const Value.absent(),
+    this.linkedEventId = const Value.absent(),
+    required String filePath,
+    this.mimeType = const Value.absent(),
+    required int width,
+    required int height,
+    required int byteLength,
+    required String sha256,
+    this.trigger = const Value.absent(),
+  }) : captureKey = Value(captureKey),
+       deviceId = Value(deviceId),
+       sequenceNo = Value(sequenceNo),
+       capturedAtUtc = Value(capturedAtUtc),
+       receivedAtUtc = Value(receivedAtUtc),
+       filePath = Value(filePath),
+       width = Value(width),
+       height = Value(height),
+       byteLength = Value(byteLength),
+       sha256 = Value(sha256);
+  static Insertable<CameraCapture> custom({
+    Expression<int>? id,
+    Expression<String>? captureKey,
+    Expression<String>? deviceId,
+    Expression<int>? sequenceNo,
+    Expression<DateTime>? capturedAtUtc,
+    Expression<DateTime>? receivedAtUtc,
+    Expression<int>? tripId,
+    Expression<int>? linkedEventId,
+    Expression<String>? filePath,
+    Expression<String>? mimeType,
+    Expression<int>? width,
+    Expression<int>? height,
+    Expression<int>? byteLength,
+    Expression<String>? sha256,
+    Expression<String>? trigger,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (captureKey != null) 'capture_key': captureKey,
+      if (deviceId != null) 'device_id': deviceId,
+      if (sequenceNo != null) 'sequence_no': sequenceNo,
+      if (capturedAtUtc != null) 'captured_at_utc': capturedAtUtc,
+      if (receivedAtUtc != null) 'received_at_utc': receivedAtUtc,
+      if (tripId != null) 'trip_id': tripId,
+      if (linkedEventId != null) 'linked_event_id': linkedEventId,
+      if (filePath != null) 'file_path': filePath,
+      if (mimeType != null) 'mime_type': mimeType,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
+      if (byteLength != null) 'byte_length': byteLength,
+      if (sha256 != null) 'sha256': sha256,
+      if (trigger != null) 'trigger': trigger,
+    });
+  }
+
+  CameraCapturesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? captureKey,
+    Value<String>? deviceId,
+    Value<int>? sequenceNo,
+    Value<DateTime>? capturedAtUtc,
+    Value<DateTime>? receivedAtUtc,
+    Value<int?>? tripId,
+    Value<int?>? linkedEventId,
+    Value<String>? filePath,
+    Value<String>? mimeType,
+    Value<int>? width,
+    Value<int>? height,
+    Value<int>? byteLength,
+    Value<String>? sha256,
+    Value<String>? trigger,
+  }) {
+    return CameraCapturesCompanion(
+      id: id ?? this.id,
+      captureKey: captureKey ?? this.captureKey,
+      deviceId: deviceId ?? this.deviceId,
+      sequenceNo: sequenceNo ?? this.sequenceNo,
+      capturedAtUtc: capturedAtUtc ?? this.capturedAtUtc,
+      receivedAtUtc: receivedAtUtc ?? this.receivedAtUtc,
+      tripId: tripId ?? this.tripId,
+      linkedEventId: linkedEventId ?? this.linkedEventId,
+      filePath: filePath ?? this.filePath,
+      mimeType: mimeType ?? this.mimeType,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      byteLength: byteLength ?? this.byteLength,
+      sha256: sha256 ?? this.sha256,
+      trigger: trigger ?? this.trigger,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (captureKey.present) {
+      map['capture_key'] = Variable<String>(captureKey.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (sequenceNo.present) {
+      map['sequence_no'] = Variable<int>(sequenceNo.value);
+    }
+    if (capturedAtUtc.present) {
+      map['captured_at_utc'] = Variable<DateTime>(capturedAtUtc.value);
+    }
+    if (receivedAtUtc.present) {
+      map['received_at_utc'] = Variable<DateTime>(receivedAtUtc.value);
+    }
+    if (tripId.present) {
+      map['trip_id'] = Variable<int>(tripId.value);
+    }
+    if (linkedEventId.present) {
+      map['linked_event_id'] = Variable<int>(linkedEventId.value);
+    }
+    if (filePath.present) {
+      map['file_path'] = Variable<String>(filePath.value);
+    }
+    if (mimeType.present) {
+      map['mime_type'] = Variable<String>(mimeType.value);
+    }
+    if (width.present) {
+      map['width'] = Variable<int>(width.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
+    if (byteLength.present) {
+      map['byte_length'] = Variable<int>(byteLength.value);
+    }
+    if (sha256.present) {
+      map['sha256'] = Variable<String>(sha256.value);
+    }
+    if (trigger.present) {
+      map['trigger'] = Variable<String>(trigger.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CameraCapturesCompanion(')
+          ..write('id: $id, ')
+          ..write('captureKey: $captureKey, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('sequenceNo: $sequenceNo, ')
+          ..write('capturedAtUtc: $capturedAtUtc, ')
+          ..write('receivedAtUtc: $receivedAtUtc, ')
+          ..write('tripId: $tripId, ')
+          ..write('linkedEventId: $linkedEventId, ')
+          ..write('filePath: $filePath, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('byteLength: $byteLength, ')
+          ..write('sha256: $sha256, ')
+          ..write('trigger: $trigger')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -8645,6 +10929,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $RoadEventsTable roadEvents = $RoadEventsTable(this);
   late final $PreAlertsTable preAlerts = $PreAlertsTable(this);
   late final $EventFeedbacksTable eventFeedbacks = $EventFeedbacksTable(this);
+  late final $UnknownEventsTable unknownEvents = $UnknownEventsTable(this);
+  late final $CameraCapturesTable cameraCaptures = $CameraCapturesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -8659,6 +10945,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     roadEvents,
     preAlerts,
     eventFeedbacks,
+    unknownEvents,
+    cameraCaptures,
   ];
 }
 
@@ -8682,6 +10970,15 @@ typedef $$SensorReadingsTableCreateCompanionBuilder =
       Value<double?> gyroZ,
       Value<int?> ppiMs,
       Value<double?> gpsSpeedKmh,
+      Value<double?> linearAccelX,
+      Value<double?> linearAccelY,
+      Value<double?> linearAccelZ,
+      Value<double?> quatW,
+      Value<double?> quatX,
+      Value<double?> quatY,
+      Value<double?> quatZ,
+      Value<int?> timestampMonotonicMicros,
+      Value<double?> barometerAltitudeM,
       Value<String?> rawPayload,
     });
 typedef $$SensorReadingsTableUpdateCompanionBuilder =
@@ -8704,6 +11001,15 @@ typedef $$SensorReadingsTableUpdateCompanionBuilder =
       Value<double?> gyroZ,
       Value<int?> ppiMs,
       Value<double?> gpsSpeedKmh,
+      Value<double?> linearAccelX,
+      Value<double?> linearAccelY,
+      Value<double?> linearAccelZ,
+      Value<double?> quatW,
+      Value<double?> quatX,
+      Value<double?> quatY,
+      Value<double?> quatZ,
+      Value<int?> timestampMonotonicMicros,
+      Value<double?> barometerAltitudeM,
       Value<String?> rawPayload,
     });
 
@@ -8803,6 +11109,51 @@ class $$SensorReadingsTableFilterComposer
 
   ColumnFilters<double> get gpsSpeedKmh => $composableBuilder(
     column: $table.gpsSpeedKmh,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get linearAccelX => $composableBuilder(
+    column: $table.linearAccelX,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get linearAccelY => $composableBuilder(
+    column: $table.linearAccelY,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get linearAccelZ => $composableBuilder(
+    column: $table.linearAccelZ,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get quatW => $composableBuilder(
+    column: $table.quatW,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get quatX => $composableBuilder(
+    column: $table.quatX,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get quatY => $composableBuilder(
+    column: $table.quatY,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get quatZ => $composableBuilder(
+    column: $table.quatZ,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get timestampMonotonicMicros => $composableBuilder(
+    column: $table.timestampMonotonicMicros,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get barometerAltitudeM => $composableBuilder(
+    column: $table.barometerAltitudeM,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8911,6 +11262,51 @@ class $$SensorReadingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get linearAccelX => $composableBuilder(
+    column: $table.linearAccelX,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get linearAccelY => $composableBuilder(
+    column: $table.linearAccelY,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get linearAccelZ => $composableBuilder(
+    column: $table.linearAccelZ,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get quatW => $composableBuilder(
+    column: $table.quatW,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get quatX => $composableBuilder(
+    column: $table.quatX,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get quatY => $composableBuilder(
+    column: $table.quatY,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get quatZ => $composableBuilder(
+    column: $table.quatZ,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get timestampMonotonicMicros => $composableBuilder(
+    column: $table.timestampMonotonicMicros,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get barometerAltitudeM => $composableBuilder(
+    column: $table.barometerAltitudeM,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get rawPayload => $composableBuilder(
     column: $table.rawPayload,
     builder: (column) => ColumnOrderings(column),
@@ -8992,6 +11388,43 @@ class $$SensorReadingsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<double> get linearAccelX => $composableBuilder(
+    column: $table.linearAccelX,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get linearAccelY => $composableBuilder(
+    column: $table.linearAccelY,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get linearAccelZ => $composableBuilder(
+    column: $table.linearAccelZ,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get quatW =>
+      $composableBuilder(column: $table.quatW, builder: (column) => column);
+
+  GeneratedColumn<double> get quatX =>
+      $composableBuilder(column: $table.quatX, builder: (column) => column);
+
+  GeneratedColumn<double> get quatY =>
+      $composableBuilder(column: $table.quatY, builder: (column) => column);
+
+  GeneratedColumn<double> get quatZ =>
+      $composableBuilder(column: $table.quatZ, builder: (column) => column);
+
+  GeneratedColumn<int> get timestampMonotonicMicros => $composableBuilder(
+    column: $table.timestampMonotonicMicros,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get barometerAltitudeM => $composableBuilder(
+    column: $table.barometerAltitudeM,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get rawPayload => $composableBuilder(
     column: $table.rawPayload,
     builder: (column) => column,
@@ -9049,6 +11482,15 @@ class $$SensorReadingsTableTableManager
                 Value<double?> gyroZ = const Value.absent(),
                 Value<int?> ppiMs = const Value.absent(),
                 Value<double?> gpsSpeedKmh = const Value.absent(),
+                Value<double?> linearAccelX = const Value.absent(),
+                Value<double?> linearAccelY = const Value.absent(),
+                Value<double?> linearAccelZ = const Value.absent(),
+                Value<double?> quatW = const Value.absent(),
+                Value<double?> quatX = const Value.absent(),
+                Value<double?> quatY = const Value.absent(),
+                Value<double?> quatZ = const Value.absent(),
+                Value<int?> timestampMonotonicMicros = const Value.absent(),
+                Value<double?> barometerAltitudeM = const Value.absent(),
                 Value<String?> rawPayload = const Value.absent(),
               }) => SensorReadingsCompanion(
                 id: id,
@@ -9069,6 +11511,15 @@ class $$SensorReadingsTableTableManager
                 gyroZ: gyroZ,
                 ppiMs: ppiMs,
                 gpsSpeedKmh: gpsSpeedKmh,
+                linearAccelX: linearAccelX,
+                linearAccelY: linearAccelY,
+                linearAccelZ: linearAccelZ,
+                quatW: quatW,
+                quatX: quatX,
+                quatY: quatY,
+                quatZ: quatZ,
+                timestampMonotonicMicros: timestampMonotonicMicros,
+                barometerAltitudeM: barometerAltitudeM,
                 rawPayload: rawPayload,
               ),
           createCompanionCallback:
@@ -9091,6 +11542,15 @@ class $$SensorReadingsTableTableManager
                 Value<double?> gyroZ = const Value.absent(),
                 Value<int?> ppiMs = const Value.absent(),
                 Value<double?> gpsSpeedKmh = const Value.absent(),
+                Value<double?> linearAccelX = const Value.absent(),
+                Value<double?> linearAccelY = const Value.absent(),
+                Value<double?> linearAccelZ = const Value.absent(),
+                Value<double?> quatW = const Value.absent(),
+                Value<double?> quatX = const Value.absent(),
+                Value<double?> quatY = const Value.absent(),
+                Value<double?> quatZ = const Value.absent(),
+                Value<int?> timestampMonotonicMicros = const Value.absent(),
+                Value<double?> barometerAltitudeM = const Value.absent(),
                 Value<String?> rawPayload = const Value.absent(),
               }) => SensorReadingsCompanion.insert(
                 id: id,
@@ -9111,6 +11571,15 @@ class $$SensorReadingsTableTableManager
                 gyroZ: gyroZ,
                 ppiMs: ppiMs,
                 gpsSpeedKmh: gpsSpeedKmh,
+                linearAccelX: linearAccelX,
+                linearAccelY: linearAccelY,
+                linearAccelZ: linearAccelZ,
+                quatW: quatW,
+                quatX: quatX,
+                quatY: quatY,
+                quatZ: quatZ,
+                timestampMonotonicMicros: timestampMonotonicMicros,
+                barometerAltitudeM: barometerAltitudeM,
                 rawPayload: rawPayload,
               ),
           withReferenceMapper: (p0) => p0
@@ -12486,6 +14955,808 @@ typedef $$EventFeedbacksTableProcessedTableManager =
       EventFeedback,
       PrefetchHooks Function()
     >;
+typedef $$UnknownEventsTableCreateCompanionBuilder =
+    UnknownEventsCompanion Function({
+      Value<int> id,
+      Value<int?> tripId,
+      Value<double?> latitude,
+      Value<double?> longitude,
+      Value<String?> imuSnapshotJson,
+      Value<double?> peakAccelMagnitude,
+      Value<int?> durationMs,
+      required String questionSpoken,
+      Value<String?> riderAnswerRaw,
+      Value<double?> transcriptConfidence,
+      Value<String?> resolvedLabel,
+      Value<bool> promoted,
+      Value<int?> promotedRoadEventId,
+      required DateTime detectedAtUtc,
+      Value<DateTime?> answeredAtUtc,
+    });
+typedef $$UnknownEventsTableUpdateCompanionBuilder =
+    UnknownEventsCompanion Function({
+      Value<int> id,
+      Value<int?> tripId,
+      Value<double?> latitude,
+      Value<double?> longitude,
+      Value<String?> imuSnapshotJson,
+      Value<double?> peakAccelMagnitude,
+      Value<int?> durationMs,
+      Value<String> questionSpoken,
+      Value<String?> riderAnswerRaw,
+      Value<double?> transcriptConfidence,
+      Value<String?> resolvedLabel,
+      Value<bool> promoted,
+      Value<int?> promotedRoadEventId,
+      Value<DateTime> detectedAtUtc,
+      Value<DateTime?> answeredAtUtc,
+    });
+
+class $$UnknownEventsTableFilterComposer
+    extends Composer<_$AppDatabase, $UnknownEventsTable> {
+  $$UnknownEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get imuSnapshotJson => $composableBuilder(
+    column: $table.imuSnapshotJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get peakAccelMagnitude => $composableBuilder(
+    column: $table.peakAccelMagnitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get questionSpoken => $composableBuilder(
+    column: $table.questionSpoken,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get riderAnswerRaw => $composableBuilder(
+    column: $table.riderAnswerRaw,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get transcriptConfidence => $composableBuilder(
+    column: $table.transcriptConfidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get resolvedLabel => $composableBuilder(
+    column: $table.resolvedLabel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get promoted => $composableBuilder(
+    column: $table.promoted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get promotedRoadEventId => $composableBuilder(
+    column: $table.promotedRoadEventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get detectedAtUtc => $composableBuilder(
+    column: $table.detectedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get answeredAtUtc => $composableBuilder(
+    column: $table.answeredAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$UnknownEventsTableOrderingComposer
+    extends Composer<_$AppDatabase, $UnknownEventsTable> {
+  $$UnknownEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get imuSnapshotJson => $composableBuilder(
+    column: $table.imuSnapshotJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get peakAccelMagnitude => $composableBuilder(
+    column: $table.peakAccelMagnitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get questionSpoken => $composableBuilder(
+    column: $table.questionSpoken,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get riderAnswerRaw => $composableBuilder(
+    column: $table.riderAnswerRaw,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get transcriptConfidence => $composableBuilder(
+    column: $table.transcriptConfidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get resolvedLabel => $composableBuilder(
+    column: $table.resolvedLabel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get promoted => $composableBuilder(
+    column: $table.promoted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get promotedRoadEventId => $composableBuilder(
+    column: $table.promotedRoadEventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get detectedAtUtc => $composableBuilder(
+    column: $table.detectedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get answeredAtUtc => $composableBuilder(
+    column: $table.answeredAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$UnknownEventsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $UnknownEventsTable> {
+  $$UnknownEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get tripId =>
+      $composableBuilder(column: $table.tripId, builder: (column) => column);
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<String> get imuSnapshotJson => $composableBuilder(
+    column: $table.imuSnapshotJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get peakAccelMagnitude => $composableBuilder(
+    column: $table.peakAccelMagnitude,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get durationMs => $composableBuilder(
+    column: $table.durationMs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get questionSpoken => $composableBuilder(
+    column: $table.questionSpoken,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get riderAnswerRaw => $composableBuilder(
+    column: $table.riderAnswerRaw,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get transcriptConfidence => $composableBuilder(
+    column: $table.transcriptConfidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get resolvedLabel => $composableBuilder(
+    column: $table.resolvedLabel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get promoted =>
+      $composableBuilder(column: $table.promoted, builder: (column) => column);
+
+  GeneratedColumn<int> get promotedRoadEventId => $composableBuilder(
+    column: $table.promotedRoadEventId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get detectedAtUtc => $composableBuilder(
+    column: $table.detectedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get answeredAtUtc => $composableBuilder(
+    column: $table.answeredAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$UnknownEventsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $UnknownEventsTable,
+          UnknownEvent,
+          $$UnknownEventsTableFilterComposer,
+          $$UnknownEventsTableOrderingComposer,
+          $$UnknownEventsTableAnnotationComposer,
+          $$UnknownEventsTableCreateCompanionBuilder,
+          $$UnknownEventsTableUpdateCompanionBuilder,
+          (
+            UnknownEvent,
+            BaseReferences<_$AppDatabase, $UnknownEventsTable, UnknownEvent>,
+          ),
+          UnknownEvent,
+          PrefetchHooks Function()
+        > {
+  $$UnknownEventsTableTableManager(_$AppDatabase db, $UnknownEventsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$UnknownEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$UnknownEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$UnknownEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> tripId = const Value.absent(),
+                Value<double?> latitude = const Value.absent(),
+                Value<double?> longitude = const Value.absent(),
+                Value<String?> imuSnapshotJson = const Value.absent(),
+                Value<double?> peakAccelMagnitude = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String> questionSpoken = const Value.absent(),
+                Value<String?> riderAnswerRaw = const Value.absent(),
+                Value<double?> transcriptConfidence = const Value.absent(),
+                Value<String?> resolvedLabel = const Value.absent(),
+                Value<bool> promoted = const Value.absent(),
+                Value<int?> promotedRoadEventId = const Value.absent(),
+                Value<DateTime> detectedAtUtc = const Value.absent(),
+                Value<DateTime?> answeredAtUtc = const Value.absent(),
+              }) => UnknownEventsCompanion(
+                id: id,
+                tripId: tripId,
+                latitude: latitude,
+                longitude: longitude,
+                imuSnapshotJson: imuSnapshotJson,
+                peakAccelMagnitude: peakAccelMagnitude,
+                durationMs: durationMs,
+                questionSpoken: questionSpoken,
+                riderAnswerRaw: riderAnswerRaw,
+                transcriptConfidence: transcriptConfidence,
+                resolvedLabel: resolvedLabel,
+                promoted: promoted,
+                promotedRoadEventId: promotedRoadEventId,
+                detectedAtUtc: detectedAtUtc,
+                answeredAtUtc: answeredAtUtc,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int?> tripId = const Value.absent(),
+                Value<double?> latitude = const Value.absent(),
+                Value<double?> longitude = const Value.absent(),
+                Value<String?> imuSnapshotJson = const Value.absent(),
+                Value<double?> peakAccelMagnitude = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                required String questionSpoken,
+                Value<String?> riderAnswerRaw = const Value.absent(),
+                Value<double?> transcriptConfidence = const Value.absent(),
+                Value<String?> resolvedLabel = const Value.absent(),
+                Value<bool> promoted = const Value.absent(),
+                Value<int?> promotedRoadEventId = const Value.absent(),
+                required DateTime detectedAtUtc,
+                Value<DateTime?> answeredAtUtc = const Value.absent(),
+              }) => UnknownEventsCompanion.insert(
+                id: id,
+                tripId: tripId,
+                latitude: latitude,
+                longitude: longitude,
+                imuSnapshotJson: imuSnapshotJson,
+                peakAccelMagnitude: peakAccelMagnitude,
+                durationMs: durationMs,
+                questionSpoken: questionSpoken,
+                riderAnswerRaw: riderAnswerRaw,
+                transcriptConfidence: transcriptConfidence,
+                resolvedLabel: resolvedLabel,
+                promoted: promoted,
+                promotedRoadEventId: promotedRoadEventId,
+                detectedAtUtc: detectedAtUtc,
+                answeredAtUtc: answeredAtUtc,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$UnknownEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $UnknownEventsTable,
+      UnknownEvent,
+      $$UnknownEventsTableFilterComposer,
+      $$UnknownEventsTableOrderingComposer,
+      $$UnknownEventsTableAnnotationComposer,
+      $$UnknownEventsTableCreateCompanionBuilder,
+      $$UnknownEventsTableUpdateCompanionBuilder,
+      (
+        UnknownEvent,
+        BaseReferences<_$AppDatabase, $UnknownEventsTable, UnknownEvent>,
+      ),
+      UnknownEvent,
+      PrefetchHooks Function()
+    >;
+typedef $$CameraCapturesTableCreateCompanionBuilder =
+    CameraCapturesCompanion Function({
+      Value<int> id,
+      required String captureKey,
+      required String deviceId,
+      required int sequenceNo,
+      required DateTime capturedAtUtc,
+      required DateTime receivedAtUtc,
+      Value<int?> tripId,
+      Value<int?> linkedEventId,
+      required String filePath,
+      Value<String> mimeType,
+      required int width,
+      required int height,
+      required int byteLength,
+      required String sha256,
+      Value<String> trigger,
+    });
+typedef $$CameraCapturesTableUpdateCompanionBuilder =
+    CameraCapturesCompanion Function({
+      Value<int> id,
+      Value<String> captureKey,
+      Value<String> deviceId,
+      Value<int> sequenceNo,
+      Value<DateTime> capturedAtUtc,
+      Value<DateTime> receivedAtUtc,
+      Value<int?> tripId,
+      Value<int?> linkedEventId,
+      Value<String> filePath,
+      Value<String> mimeType,
+      Value<int> width,
+      Value<int> height,
+      Value<int> byteLength,
+      Value<String> sha256,
+      Value<String> trigger,
+    });
+
+class $$CameraCapturesTableFilterComposer
+    extends Composer<_$AppDatabase, $CameraCapturesTable> {
+  $$CameraCapturesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get captureKey => $composableBuilder(
+    column: $table.captureKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sequenceNo => $composableBuilder(
+    column: $table.sequenceNo,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get capturedAtUtc => $composableBuilder(
+    column: $table.capturedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get receivedAtUtc => $composableBuilder(
+    column: $table.receivedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get linkedEventId => $composableBuilder(
+    column: $table.linkedEventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get byteLength => $composableBuilder(
+    column: $table.byteLength,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sha256 => $composableBuilder(
+    column: $table.sha256,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get trigger => $composableBuilder(
+    column: $table.trigger,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CameraCapturesTableOrderingComposer
+    extends Composer<_$AppDatabase, $CameraCapturesTable> {
+  $$CameraCapturesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get captureKey => $composableBuilder(
+    column: $table.captureKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sequenceNo => $composableBuilder(
+    column: $table.sequenceNo,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get capturedAtUtc => $composableBuilder(
+    column: $table.capturedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get receivedAtUtc => $composableBuilder(
+    column: $table.receivedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get linkedEventId => $composableBuilder(
+    column: $table.linkedEventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get filePath => $composableBuilder(
+    column: $table.filePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get byteLength => $composableBuilder(
+    column: $table.byteLength,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sha256 => $composableBuilder(
+    column: $table.sha256,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get trigger => $composableBuilder(
+    column: $table.trigger,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CameraCapturesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CameraCapturesTable> {
+  $$CameraCapturesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get captureKey => $composableBuilder(
+    column: $table.captureKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<int> get sequenceNo => $composableBuilder(
+    column: $table.sequenceNo,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get capturedAtUtc => $composableBuilder(
+    column: $table.capturedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get receivedAtUtc => $composableBuilder(
+    column: $table.receivedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get tripId =>
+      $composableBuilder(column: $table.tripId, builder: (column) => column);
+
+  GeneratedColumn<int> get linkedEventId => $composableBuilder(
+    column: $table.linkedEventId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get filePath =>
+      $composableBuilder(column: $table.filePath, builder: (column) => column);
+
+  GeneratedColumn<String> get mimeType =>
+      $composableBuilder(column: $table.mimeType, builder: (column) => column);
+
+  GeneratedColumn<int> get width =>
+      $composableBuilder(column: $table.width, builder: (column) => column);
+
+  GeneratedColumn<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => column);
+
+  GeneratedColumn<int> get byteLength => $composableBuilder(
+    column: $table.byteLength,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => column);
+
+  GeneratedColumn<String> get trigger =>
+      $composableBuilder(column: $table.trigger, builder: (column) => column);
+}
+
+class $$CameraCapturesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CameraCapturesTable,
+          CameraCapture,
+          $$CameraCapturesTableFilterComposer,
+          $$CameraCapturesTableOrderingComposer,
+          $$CameraCapturesTableAnnotationComposer,
+          $$CameraCapturesTableCreateCompanionBuilder,
+          $$CameraCapturesTableUpdateCompanionBuilder,
+          (
+            CameraCapture,
+            BaseReferences<_$AppDatabase, $CameraCapturesTable, CameraCapture>,
+          ),
+          CameraCapture,
+          PrefetchHooks Function()
+        > {
+  $$CameraCapturesTableTableManager(
+    _$AppDatabase db,
+    $CameraCapturesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CameraCapturesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CameraCapturesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CameraCapturesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> captureKey = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<int> sequenceNo = const Value.absent(),
+                Value<DateTime> capturedAtUtc = const Value.absent(),
+                Value<DateTime> receivedAtUtc = const Value.absent(),
+                Value<int?> tripId = const Value.absent(),
+                Value<int?> linkedEventId = const Value.absent(),
+                Value<String> filePath = const Value.absent(),
+                Value<String> mimeType = const Value.absent(),
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
+                Value<int> byteLength = const Value.absent(),
+                Value<String> sha256 = const Value.absent(),
+                Value<String> trigger = const Value.absent(),
+              }) => CameraCapturesCompanion(
+                id: id,
+                captureKey: captureKey,
+                deviceId: deviceId,
+                sequenceNo: sequenceNo,
+                capturedAtUtc: capturedAtUtc,
+                receivedAtUtc: receivedAtUtc,
+                tripId: tripId,
+                linkedEventId: linkedEventId,
+                filePath: filePath,
+                mimeType: mimeType,
+                width: width,
+                height: height,
+                byteLength: byteLength,
+                sha256: sha256,
+                trigger: trigger,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String captureKey,
+                required String deviceId,
+                required int sequenceNo,
+                required DateTime capturedAtUtc,
+                required DateTime receivedAtUtc,
+                Value<int?> tripId = const Value.absent(),
+                Value<int?> linkedEventId = const Value.absent(),
+                required String filePath,
+                Value<String> mimeType = const Value.absent(),
+                required int width,
+                required int height,
+                required int byteLength,
+                required String sha256,
+                Value<String> trigger = const Value.absent(),
+              }) => CameraCapturesCompanion.insert(
+                id: id,
+                captureKey: captureKey,
+                deviceId: deviceId,
+                sequenceNo: sequenceNo,
+                capturedAtUtc: capturedAtUtc,
+                receivedAtUtc: receivedAtUtc,
+                tripId: tripId,
+                linkedEventId: linkedEventId,
+                filePath: filePath,
+                mimeType: mimeType,
+                width: width,
+                height: height,
+                byteLength: byteLength,
+                sha256: sha256,
+                trigger: trigger,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CameraCapturesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CameraCapturesTable,
+      CameraCapture,
+      $$CameraCapturesTableFilterComposer,
+      $$CameraCapturesTableOrderingComposer,
+      $$CameraCapturesTableAnnotationComposer,
+      $$CameraCapturesTableCreateCompanionBuilder,
+      $$CameraCapturesTableUpdateCompanionBuilder,
+      (
+        CameraCapture,
+        BaseReferences<_$AppDatabase, $CameraCapturesTable, CameraCapture>,
+      ),
+      CameraCapture,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -12508,4 +15779,8 @@ class $AppDatabaseManager {
       $$PreAlertsTableTableManager(_db, _db.preAlerts);
   $$EventFeedbacksTableTableManager get eventFeedbacks =>
       $$EventFeedbacksTableTableManager(_db, _db.eventFeedbacks);
+  $$UnknownEventsTableTableManager get unknownEvents =>
+      $$UnknownEventsTableTableManager(_db, _db.unknownEvents);
+  $$CameraCapturesTableTableManager get cameraCaptures =>
+      $$CameraCapturesTableTableManager(_db, _db.cameraCaptures);
 }

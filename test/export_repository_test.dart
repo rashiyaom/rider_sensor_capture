@@ -242,8 +242,8 @@ void main() {
     final tripCsv = await repo.exportTripCsv(tripId);
     final csvLines = tripCsv.trim().split('\n');
     expect(csvLines.length, 2); // Header + 1 reading
-    expect(csvLines[0], contains('reading_id,timestamp_iso8601,timestamp_local,timestamp_epoch_ms'));
-    expect(csvLines[1], contains('$tripId'));
+    expect(csvLines[0], contains('timestamp_iso8601,timestamp_epoch_ms,sequence_no,wrist_side'));
+    expect(csvLines[1], contains('left_hand'));
 
     final tripJson = await repo.exportTripJson(tripId);
     expect(tripJson['trip_id'], tripId);
@@ -361,32 +361,32 @@ void main() {
     final tripCsvLines = tripCsv.trim().split('\n');
     expect(tripCsvLines.length, greaterThanOrEqualTo(5)); // Header, EVENT_START, 3 readings, EVENT_END
     final expectedTripCols = tripCsvLines[0].split(',').length;
-    expect(expectedTripCols, 32, reason: 'Header must have 32 columns');
+    expect(expectedTripCols, 22, reason: 'Header must have 22 columns');
     for (int i = 0; i < tripCsvLines.length; i++) {
       final cols = tripCsvLines[i].split(',').length;
-      expect(cols, 32, reason: 'Line $i ($tripCsvLines[i]) must have exactly 32 columns');
+      expect(cols, 22, reason: 'Line $i ($tripCsvLines[i]) must have exactly 22 columns');
     }
 
-    // 2. Validate buildSensorTimeseriesCsvExport (31 columns per row)
+    // 2. Validate buildSensorTimeseriesCsvExport (22 columns per row)
     final timeseriesCsv = await repo.buildSensorTimeseriesCsvExport(mode: ExportMode.fullRawSession);
     final tsLines = timeseriesCsv.trim().split('\n');
     expect(tsLines.length, greaterThanOrEqualTo(2));
     final expectedTsCols = tsLines[0].split(',').length;
-    expect(expectedTsCols, 31, reason: 'Timeseries header must have 31 columns');
+    expect(expectedTsCols, 22, reason: 'Timeseries header must have 22 columns');
     for (int i = 0; i < tsLines.length; i++) {
       final cols = tsLines[i].split(',').length;
-      expect(cols, 31, reason: 'Timeseries line $i must have exactly 31 columns');
+      expect(cols, 22, reason: 'Timeseries line $i must have exactly 22 columns');
     }
 
-    // 3. Validate buildEventRecordsCsvExport (24 columns per row)
+    // 3. Validate buildEventRecordsCsvExport (23 columns per row - fork_foot_lag removed)
     final eventCsv = await repo.buildEventRecordsCsvExport();
     final evLines = eventCsv.trim().split('\n');
     expect(evLines.length, greaterThanOrEqualTo(2));
     final expectedEvCols = evLines[0].split(',').length;
-    expect(expectedEvCols, 24, reason: 'Event records header must have 24 columns');
+    expect(expectedEvCols, 23, reason: 'Event records header must have 23 columns');
     for (int i = 0; i < evLines.length; i++) {
       final cols = evLines[i].split(',').length;
-      expect(cols, 24, reason: 'Event line $i must have exactly 24 columns');
+      expect(cols, 23, reason: 'Event line $i must have exactly 23 columns');
     }
 
     // 4. Validate buildTripSummaryCsvExport (22 columns per row)

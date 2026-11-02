@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Ride Sensor Capture — Technical System Report</title>
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #d9dde4; color: #172033; font-family: Arial, Helvetica, sans-serif; }
+  .page { width: 210mm; height: 297mm; margin: 0 auto; padding: 12mm 14mm 12mm; background: white; position: relative; overflow: hidden; page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  .topline { height: 2.2mm; background: linear-gradient(90deg,#0c7a64,#29c37c,#62d2ff); margin: -12mm -14mm 7mm; }
+  .kicker { color: #08765e; font-size: 7.2pt; font-weight: 800; letter-spacing: 1.45px; text-transform: uppercase; }
+  h1 { margin: 3mm 0 2mm; color: #10233e; font-size: 26pt; line-height: 1.05; letter-spacing: -0.7px; }
+  h2 { margin: 2mm 0 3mm; color: #10233e; font-size: 16pt; line-height: 1.15; letter-spacing: -0.2px; }
+  h3 { margin: 3mm 0 1.5mm; color: #0d6d5b; font-size: 10.5pt; }
+  p { margin: 0 0 2.1mm; font-size: 8.35pt; line-height: 1.36; }
+  ul, ol { margin: 1.3mm 0 2mm 4.5mm; padding-left: 3mm; }
+  li { margin: 0 0 1.1mm; font-size: 8.15pt; line-height: 1.3; }
+  strong { color: #10233e; }
+  code { font-family: Menlo, Consolas, monospace; font-size: 7.1pt; background: #edf3f5; color: #0b5f52; border-radius: 2px; padding: 0.25mm 0.7mm; }
+  .small { font-size: 7.35pt; line-height: 1.32; }
+  .tiny { font-size: 6.7pt; line-height: 1.26; }
+  .muted { color: #637083; }
+  .accent { color: #08765e; }
+  .rule { height: 1px; background: #d8e1e7; margin: 3mm 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+  .grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 3mm; }
+  .col-42 { display: grid; grid-template-columns: 42% 58%; gap: 5mm; }
+  .col-58 { display: grid; grid-template-columns: 58% 42%; gap: 5mm; }
+  .card { background: #f4f7f9; border: 1px solid #dce5ea; border-radius: 3mm; padding: 3mm; }
+  .card.dark { color: #eaf2f2; background: #10233e; border-color: #10233e; }
+  .card.dark strong { color: white; }
+  .metric { padding: 3mm; border-top: 1.2mm solid #20ae78; background: #f4f8f7; }
+  .metric b { display:block; font-size: 16pt; color:#10233e; line-height:1; margin-bottom:1mm; }
+  .metric span { font-size:6.8pt; color:#637083; text-transform:uppercase; letter-spacing:.6px; }
+  table { width: 100%; border-collapse: collapse; margin: 1.5mm 0 2.2mm; font-size: 7.2pt; line-height: 1.25; }
+  th { text-align: left; color: white; background: #173a50; padding: 1.25mm 1.5mm; font-weight: 700; }
+  td { border-bottom: 1px solid #dce4e8; padding: 1.15mm 1.5mm; vertical-align: top; }
+  tr:nth-child(even) td { background: #f6f8fa; }
+  .shot { overflow:hidden; border: 1px solid #cfd8df; border-radius: 3mm; background:#000; box-shadow: 0 1.5mm 5mm rgba(15,28,45,.14); }
+  .shot.phone { height: 137mm; }
+  .shot.phone img { width:100%; height:100%; object-fit:cover; object-position:center 52%; display:block; }
+  .shot.short { height: 75mm; }
+  .shot.short img { width:100%; height:100%; object-fit:cover; object-position:center 58%; display:block; }
+  .shot.feature { height: 91mm; }
+  .shot.feature img { width:100%; height:100%; object-fit:cover; object-position:center 50%; display:block; }
+  .caption { font-size: 6.8pt; line-height:1.28; color:#536175; margin-top:1.5mm; }
+  .figure-no { font-weight:800; color:#08765e; }
+  .flow { display:grid; grid-template-columns:repeat(5,1fr); gap:2mm; align-items:center; margin:3mm 0; }
+  .flow .node { min-height:18mm; display:flex; align-items:center; justify-content:center; text-align:center; padding:2mm; border-radius:2.5mm; background:#edf6f3; border:1px solid #b9ddd1; font-size:7pt; font-weight:700; color:#12374a; position:relative; }
+  .flow .node:not(:last-child)::after { content:'›'; position:absolute; right:-2.2mm; color:#16a476; font-size:16pt; z-index:3; }
+  .architecture { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:3mm; margin:2mm 0; }
+  .architecture .layer { padding:3mm; border-radius:3mm; border:1px solid #d6e0e5; background:#f7f9fa; }
+  .architecture .layer b { display:block; color:#0d6d5b; font-size:8pt; margin-bottom:1.5mm; }
+  .architecture .layer span { display:block; font-size:6.8pt; line-height:1.35; color:#4e5d70; }
+  .formula { background:#10233e; color:#eff8f5; border-radius:2mm; padding:2.2mm 3mm; font-family:Menlo,Consolas,monospace; font-size:7pt; line-height:1.45; margin:2mm 0; }
+  .badge { display:inline-block; border-radius:10mm; background:#e3f5ee; color:#08765e; padding:.7mm 2mm; font-size:6.6pt; font-weight:800; margin-right:1mm; }
+  .note { border-left: 1.2mm solid #ff9f0a; background:#fff8ea; padding:2.2mm 3mm; font-size:7.3pt; line-height:1.34; }
+  .evidence { border-left: 1.2mm solid #20ae78; background:#f0f9f5; padding:2.2mm 3mm; font-size:7.3pt; line-height:1.34; }
+  .footer { position:absolute; left:14mm; right:14mm; bottom:6mm; border-top:1px solid #dce4e8; padding-top:1.5mm; display:flex; justify-content:space-between; font-size:6.4pt; color:#6d7888; }
+  .cover { background: linear-gradient(145deg,#07131f 0%,#10233e 58%,#0e6b5a 100%); color:white; }
+  .cover .topline { background:#50e3a4; }
+  .cover h1 { color:white; font-size:34pt; max-width:160mm; margin-top:13mm; }
+  .cover h2 { color:#a8c6d2; font-weight:400; font-size:16pt; max-width:155mm; }
+  .cover .kicker { color:#50e3a4; }
+  .cover .abstract { width:115mm; margin-top:13mm; font-size:10pt; line-height:1.5; color:#e8f0f2; }
+  .cover .stamp { position:absolute; right:14mm; bottom:32mm; width:49mm; border:1px solid rgba(255,255,255,.28); border-radius:4mm; padding:4mm; }
+  .cover .stamp b { color:#50e3a4; display:block; font-size:9pt; margin-bottom:1mm; }
+  .cover .stamp span { font-size:7.3pt; color:#bed0d7; line-height:1.4; }
+  .cover .band { position:absolute; left:14mm; right:14mm; bottom:19mm; display:flex; gap:3mm; }
+  .cover .band span { border:1px solid rgba(255,255,255,.24); padding:1.7mm 3mm; border-radius:10mm; font-size:7pt; color:#d9e7e9; }
+  .cover .footer { border-color:rgba(255,255,255,.25); color:#a8bdc5; }
+  .index-grid { display:grid; grid-template-columns:1fr 1fr; gap:2mm 5mm; margin-top:5mm; }
+  .index-grid div { border-bottom:1px solid rgba(255,255,255,.16); padding:2mm 0; font-size:8pt; color:#dfe9ec; }
+  .index-grid b { display:inline-block; color:#50e3a4; width:7mm; }
+  .two-shots { display:grid; grid-template-columns:1fr 1fr; gap:4mm; }
+  .two-shots .shot { height:85mm; }
+  .two-shots img { width:100%; height:100%; object-fit:cover; object-position:center 55%; }
+  .two-shots .pre img { object-position:center top; }
+  .two-shots .feed img { object-position:center bottom; }
+  .check { color:#08765e; font-weight:900; }
+</style>
+</head>
+<body>
+
+<!-- PAGE 1 -->
+<section class="page cover">
+  <div class="topline"></div>
+  <div class="kicker">Technical system report · Research demonstrator</div>
+  <h1>Ride Sensor Capture</h1>
+  <h2>A multimodal mobile platform for two-wheeler telemetry, event labeling, edge inference, predictive road-hazard alerts, and ML-ready dataset generation</h2>
+  <p class="abstract"><strong style="color:white">Abstract.</strong> Ride Sensor Capture is a Flutter-based research application that synchronizes vehicle dynamics, rider physiology, GPS, and edge-camera detections into a single time-aligned dataset. It connects ESP32-S3 wearable IMUs and Polar Verity Sense sensors over BLE, records trips and event windows, extracts physics and machine-learning features, classifies live riding events, learns geo-tagged hazards, warns the rider before repeat encounters, gathers post-event feedback, and exports reproducible JSON/CSV research artifacts. This report documents the complete implemented feature set, system architecture, algorithms, data schema, user interfaces, verification evidence, and current scientific limitations.</p>
+
+  <div class="index-grid">
+    <div><b>01</b> System scope & contribution</div><div><b>05</b> Event labeling & ride analytics</div>
+    <div><b>02</b> Architecture & feature map</div><div><b>06</b> Predictive alert learning loop</div>
+    <div><b>03</b> Sensor acquisition & protocols</div><div><b>07</b> Persistence & dataset export</div>
+    <div><b>04</b> Processing & edge inference</div><div><b>08</b> Verification & limitations</div>
+  </div>
+
+  <div class="stamp">
+    <b>Evaluated build</b>
+    <span>App 1.0.1 (version code 2)<br>Commit 0e174bd<br>Android API 24–36<br>Report date 21 Oct 2026</span>
+  </div>
+  <div class="band"><span>Flutter / Dart</span><span>BLE + GPS + PPG + IMU</span><span>Drift / SQLite WAL</span><span>Groq-assisted feedback</span></div>
+  <div class="footer"><span>Development attribution: rashiyaom</span><span>Conference technical report · 1 / 8</span></div>
+</section>
+
+<!-- PAGE 2 -->
+<section class="page">
+  <div class="topline"></div>
+  <div class="kicker">1 · System scope and research contribution</div>
+  <h2>From heterogeneous sensors to an auditable riding dataset</h2>
+  <p>The platform targets a practical gap in two-wheeler research: synchronized acquisition of road excitation, vehicle motion, rider response, context, and human ground truth without a laboratory data logger. A journey is treated as the primary experimental unit. During an active journey, BLE packets, GPS fixes, event labels, camera detections, derived parameters, warnings, and rider feedback share UTC timestamps and trip/event identifiers. This permits both live safety behavior and later supervised-learning analysis.</p>
+
+  <div class="grid3">
+    <div class="metric"><b>9</b><span>SQLite research tables</span></div>
+    <div class="metric"><b>50–52 Hz</b><span>Nominal IMU ingestion</span></div>
+    <div class="metric"><b>1.5 s</b><span>Rolling ML window</span></div>
+    <div class="metric"><b>224</b><span>Automated checks passed</span></div>
+    <div class="metric"><b>35,570</b><span>Production Dart LOC</span></div>
+    <div class="metric"><b>6</b><span>Evidence screenshots</span></div>
+  </div>
+
+  <h3>End-to-end functional path</h3>
+  <div class="flow">
+    <div class="node">ESP32 / Polar / GPS / camera</div>
+    <div class="node">Parse, normalize & time-align</div>
+    <div class="node">Filter, label & infer</div>
+    <div class="node">SQLite WAL knowledge base</div>
+    <div class="node">Alerts, feedback & export</div>
+  </div>
+
+  <h3>Implemented feature inventory</h3>
+  <table>
+    <tr><th>Subsystem</th><th>Implemented capability</th><th>Research value</th></tr>
+    <tr><td>Acquisition</td><td>Concurrent BLE discovery/connection, ESP32 3/6-axis frames, Polar HR/RR and PMD acceleration, GPS route fixes, HTTP camera events, demo sources.</td><td>Multimodal evidence under a common trip timeline.</td></tr>
+    <tr><td>Reliability</td><td>Reconnect backoff, packet-gap health, sequence continuity, write buffering, WAL, session alerts, battery status, permission banner.</td><td>Captures provenance and quality threats during field trials.</td></tr>
+    <tr><td>Ground truth</td><td>Tap, quick-trigger, continuous voice command, and watch-button event control; automatic 60 s cap; event-bound sensor association.</td><td>Low-interruption annotation during riding.</td></tr>
+    <tr><td>Signal analysis</td><td>Unit normalization, calibration/noise estimation, zero-phase filters, jerk, lean, g-force, cross-sensor lag/correlation, HR-response gate, FFT/statistical windows.</td><td>Produces interpretable physics and tabular ML features.</td></tr>
+    <tr><td>Live inference</td><td>Five anomaly classes plus normal riding, evaluated every 200 ms on a 75-sample buffer; confidence and explanatory features displayed live.</td><td>Immediate event screening at the edge.</td></tr>
+    <tr><td>Safety loop</td><td>Persistent road-event registry, heading/radius filtering, time-to-event warning, TTS, speed advice, warning log, contextual feedback, Groq/offline scoring.</td><td>Links detection, intervention, and outcome assessment.</td></tr>
+    <tr><td>Dataset delivery</td><td>Raw time series, events, trips, pre-alerts, effectiveness, windowed features, nested JSON, Markdown report, and baseline Python trainer.</td><td>Shortens the path from ride collection to model experiment.</td></tr>
+  </table>
+
+  <h3>Software architecture</h3>
+  <div class="architecture">
+    <div class="layer"><b>Presentation & control</b><span>Dashboard · Devices · Events · Export · Journey log · event details · warning banner · feedback sheet</span></div>
+    <div class="layer"><b>Reactive application layer</b><span>Riverpod providers · trip/event controllers · BLE-to-DB bridge · watch synchronization · export controller</span></div>
+    <div class="layer"><b>Domain & analytics</b><span>Parsers · parameter engine · filters · cross-validation · feature extraction · alert engine · feedback analyzer</span></div>
+    <div class="layer"><b>Interfaces</b><span>BLE GATT · Geolocator · speech-to-text · TTS · local HTTP server · share sheet</span></div>
+    <div class="layer"><b>Persistence</b><span>Drift-generated typed schema · SQLite WAL · repository abstraction · migration version 10</span></div>
+    <div class="layer"><b>External endpoints</b><span>ESP32 watches · Polar Verity · camera firmware · OpenStreetMap tiles · optional Groq API</span></div>
+  </div>
+  <div class="evidence"><strong>Audit basis.</strong> This report was derived from all 133 Dart source/test files, Android configuration, generated Drift schema, export code, and executed verification artifacts at commit <code>0e174bd</code>.</div>
+  <div class="footer"><span>Ride Sensor Capture · Technical System Report</span><span>2 / 8</span></div>
+</section>
+
+<!-- PAGE 3 -->
+<section class="page">
+  <div class="topline"></div>
+  <div class="kicker">2 · Multimodal acquisition and device orchestration</div>
+  <h2>Field-ready sensing across vehicle, rider, position, and vision</h2>
+  <div class="col-58">
+    <div>
+      <h3>ESP32-S3 watch / IMU nodes</h3>
+      <p>The BLE parser recognizes service <code>FFE0</code> and characteristic <code>FFE1</code>. It accepts ASCII CSV plus 12, 16, 19–23, 24, 28, and 32-byte binary frames. The V2 frame carries timestamp, sequence, role, six float channels, and battery data; role byte 1 maps to fork and 2 to footboard. Legacy accelerometer values within a plausible ±8 g range are normalized to m/s². Non-finite or malformed frames are dropped.</p>
+      <h3>Polar Verity Sense</h3>
+      <p>Standard Heart Rate service <code>180D/2A37</code> supports 8/16-bit BPM and RR/PPI conversion from 1/1024 s units to milliseconds. Polar PMD data <code>fb005c82…</code> yields signed 16-bit XYZ acceleration converted from mg using 0.00981 m/s² per mg. The app requests and visualizes heart rate, PPI, and motion streams.</p>
+      <h3>Connection lifecycle and watch companion</h3>
+      <ul>
+        <li>15 s BLE discovery, explicit connect/disconnect, multi-device state map, mount-location assignment, and simulated 50 Hz sources for controlled demonstrations.</li>
+        <li>10 s connection timeout; at most six automatic reconnect attempts with exponential delays starting at 2 s and capped at 20 s.</li>
+        <li>Health inspection every 1.5 s; packet gaps above 2.5 s are degraded and above 15 s are poor. Sequence numbers and per-device packet rates expose loss.</li>
+        <li>Bidirectional watch packets remain within the default 20-byte ATT payload and synchronize trip state, active event, speed, distance, HR, GPS lock, time, elapsed time, watch face, and brightness.</li>
+      </ul>
+      <h3>GPS and edge-camera channel</h3>
+      <p>Navigation-quality GPS fixes provide latitude, longitude, altitude, speed, heading, and accuracy. The app derives speed variance, acceleration, overspeed state, route distance, and route history. An embedded Shelf HTTP server listens on port <code>8765</code>: <code>POST /camera-event</code> validates device, class, confidence, timestamp, and bounding box; <code>GET /health</code> reports liveness. Detections are linked to an active event or to a completed event within ±10 s.</p>
+      <div class="note"><strong>Permissions and platform contract.</strong> Android declares BLE scan/connect/advertise, fine/coarse/background location, Internet/network, wake lock, foreground service, connected-device service, and location service. TTS service discovery is declared for Android 11+.</div>
+    </div>
+    <div>
+      <div class="shot phone"><img src="evidence/devices.png" alt="Devices interface"></div>
+      <div class="caption"><span class="figure-no">Figure 1.</span> Implemented device hub showing BLE scanning, hardware/demo modes, connection telemetry, watch appearance/brightness controls, nearby devices, and the raw ingest terminal. Captured from the Flutter widget tree.</div>
+      <h3>Acquisition records retained</h3>
+      <table>
+        <tr><th>Modality</th><th>Primary stored fields</th></tr>
+        <tr><td>IMU</td><td>XYZ acceleration, XYZ gyroscope, device/mount, sequence, raw payload</td></tr>
+        <tr><td>Physiology</td><td>BPM, PPI, device source, timestamps</td></tr>
+        <tr><td>GPS</td><td>Coordinates, speed, heading, altitude, accuracy</td></tr>
+        <tr><td>Vision</td><td>Class, confidence, camera/receive time, bounding box, event link</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="footer"><span>Evidence: BLE parsers, connection manager, GPS and camera services</span><span>3 / 8</span></div>
+</section>
+
+<!-- PAGE 4 -->
+<section class="page">
+  <div class="topline"></div>
+  <div class="kicker">3 · Real-time telemetry, signal conditioning and edge inference</div>
+  <h2>Interpretable physics and low-latency anomaly screening</h2>
+  <div class="col-42">
+    <div>
+      <div class="shot phone"><img src="evidence/dashboard.png" alt="Dashboard interface"></div>
+      <div class="caption"><span class="figure-no">Figure 2.</span> Dashboard evidence: sensor status, setup guidance, real-time classifier with confidence and explanatory features, packet continuity, energy/axis views, heart rate, and floating navigation.</div>
+    </div>
+    <div>
+      <h3>Live dashboard functions</h3>
+      <p>The dashboard combines an analog/digital GPS speedometer, live route map, journey start/stop, sample-rate selector, multi-axis waveforms, 3-axis bars, g-force/jerk/lean metrics, packet-continuity grid, database row counts, battery/session-health banners, Polar heart-rate view, active pre-alert banner, and access to the journey log. UI telemetry is throttled to protect rendering while ingestion continues at sensor rate.</p>
+
+      <h3>Conditioning and derived physics</h3>
+      <table>
+        <tr><th>Stage</th><th>Implementation</th></tr>
+        <tr><td>Normalization</td><td>Acceleration in m/s²; angular helpers enforce rad/s↔deg/s consistency; gravity constant 9.80665 m/s².</td></tr>
+        <tr><td>Calibration</td><td>Per-trip, per-mount idle calibration estimates engine-noise frequency/amplitude and validity.</td></tr>
+        <tr><td>Filtering</td><td>Zero-phase second-order Butterworth: 3 Hz low-pass for maneuver/lean channels and 0.4 Hz high-pass for bump transients; optional adaptive notch only when engine noise is >5 Hz and below Nyquist; reflection padding reduces edge artifacts.</td></tr>
+        <tr><td>Impact</td><td>3-point magnitude smoothing, peak g, peak-to-peak change, acceleration delta, short-window RMS, and unattenuated 3-axis jerk.</td></tr>
+        <tr><td>Turning</td><td>Complementary roll estimate (gyro integration + accelerometer roll, α=0.98), peak lateral acceleration, duration, and GPS heading change.</td></tr>
+        <tr><td>Validation</td><td>Fork/footboard peak agreement: bump window ±300 ms with ≥1.25 g on both sensors; turn/brake window ±1000 ms with ≥2 m/s² lateral/longitudinal response.</td></tr>
+        <tr><td>Physiology</td><td>60 s pre-event median HR baseline; 5 s response window; ≥8 BPM rise marks physiological confirmation.</td></tr>
+      </table>
+
+      <h3>On-device inference rules</h3>
+      <p>A 75-sample (1.5 s at 50 Hz) fork buffer, optional synchronized footboard buffer, and 200 ms evaluation cadence produce a six-state output. Features include vertical maximum, peak-to-peak range, standard deviation, peak jerk, roll, longitudinal acceleration, yaw rate, and fork/footboard correlation.</p>
+      <div class="formula">severe bump: (zPeak &gt; 18 OR zPTP &gt; 16) AND jerk &gt; 120<br>
+      mild bump: (zPeak &gt; 13.5 OR zPTP &gt; 7.5) AND jerk &gt; 50<br>
+      sharp turn: |roll| &gt; 12° OR |yaw| &gt; 22°/s<br>
+      hard braking: ax &lt; −3.0 m/s² · rapid acceleration: ax &gt; +2.5 m/s²</div>
+      <p>Confidence is a bounded monotonic function of threshold exceedance and the interface exposes both confidence and a natural-language explanation. The offline feature exporter separately forms 1.5 s windows with 0.5 s stride, statistical/FFT/vector features, dual-watch cross-correlation, labels, and deterministic 70/15/15 train/validation/test partitions.</p>
+      <div class="note"><strong>Scientific interpretation.</strong> The current “edge ML” runtime is an explainable rules ensemble, not a learned neural model. Its thresholds are unit-tested and useful as a baseline/label-quality screen; external validation and calibration are still required before claiming clinical or safety efficacy.</div>
+    </div>
+  </div>
+  <div class="footer"><span>Evidence: dashboard, filter service, parameter engine, inference and feature extractors</span><span>4 / 8</span></div>
+</section>
+
+<!-- PAGE 5 -->
+<section class="page">
+  <div class="topline"></div>
+  <div class="kicker">4 · Journey management, ground truth and ride analytics</div>
+  <h2>Low-interruption annotation linked to complete trip context</h2>
+  <div class="col-58">
+    <div>
+      <h3>Journey lifecycle</h3>
+      <p>Starting a journey creates a trip row, opens GPS tracking, activates high-frequency persistence, synchronizes the watch, clears session counters, starts health monitoring, and arms predictive alerts. During the ride, route points and telemetry update distance, duration, average/peak speed, event count, sensor-row count, physiology, and behavior aggregates. Ending a journey flushes pending packets, stops tracking, computes final statistics, closes the pre-alert session, and makes the trip available in the Journey Log Book.</p>
+
+      <h3>Four complementary event-input paths</h3>
+      <ol>
+        <li><strong>Tap-to-mark:</strong> the rider selects bump, turn, or hard brake; a prominent STOP action completes the window.</li>
+        <li><strong>Quick triggers:</strong> one-tap BUMP, TURN, HARD BRAKE, and custom labels reduce interaction time.</li>
+        <li><strong>Voice commands:</strong> continuous speech maps configured phrases to start/stop operations and exposes recognized text/listener state.</li>
+        <li><strong>Watch companion:</strong> watch control packets can start/stop labels; serialized writes and phone/watch state echoes prevent overlapping events.</li>
+      </ol>
+      <p>Each active window receives an event ID before incoming sensor rows are written. On stop, ingestion detaches from the event, buffered rows are flushed, start/end GPS is captured, physics parameters are computed, the trip event count is updated, and the state briefly reports “saved.” A 60 s timer prevents indefinitely open windows; serialized controller operations protect rapid consecutive labels.</p>
+
+      <h3>Event parameterization and classification</h3>
+      <table>
+        <tr><th>Label</th><th>Parameters and decision thresholds</th></tr>
+        <tr><td>Bump</td><td>Peak acceleration/g-force, Δa, peak-to-peak, duration, peak jerk, baseline noise. Moderate at ≥1.4 g or ≥22 m/s³; severe at ≥2.2 g or ≥45 m/s³, with calibration-adaptive g limits.</td></tr>
+        <tr><td>Turn</td><td>Peak lateral acceleration, complementary-filter lean, duration, direction/heading. Medium at ≥2.5 m/s² or ≥14°; sharp at ≥5 m/s² or ≥28°.</td></tr>
+        <tr><td>Speed/brake</td><td>Peak/average speed where present, longitudinal acceleration/deceleration, jerk, duration, and braking classification.</td></tr>
+        <tr><td>Evidence flags</td><td>Cross-confirmed state, fork–footboard lag, HR spike, HR delta, GPS speed/heading change, calibration validity, engine-noise frequency.</td></tr>
+      </table>
+
+      <h3>Post-capture inspection</h3>
+      <p>The event history shows type, time, classification, peak metric, and feedback badge. Detail views expose the full computed-parameter JSON, GPS coordinates with external map launch, and device/mount-selectable XYZ traces downsampled to at most 150 points for display. Trips support route maps, BLE quality summaries, per-journey export, notes, deletion, and pruning of unlabeled telemetry after export.</p>
+      <div class="evidence"><strong>Traceability.</strong> Every labeled row retains both <code>tripId</code> and <code>eventId</code>; labels therefore remain joinable to raw samples, GPS, camera evidence, pre-alerts, feedback, and trip-level covariates.</div>
+    </div>
+    <div>
+      <div class="shot phone"><img src="evidence/events.png" alt="Event labeler interface"></div>
+      <div class="caption"><span class="figure-no">Figure 3.</span> Event Labeler evidence with tap-to-record, three quick event classes, custom labels, counters, history state, and voice-oriented navigation.</div>
+    </div>
+  </div>
+  <div class="footer"><span>Evidence: trip/event controllers, parameter engine, voice and watch synchronization</span><span>5 / 8</span></div>
+</section>
+
+<!-- PAGE 6 -->
+<section class="page">
+  <div class="topline"></div>
+  <div class="kicker">5 · Predictive pre-alert and post-event learning loop</div>
+  <h2>Closing the loop from hazard observation to intervention outcome</h2>
+  <div class="two-shots">
+    <div><div class="shot pre"><img src="evidence/prealert.png" alt="Predictive pre-alert interface"></div><div class="caption"><span class="figure-no">Figure 4.</span> Warning evidence: hazard identity, distance, time-to-event, and recommended speed surfaced while GPS tracking is active.</div></div>
+    <div><div class="shot feed"><img src="evidence/feedback.png" alt="Post-event feedback interface"></div><div class="caption"><span class="figure-no">Figure 5.</span> Feedback evidence: contextual prompt, quick replies, free text, speech capture, send/skip controls, and offline-analysis status.</div></div>
+  </div>
+
+  <div class="grid2">
+    <div>
+      <h3>Hazard knowledge base and alert decision</h3>
+      <p>Confirmed live-inference anomalies and completed labeled events create <code>road_events</code> rows with type, coordinate, severity, confidence, source, trip, speed, timestamp, counts, and notes. At 1 Hz GPS cadence the service queries a bounding box, applies exact haversine range, rejects speeds below 8 or above 160 km/h, ignores hazards outside 800 m, removes hazards behind the rider when heading is known (±70° forward cone), and ranks remaining candidates by arrival time.</p>
+      <div class="formula">time-to-event = distance / (speed ÷ 3.6)<br>
+      speak when 2 s ≤ TTE ≤ 20 s<br>
+      urgency: imminent ≤4 s · warning ≤9 s · advisory &gt;9 s</div>
+      <p>Target pass speed interpolates between 55 km/h for a mild event and 25 km/h for a severe one, constrained by a 1.2 s reaction budget and 3.5 m/s² comfortable deceleration. The message builder produces concise speech; the dashboard mirrors it visually. Issued warnings are attributed to the active trip, persisted before later evaluation, deduplicated per hazard, and protected by a two-minute re-alert cooldown.</p>
+    </div>
+    <div>
+      <h3>Feedback capture and evaluation</h3>
+      <p>After an event is saved, the app links the most recent warning within ten minutes and asks a type-specific question: bump/pothole smoothness, turn difficulty, or generic navigation difficulty. Riders may use one-tap replies, typed text, one-shot dictation, or skip. The raw response is stored before analysis.</p>
+      <p>The evaluator requests structured JSON from Groq (<code>openai/gpt-oss-120b</code> by default) and records warning effectiveness [0–1], timing adequacy, difficulty, summary, improvement suggestion, confidence, model provenance, and timestamps. Network/auth/rate/format failure falls back to a deterministic keyword-and-telemetry heuristic so the capture workflow remains functional without cloud access.</p>
+      <h3>Compiled effectiveness evidence</h3>
+      <p>The report builder joins alerts and feedback, then aggregates total/evaluated alerts, mean effectiveness, mean lead time, mean warning distance, timing distribution, per-event-type counts/effectiveness, and actionable insights. Results appear in the Export screen, JSON top-level <code>pre_alert_effectiveness</code>, CSV, and a Markdown report.</p>
+      <div class="note"><strong>Privacy/security condition.</strong> Feedback sent to Groq leaves the device; the key used by a mobile client is recoverable from the compiled APK. Conference deployment should use explicit consent and a restricted, proxy-managed, or short-lived credential. No claim of autonomous collision avoidance is made.</div>
+    </div>
+  </div>
+  <div class="footer"><span>Evidence: pre-alert engine/service, registry, TTS, feedback service and report builder</span><span>6 / 8</span></div>
+</section>
+
+<!-- PAGE 7 -->
+<section class="page">
+  <div class="topline"></div>
+  <div class="kicker">6 · Persistence model and reproducible export</div>
+  <h2>Typed, joinable records from raw packets to intervention assessment</h2>
+  <div class="col-58">
+    <div>
+      <h3>Drift / SQLite data model (schema v10)</h3>
+      <p>SQLite runs in write-ahead logging mode. The repository buffers incoming packets and commits at 250 ms intervals or 25 rows, reducing per-packet transaction overhead while retaining an explicit flush at lifecycle boundaries. UTC timestamps, sequence numbers, mount roles, device identity, trip IDs, and event IDs preserve alignment and provenance.</p>
+      <table>
+        <tr><th>Table</th><th>Purpose and key content</th></tr>
+        <tr><td><code>sensor_readings</code></td><td>Device/type/mount, sequence, UTC, modality, trip/event, HR/PPI, 6-axis IMU, GPS speed, raw payload.</td></tr>
+        <tr><td><code>trips</code></td><td>Rider/wrist, temporal bounds, route, distance/speed, event/row counts, behavior counts, HR, night %, driver score, notes.</td></tr>
+        <tr><td><code>location_readings</code></td><td>Trip-linked UTC coordinate, altitude, speed, heading, accuracy.</td></tr>
+        <tr><td><code>event_records</code></td><td>Label window, trigger, GPS endpoints, status, computed JSON, peak/class, cross/HR/jerk/GPS evidence.</td></tr>
+        <tr><td><code>camera_detections</code></td><td>Device, class/confidence, camera/receive timestamps, bounding box, linked event.</td></tr>
+        <tr><td><code>trip_calibrations</code></td><td>Trip/mount engine-noise frequency, amplitude, time, validity.</td></tr>
+        <tr><td><code>road_events</code></td><td>Geo-tagged hazard type, severity/confidence/source, detection context, alert/feedback counts.</td></tr>
+        <tr><td><code>pre_alerts</code></td><td>Hazard/trip/event, kinematics, TTE, advised speed, urgency, exact speech, acknowledgement.</td></tr>
+        <tr><td><code>event_feedbacks</code></td><td>Prompt/response/source plus LLM/heuristic effectiveness, timing, difficulty, summary and recommendation.</td></tr>
+      </table>
+
+      <h3>Export modes and research artifacts</h3>
+      <p>The researcher chooses events-only or full raw stream, JSON/CSV/both, time range, and optional cross-confirmed-only filtering. Export version 2.1 produces:</p>
+      <ul>
+        <li><code>sensor_timeseries_export.csv</code> with nearest/forward-filled GPS; <code>event_records_export.csv</code>; <code>trip_summary_export.csv</code>.</li>
+        <li><code>features_windowed_session.csv</code> containing statistical, FFT, orientation, vector, correlation, physiology, label ID, evidence flags, and split membership.</li>
+        <li><code>pre_alerts_export.csv</code>, <code>alert_effectiveness_export.csv</code>, and <code>alert_effectiveness_report.md</code>.</li>
+        <li>Nested JSON preserving trips, locations, sensor arrays, events, camera detections, pre-alerts, feedback, schema metadata, and report aggregates.</li>
+        <li>A generated <code>train_baseline.py</code> script for a scikit-learn RandomForest baseline, enabling a first reproducible classifier experiment directly from the export.</li>
+      </ul>
+      <div class="evidence"><strong>Research-readiness feature.</strong> The export screen retains generated archives, summarizes rows/labels/sensors, shares multiple files through the operating system, and exposes alert-effectiveness statistics alongside ML datasets.</div>
+    </div>
+    <div>
+      <div class="shot phone"><img src="evidence/export.png" alt="Export interface"></div>
+      <div class="caption"><span class="figure-no">Figure 6.</span> Export evidence showing format/mode selection, cross-confirmation filtering, time range, pre-alert effectiveness, dataset summaries, and saved archives.</div>
+    </div>
+  </div>
+  <div class="footer"><span>Evidence: database schema, repositories and export UI</span><span>7 / 8</span></div>
+</section>
+
+<!-- PAGE 8 -->
+<section class="page">
+  <div class="topline"></div>
+  <div class="kicker">7 · Verification, reproducibility and scientific limitations</div>
+  <h2>Evidence of implementation quality and boundaries of interpretation</h2>
+
+  <div class="grid3">
+    <div class="metric"><b>0</b><span>Flutter analyzer issues</span></div>
+    <div class="metric"><b>224 / 224</b><span>Executed tests passed</span></div>
+    <div class="metric"><b>65.7 MB</b><span>Release APK built</span></div>
+  </div>
+
+  <h3>Automated verification coverage</h3>
+  <table>
+    <tr><th>Verification area</th><th>Representative assertions exercised</th></tr>
+    <tr><td>Protocol and ingestion</td><td>ESP32 frame variants/units/corrupt data; BLE demo streams and reliability; watch protocol and bidirectional lifecycle; Polar parsing; GPS association; camera persistence/linking.</td></tr>
+    <tr><td>Storage and lifecycle</td><td>Batch repository behavior; trip create/start/end aggregates; event serialization under rapid commands; database joins; deletion/pruning paths.</td></tr>
+    <tr><td>Signal and analytics</td><td>Filter behavior, g/rad unit consistency, jerk, lean fusion, FFT features, window labeling/splits, cross-correlation, idle calibration, HR gate, live anomaly rules.</td></tr>
+    <tr><td>Alert and feedback</td><td>Geodesy, time-to-event/window/urgency/speed advice, heading filtering, deduplication, audit/event linking, warning UI, contextual feedback, Groq request/JSON/error paths, offline heuristics, report aggregates.</td></tr>
+    <tr><td>Export and presentation</td><td>CSV/JSON schemas, camera bounding boxes, pre-alert/effectiveness files, baseline trainer, speedometer/map/widgets, complete feature validation, and app navigation smoke test.</td></tr>
+  </table>
+  <p><span class="check">✓</span> <strong>Static analysis:</strong> <code>flutter analyze</code> completed with “No issues found.” &nbsp; <span class="check">✓</span> <strong>Tests:</strong> <code>flutter test</code> completed with “All tests passed” at 224 checks. &nbsp; <span class="check">✓</span> <strong>Cloud path:</strong> a live sample was analyzed successfully by the configured Groq model and returned structured, LLM-marked feedback. &nbsp; <span class="check">✓</span> <strong>Android artifact:</strong> universal APK (arm64-v8a, armeabi-v7a, x86_64), package <code>com.example.ride_sensor_capture</code>, min API 24, target API 36; APK Signature Scheme v2 verified.</p>
+
+  <h3>Limitations that should accompany conference claims</h3>
+  <div class="grid2">
+    <div class="card">
+      <ul>
+        <li><strong>No field-performance dataset is bundled.</strong> The report proves implemented behavior and software tests, not sensitivity/specificity on representative roads or riders.</li>
+        <li><strong>Inference is threshold-based.</strong> “ML” refers to feature production and a rules baseline at runtime; learned-model deployment remains future work.</li>
+        <li><strong>Timestamp source.</strong> Several BLE parsers use phone receipt time rather than reconstructing device clock, so radio/OS latency can affect fine-grained synchronization.</li>
+        <li><strong>GPS/heading uncertainty.</strong> Haversine distance and current heading do not model road topology; parallel roads and noisy heading can create false candidate matches.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <ul>
+        <li><strong>Hazard consolidation.</strong> Time/class deduplication exists, but repeated passes can create spatially nearby rows without cluster fusion.</li>
+        <li><strong>Cloud data governance.</strong> Groq analysis requires consent, network access, credential protection, retention documentation, and a non-client-secret design for deployment.</li>
+        <li><strong>Human factors.</strong> Spoken warnings and feedback prompts require controlled evaluation for distraction, timing, comprehension, accessibility, and false-alarm burden.</li>
+        <li><strong>Distribution signing.</strong> The evaluated APK uses the project’s debug signing key; production distribution requires a protected release key and stable application ID.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Recommended conference evaluation protocol</h3>
+  <ol>
+    <li>Calibrate every mount and document device placement, firmware, sampling frequency, phone model, and clock policy.</li>
+    <li>Collect stratified routes across surface types, speeds, traffic, day/night, riders, and repeated hazard passes; annotate with independent video and two raters.</li>
+    <li>Report packet loss, GPS accuracy, sensor synchronization error, label agreement, class balance, event-level precision/recall/F1, onset timing error, and leave-one-rider/route-out validation.</li>
+    <li>For alerts, report warning lead-time distribution, correct-road association, repeated-alert burden, speed reduction, subjective difficulty, and paired passes with/without warning.</li>
+  </ol>
+
+  <div class="card dark"><strong>Conclusion.</strong> Ride Sensor Capture is a technically complete research acquisition and prototyping platform: it unifies heterogeneous sensing, interpretable ride-event analytics, proactive hazard warnings, rider feedback, and reproducible exports in one mobile workflow. Its strongest contribution is traceability across the full loop—raw evidence → label/inference → warning → rider outcome. The next scientific step is controlled field validation, spatial hazard clustering, device-clock synchronization, and replacement/comparison of the runtime rules with trained models.</div>
+  <p class="tiny muted" style="margin-top:2mm"><strong>Evidence method.</strong> Figures 1–6 were rendered from the repository’s actual Flutter widgets at a fixed phone/tablet viewport using production theme components and real Material/Roboto fonts. They are not artist-generated interface mockups. Source review and verification were performed on 21 October 2026.</p>
+  <div class="footer"><span>Artifact checksum (APK SHA-256): ee2820ddd60c…97da76</span><span>8 / 8</span></div>
+</section>
+
+</body>
+</html>

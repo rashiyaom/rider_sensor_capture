@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import '../../features/export/models/export_options.dart';
 import '../../report/alert_effectiveness_report.dart';
 
@@ -83,6 +84,13 @@ abstract class ExportRepository {
     required ExportMode mode,
   });
 
+  /// Build the ordered manifest for durable USB camera JPEG captures.
+  Future<String> buildCameraCaptureCsvExport({
+    DateTime? startUtc,
+    DateTime? endUtc,
+    required ExportMode mode,
+  });
+
   /// Build Pre-windowed ML Feature Table (features_windowed.csv) with label encodings and dataset splits
   Future<String> buildWindowedFeaturesCsvExport({
     int? tripId,
@@ -100,7 +108,10 @@ abstract class ExportRepository {
   Future<Map<String, dynamic>> exportTripJson(int tripId);
 
   /// Generate actual files for a specific Trip and return File handles
-  Future<List<File>> generateTripExportFiles(int tripId, {required ExportFormat format});
+  Future<List<File>> generateTripExportFiles(
+    int tripId, {
+    required ExportFormat format,
+  });
 
   /// Generate actual files in the documents directory (including the 3 driver safety ML files)
   Future<List<File>> generateExportFiles({

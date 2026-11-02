@@ -4,9 +4,17 @@ import '../data/local_db/database.dart';
 import '../location/location_service.dart';
 import '../prealert/pre_alert_engine.dart';
 import '../prealert/pre_alert_service.dart';
+import '../prealert/road_event_registry.dart';
 import '../prealert/road_event_watcher.dart';
 import '../voice/voice_alert_service.dart';
 import 'db_providers.dart';
+import 'handsfree_providers.dart';
+
+/// Persistence registry for adding, deleting, and querying geo-tagged road hazards.
+final roadEventRegistryProvider = Provider<RoadEventRegistry>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return RoadEventRegistry(db);
+});
 
 /// Shared GPS stream used by the predictive pre-alert system.
 final locationServiceProvider = Provider<LocationService>((ref) {
@@ -23,12 +31,16 @@ final voiceAlertServiceProvider = Provider<VoiceAlertService>((ref) {
 });
 
 /// The predictive pre-alert orchestrator.
+///
+/// Wires in the [HandsfreeSessionService] so every spoken warning is routed
+/// through the hands-free mic-pause / TTS / mic-resume cycle.
 final preAlertServiceProvider = Provider<PreAlertService>((ref) {
   final db = ref.watch(appDatabaseProvider);
   final service = PreAlertService(
     db: db,
     voiceService: ref.watch(voiceAlertServiceProvider),
     locationService: ref.watch(locationServiceProvider),
+    handsfreeService: ref.watch(handsfreeSessionServiceProvider),
   );
   ref.onDispose(service.dispose);
   return service;

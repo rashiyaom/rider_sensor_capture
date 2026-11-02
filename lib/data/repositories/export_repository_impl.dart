@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+
 import 'package:drift/drift.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -29,7 +30,11 @@ class ExportRepositoryImpl implements ExportRepository {
     required ExportMode mode,
     bool onlyCrossConfirmed = false,
   }) async {
-    final events = await _fetchEventsInRange(startUtc, endUtc, onlyCrossConfirmed: onlyCrossConfirmed);
+    final events = await _fetchEventsInRange(
+      startUtc,
+      endUtc,
+      onlyCrossConfirmed: onlyCrossConfirmed,
+    );
     final eventIds = events.map((e) => e.id).toSet();
 
     int readingCount = 0;
@@ -54,10 +59,16 @@ class ExportRepositoryImpl implements ExportRepository {
     } else {
       var rQuery = _db.selectOnly(_db.sensorReadings);
       if (startUtc != null) {
-        rQuery = rQuery..where(_db.sensorReadings.timestampUtc.isBiggerOrEqualValue(startUtc));
+        rQuery = rQuery
+          ..where(
+            _db.sensorReadings.timestampUtc.isBiggerOrEqualValue(startUtc),
+          );
       }
       if (endUtc != null) {
-        rQuery = rQuery..where(_db.sensorReadings.timestampUtc.isSmallerOrEqualValue(endUtc));
+        rQuery = rQuery
+          ..where(
+            _db.sensorReadings.timestampUtc.isSmallerOrEqualValue(endUtc),
+          );
       }
       final rCountExp = _db.sensorReadings.id.count();
       rQuery.addColumns([rCountExp]);
@@ -66,10 +77,20 @@ class ExportRepositoryImpl implements ExportRepository {
 
       var dQuery = _db.selectOnly(_db.cameraDetections);
       if (startUtc != null) {
-        dQuery = dQuery..where(_db.cameraDetections.cameraTimestampUtc.isBiggerOrEqualValue(startUtc));
+        dQuery = dQuery
+          ..where(
+            _db.cameraDetections.cameraTimestampUtc.isBiggerOrEqualValue(
+              startUtc,
+            ),
+          );
       }
       if (endUtc != null) {
-        dQuery = dQuery..where(_db.cameraDetections.cameraTimestampUtc.isSmallerOrEqualValue(endUtc));
+        dQuery = dQuery
+          ..where(
+            _db.cameraDetections.cameraTimestampUtc.isSmallerOrEqualValue(
+              endUtc,
+            ),
+          );
       }
       final dCountExp = _db.cameraDetections.id.count();
       dQuery.addColumns([dCountExp]);
@@ -77,7 +98,8 @@ class ExportRepositoryImpl implements ExportRepository {
       detectionCount = dRow.read(dCountExp) ?? 0;
     }
 
-    final estSize = (events.length * 700) + (readingCount * 250) + (detectionCount * 180);
+    final estSize =
+        (events.length * 700) + (readingCount * 250) + (detectionCount * 180);
 
     return ExportSummary(
       eventCount: events.length,
@@ -94,10 +116,12 @@ class ExportRepositoryImpl implements ExportRepository {
   }) async {
     var query = _db.select(_db.eventRecords);
     if (startUtc != null) {
-      query = query..where((t) => t.startTimestamp.isBiggerOrEqualValue(startUtc));
+      query = query
+        ..where((t) => t.startTimestamp.isBiggerOrEqualValue(startUtc));
     }
     if (endUtc != null) {
-      query = query..where((t) => t.startTimestamp.isSmallerOrEqualValue(endUtc));
+      query = query
+        ..where((t) => t.startTimestamp.isSmallerOrEqualValue(endUtc));
     }
     if (onlyCrossConfirmed) {
       query = query..where((t) => t.crossConfirmed.equals(true));
@@ -113,17 +137,23 @@ class ExportRepositoryImpl implements ExportRepository {
     bool onlyCrossConfirmed = false,
   }) async {
     final now = DateTime.now().toUtc();
-    final events = await _fetchEventsInRange(startUtc, endUtc, onlyCrossConfirmed: onlyCrossConfirmed);
+    final events = await _fetchEventsInRange(
+      startUtc,
+      endUtc,
+      onlyCrossConfirmed: onlyCrossConfirmed,
+    );
     final eventMap = <int, EventRecord>{for (var e in events) e.id: e};
     final eventIds = eventMap.keys.toSet();
 
     // Fetch Trips within range
     var tripsQuery = _db.select(_db.trips);
     if (startUtc != null) {
-      tripsQuery = tripsQuery..where((t) => t.startTimestampUtc.isBiggerOrEqualValue(startUtc));
+      tripsQuery = tripsQuery
+        ..where((t) => t.startTimestampUtc.isBiggerOrEqualValue(startUtc));
     }
     if (endUtc != null) {
-      tripsQuery = tripsQuery..where((t) => t.startTimestampUtc.isSmallerOrEqualValue(endUtc));
+      tripsQuery = tripsQuery
+        ..where((t) => t.startTimestampUtc.isSmallerOrEqualValue(endUtc));
     }
     final tripsList = await tripsQuery.get();
 
@@ -133,28 +163,43 @@ class ExportRepositoryImpl implements ExportRepository {
       if (eventIds.isEmpty) {
         allReadings = [];
       } else {
-        allReadings = await (_db.select(_db.sensorReadings)
-              ..where((t) => t.eventId.isIn(eventIds))
-              ..orderBy([
-                (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
-                (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
-              ]))
-            .get();
+        allReadings =
+            await (_db.select(_db.sensorReadings)
+                  ..where((t) => t.eventId.isIn(eventIds))
+                  ..orderBy([
+                    (t) => OrderingTerm(
+                      expression: t.sequenceNo,
+                      mode: OrderingMode.asc,
+                    ),
+                    (t) => OrderingTerm(
+                      expression: t.timestampUtc,
+                      mode: OrderingMode.asc,
+                    ),
+                  ]))
+                .get();
       }
     } else {
       var query = _db.select(_db.sensorReadings);
       if (startUtc != null) {
-        query = query..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
+        query = query
+          ..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
       }
       if (endUtc != null) {
-        query = query..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
+        query = query
+          ..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
       }
-      allReadings = await (query
-            ..orderBy([
-              (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
-              (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
-            ]))
-          .get();
+      allReadings =
+          await (query..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.sequenceNo,
+                  mode: OrderingMode.asc,
+                ),
+                (t) => OrderingTerm(
+                  expression: t.timestampUtc,
+                  mode: OrderingMode.asc,
+                ),
+              ]))
+              .get();
     }
 
     // Fetch Camera Detections
@@ -163,26 +208,65 @@ class ExportRepositoryImpl implements ExportRepository {
       if (eventIds.isEmpty) {
         allDetections = [];
       } else {
-        allDetections = await (_db.select(_db.cameraDetections)
-              ..where((t) => t.linkedEventId.isIn(eventIds))
-              ..orderBy([
-                (t) => OrderingTerm(expression: t.cameraTimestampUtc, mode: OrderingMode.asc),
-              ]))
-            .get();
+        allDetections =
+            await (_db.select(_db.cameraDetections)
+                  ..where((t) => t.linkedEventId.isIn(eventIds))
+                  ..orderBy([
+                    (t) => OrderingTerm(
+                      expression: t.cameraTimestampUtc,
+                      mode: OrderingMode.asc,
+                    ),
+                  ]))
+                .get();
       }
     } else {
       var query = _db.select(_db.cameraDetections);
       if (startUtc != null) {
-        query = query..where((t) => t.cameraTimestampUtc.isBiggerOrEqualValue(startUtc));
+        query = query
+          ..where((t) => t.cameraTimestampUtc.isBiggerOrEqualValue(startUtc));
       }
       if (endUtc != null) {
-        query = query..where((t) => t.cameraTimestampUtc.isSmallerOrEqualValue(endUtc));
+        query = query
+          ..where((t) => t.cameraTimestampUtc.isSmallerOrEqualValue(endUtc));
       }
-      allDetections = await (query
-            ..orderBy([
-              (t) => OrderingTerm(expression: t.cameraTimestampUtc, mode: OrderingMode.asc),
-            ]))
-          .get();
+      allDetections =
+          await (query..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.cameraTimestampUtc,
+                  mode: OrderingMode.asc,
+                ),
+              ]))
+              .get();
+    }
+
+    // Fetch durable UVC photo captures using the same event/range rules.
+    List<CameraCapture> allCaptures;
+    if (mode == ExportMode.eventsOnly) {
+      allCaptures = eventIds.isEmpty
+          ? <CameraCapture>[]
+          : await (_db.select(_db.cameraCaptures)
+                  ..where((t) => t.linkedEventId.isIn(eventIds))
+                  ..orderBy([
+                    (t) => OrderingTerm.asc(t.capturedAtUtc),
+                    (t) => OrderingTerm.asc(t.sequenceNo),
+                  ]))
+                .get();
+    } else {
+      var query = _db.select(_db.cameraCaptures);
+      if (startUtc != null) {
+        query = query
+          ..where((t) => t.capturedAtUtc.isBiggerOrEqualValue(startUtc));
+      }
+      if (endUtc != null) {
+        query = query
+          ..where((t) => t.capturedAtUtc.isSmallerOrEqualValue(endUtc));
+      }
+      allCaptures =
+          await (query..orderBy([
+                (t) => OrderingTerm.asc(t.capturedAtUtc),
+                (t) => OrderingTerm.asc(t.sequenceNo),
+              ]))
+              .get();
     }
 
     // Group readings and detections by eventId
@@ -210,6 +294,20 @@ class ExportRepositoryImpl implements ExportRepository {
       }
     }
 
+    final capturesByEvent = <int, List<Map<String, dynamic>>>{};
+    final unlinkedCaptures = <Map<String, dynamic>>[];
+    for (final capture in allCaptures) {
+      final mapped = _formatCapture(capture);
+      if (capture.linkedEventId != null &&
+          eventMap.containsKey(capture.linkedEventId)) {
+        capturesByEvent
+            .putIfAbsent(capture.linkedEventId!, () => [])
+            .add(mapped);
+      } else {
+        unlinkedCaptures.add(mapped);
+      }
+    }
+
     // ── Predictive pre-alert + rider feedback linkage ──
     // Pre-alerts that were linked to a labeled event become the event's
     // "pre_alert" block; the feedback rows (scored by the LLM evaluator)
@@ -217,10 +315,11 @@ class ExportRepositoryImpl implements ExportRepository {
     final preAlertsByEvent = <int, Map<String, dynamic>>{};
     if (eventMap.isNotEmpty) {
       final eventIdsList = eventMap.keys.toList();
-      final linkedAlerts = await (_db.select(_db.preAlerts)
-            ..where((t) => t.eventId.isIn(eventIdsList))
-            ..orderBy([(t) => OrderingTerm(expression: t.alertedAtUtc)]))
-          .get();
+      final linkedAlerts =
+          await (_db.select(_db.preAlerts)
+                ..where((t) => t.eventId.isIn(eventIdsList))
+                ..orderBy([(t) => OrderingTerm(expression: t.alertedAtUtc)]))
+              .get();
       for (final alert in linkedAlerts) {
         final eventId = alert.eventId;
         if (eventId == null) continue;
@@ -241,10 +340,11 @@ class ExportRepositoryImpl implements ExportRepository {
     final feedbackByEvent = <int, List<Map<String, dynamic>>>{};
     if (eventMap.isNotEmpty) {
       final eventIdsList = eventMap.keys.toList();
-      final feedbackRows = await (_db.select(_db.eventFeedbacks)
-            ..where((t) => t.eventId.isIn(eventIdsList))
-            ..orderBy([(t) => OrderingTerm(expression: t.createdAtUtc)]))
-          .get();
+      final feedbackRows =
+          await (_db.select(_db.eventFeedbacks)
+                ..where((t) => t.eventId.isIn(eventIdsList))
+                ..orderBy([(t) => OrderingTerm(expression: t.createdAtUtc)]))
+              .get();
       for (final fb in feedbackRows) {
         final eventId = fb.eventId;
         if (eventId == null) continue;
@@ -270,13 +370,16 @@ class ExportRepositoryImpl implements ExportRepository {
       Map<String, dynamic>? parsedParams;
       if (e.computedParameters != null) {
         try {
-          parsedParams = jsonDecode(e.computedParameters!) as Map<String, dynamic>;
+          parsedParams =
+              jsonDecode(e.computedParameters!) as Map<String, dynamic>;
         } catch (_) {}
       }
 
       double? durationSec;
       if (e.endTimestamp != null) {
-        durationSec = e.endTimestamp!.difference(e.startTimestamp).inMilliseconds / 1000.0;
+        durationSec =
+            e.endTimestamp!.difference(e.startTimestamp).inMilliseconds /
+            1000.0;
       }
 
       return {
@@ -308,22 +411,29 @@ class ExportRepositoryImpl implements ExportRepository {
         'feedback': feedbackByEvent[e.id] ?? [],
         'sensor_readings': readingsByEvent[e.id] ?? [],
         'camera_detections': detectionsByEvent[e.id] ?? [],
+        'camera_captures': capturesByEvent[e.id] ?? [],
       };
     }).toList();
 
     // Top-level trip summaries mirroring File 3
     final tripIds = tripsList.map((t) => t.id).toSet();
     final calibrations = tripIds.isNotEmpty
-        ? await (_db.select(_db.tripCalibrations)..where((c) => c.tripId.isIn(tripIds))).get()
+        ? await (_db.select(
+            _db.tripCalibrations,
+          )..where((c) => c.tripId.isIn(tripIds))).get()
         : <TripCalibration>[];
-    final calMap = <int, TripCalibration>{for (final c in calibrations) c.tripId: c};
+    final calMap = <int, TripCalibration>{
+      for (final c in calibrations) c.tripId: c,
+    };
 
     final tripSummaries = tripsList.map((t) {
       final cal = calMap[t.id];
       return {
         'trip_id': t.id,
-        'start_timestamp_utc': (t.startTimestampUtc ?? t.startTimeUtc).toIso8601String(),
-        'end_timestamp_utc': (t.endTimestampUtc ?? t.endTimeUtc)?.toIso8601String(),
+        'start_timestamp_utc': (t.startTimestampUtc ?? t.startTimeUtc)
+            .toIso8601String(),
+        'end_timestamp_utc': (t.endTimestampUtc ?? t.endTimeUtc)
+            ?.toIso8601String(),
         'total_distance_km': t.totalDistanceKm,
         'total_duration_min': t.totalDurationMin,
         'avg_speed_kmh': t.avgSpeedKmh,
@@ -351,7 +461,9 @@ class ExportRepositoryImpl implements ExportRepository {
         'start_utc': startUtc?.toIso8601String(),
         'end_utc': endUtc?.toIso8601String(),
       },
-      'export_mode': mode == ExportMode.eventsOnly ? 'events_only' : 'full_raw_session',
+      'export_mode': mode == ExportMode.eventsOnly
+          ? 'events_only'
+          : 'full_raw_session',
       'only_cross_confirmed': onlyCrossConfirmed,
       'trip_summary': tripSummaries.isNotEmpty ? tripSummaries.first : null,
       'trips': tripSummaries,
@@ -368,6 +480,7 @@ class ExportRepositoryImpl implements ExportRepository {
     if (mode == ExportMode.fullRawSession) {
       exportJson['raw_unlabeled_sensor_readings'] = unlinkedReadings;
       exportJson['raw_unlabeled_camera_detections'] = unlinkedDetections;
+      exportJson['raw_unlinked_camera_captures'] = unlinkedCaptures;
     }
 
     return exportJson;
@@ -399,7 +512,9 @@ class ExportRepositoryImpl implements ExportRepository {
   }
 
   Map<String, dynamic> _formatDetection(CameraDetection d) {
-    final latencyMs = d.receivedAtUtc.difference(d.cameraTimestampUtc).inMilliseconds;
+    final latencyMs = d.receivedAtUtc
+        .difference(d.cameraTimestampUtc)
+        .inMilliseconds;
     return {
       'id': d.id,
       'device_id': d.deviceId,
@@ -412,6 +527,25 @@ class ExportRepositoryImpl implements ExportRepository {
     };
   }
 
+  Map<String, dynamic> _formatCapture(CameraCapture capture) => {
+    'capture_id': capture.id,
+    'capture_key': capture.captureKey,
+    'trip_id': capture.tripId,
+    'event_id': capture.linkedEventId,
+    'device_id': capture.deviceId,
+    'sequence_no': capture.sequenceNo,
+    'captured_at_utc': capture.capturedAtUtc.toIso8601String(),
+    'received_at_utc': capture.receivedAtUtc.toIso8601String(),
+    'trigger': capture.trigger,
+    'image_file_name': p.basename(capture.filePath),
+    'storage_path': capture.filePath,
+    'mime_type': capture.mimeType,
+    'width': capture.width,
+    'height': capture.height,
+    'byte_length': capture.byteLength,
+    'sha256': capture.sha256,
+  };
+
   // ──────────────────────────────────────────────────────────────────────────
   // FILE 1: sensor_timeseries_export.csv
   // ──────────────────────────────────────────────────────────────────────────
@@ -422,7 +556,11 @@ class ExportRepositoryImpl implements ExportRepository {
     required ExportMode mode,
     bool onlyCrossConfirmed = false,
   }) async {
-    final events = await _fetchEventsInRange(startUtc, endUtc, onlyCrossConfirmed: onlyCrossConfirmed);
+    final events = await _fetchEventsInRange(
+      startUtc,
+      endUtc,
+      onlyCrossConfirmed: onlyCrossConfirmed,
+    );
     final eventIds = events.map((e) => e.id).toSet();
 
     var query = _db.select(_db.sensorReadings);
@@ -431,40 +569,75 @@ class ExportRepositoryImpl implements ExportRepository {
       query = query..where((t) => t.eventId.isIn(eventIds));
     }
     if (startUtc != null) {
-      query = query..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
+      query = query
+        ..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
     }
     if (endUtc != null) {
       query = query..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
     }
 
-    final readings = await (query
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
-            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
-          ]))
-        .get();
+    final readings =
+        await (query..orderBy([
+              (t) => OrderingTerm(
+                expression: t.timestampUtc,
+                mode: OrderingMode.asc,
+              ),
+              (t) => OrderingTerm(
+                expression: t.sequenceNo,
+                mode: OrderingMode.asc,
+              ),
+            ]))
+            .get();
 
     // Fetch GPS fixes to forward-fill
     var locQuery = _db.select(_db.locationReadings);
     if (startUtc != null) {
-      locQuery = locQuery..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc.subtract(const Duration(seconds: 5))));
+      locQuery = locQuery
+        ..where(
+          (t) => t.timestampUtc.isBiggerOrEqualValue(
+            startUtc.subtract(const Duration(seconds: 5)),
+          ),
+        );
     }
     if (endUtc != null) {
-      locQuery = locQuery..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc.add(const Duration(seconds: 5))));
+      locQuery = locQuery
+        ..where(
+          (t) => t.timestampUtc.isSmallerOrEqualValue(
+            endUtc.add(const Duration(seconds: 5)),
+          ),
+        );
     }
-    final gpsFixes = await (locQuery..orderBy([(t) => OrderingTerm(expression: t.timestampUtc)])).get();
+    final gpsFixes =
+        await (locQuery
+              ..orderBy([(t) => OrderingTerm(expression: t.timestampUtc)]))
+            .get();
+
+    // Fetch Event Feedbacks for rider voice replies & ratings
+    var fbQuery = _db.select(_db.eventFeedbacks);
+    if (startUtc != null) {
+      fbQuery = fbQuery
+        ..where(
+          (t) => t.createdAtUtc.isBiggerOrEqualValue(
+            startUtc.subtract(const Duration(seconds: 15)),
+          ),
+        );
+    }
+    if (endUtc != null) {
+      fbQuery = fbQuery
+        ..where(
+          (t) => t.createdAtUtc.isSmallerOrEqualValue(
+            endUtc.add(const Duration(seconds: 15)),
+          ),
+        );
+    }
+    final feedbacks = await fbQuery.get();
+    final feedbackMap = <int, EventFeedback>{
+      for (final fb in feedbacks)
+        if (fb.eventId != null) fb.eventId!: fb,
+    };
 
     final buffer = StringBuffer();
-    buffer.writeln(
-      'timestamp_utc,trip_id,device_id,mount_location,sensor_type,event_id,'
-      'heart_rate,hr_baseline,hr_delta,'
-      'accel_x,accel_y,accel_z,accel_magnitude,'
-      'gyro_x,gyro_y,gyro_z,'
-      'jerk_x,jerk_y,jerk_z,jerk_magnitude,'
-      'roll_angle_deg,yaw_rate_deg_s,'
-      'latitude,longitude,gps_speed_kmh,gps_heading_deg,gps_accuracy_m,'
-      'ppi_ms,event_type,event_classification,bbox_marker',
-    );
+    buffer.write(_buildTimeseriesCsvHeader());
 
     final recentHrs = <int>[];
     final lastReadingByDevice = <String, SensorReading>{};
@@ -477,13 +650,19 @@ class ExportRepositoryImpl implements ExportRepository {
         recentHrs.add(r.heartRate!);
         if (recentHrs.length > 60) recentHrs.removeAt(0);
       }
-      final hrBaseline = recentHrs.isNotEmpty ? HrEventGate.computeBaseline(recentHrs) : null;
-      final hrDelta = (r.heartRate != null && hrBaseline != null) ? (r.heartRate! - hrBaseline) : null;
+      final hrBaseline = recentHrs.isNotEmpty
+          ? HrEventGate.computeBaseline(recentHrs)
+          : null;
+      final hrDelta = (r.heartRate != null && hrBaseline != null)
+          ? (r.heartRate! - hrBaseline)
+          : null;
 
       // Accel magnitude
       double? accelMag;
       if (r.accelX != null && r.accelY != null && r.accelZ != null) {
-        accelMag = math.sqrt(r.accelX! * r.accelX! + r.accelY! * r.accelY! + r.accelZ! * r.accelZ!);
+        accelMag = math.sqrt(
+          r.accelX! * r.accelX! + r.accelY! * r.accelY! + r.accelZ! * r.accelZ!,
+        );
       }
 
       // Jerk strictly per physical device
@@ -491,24 +670,37 @@ class ExportRepositoryImpl implements ExportRepository {
       final prevReading = lastReadingByDevice[r.deviceId];
       lastReadingByDevice[r.deviceId] = r;
       if (prevReading != null) {
-        final dt = r.timestampUtc.difference(prevReading.timestampUtc).inMilliseconds / 1000.0;
+        final dt =
+            r.timestampUtc.difference(prevReading.timestampUtc).inMilliseconds /
+            1000.0;
         if (dt > 0.005 && dt < 0.2) {
-          if (r.accelX != null && prevReading.accelX != null) jx = (r.accelX! - prevReading.accelX!) / dt;
-          if (r.accelY != null && prevReading.accelY != null) jy = (r.accelY! - prevReading.accelY!) / dt;
-          if (r.accelZ != null && prevReading.accelZ != null) jz = (r.accelZ! - prevReading.accelZ!) / dt;
+          if (r.accelX != null && prevReading.accelX != null)
+            jx = (r.accelX! - prevReading.accelX!) / dt;
+          if (r.accelY != null && prevReading.accelY != null)
+            jy = (r.accelY! - prevReading.accelY!) / dt;
+          if (r.accelZ != null && prevReading.accelZ != null)
+            jz = (r.accelZ! - prevReading.accelZ!) / dt;
           if (jx != null && jy != null && jz != null) {
             jMag = math.sqrt(jx * jx + jy * jy + jz * jz);
           }
         }
       }
 
-      // Roll & Yaw rate
+      // Roll & pitch angles
       double? rollDeg;
+      double? pitchDeg;
       if (r.accelX != null && r.accelY != null && r.accelZ != null) {
-        final rollRad = math.atan2(r.accelY!, math.sqrt(r.accelX! * r.accelX! + r.accelZ! * r.accelZ!));
+        final rollRad = math.atan2(
+          r.accelY!,
+          math.sqrt(r.accelX! * r.accelX! + r.accelZ! * r.accelZ!),
+        );
+        final pitchRad = math.atan2(
+          -r.accelX!,
+          math.sqrt(r.accelY! * r.accelY! + r.accelZ! * r.accelZ!),
+        );
         rollDeg = AngularUnits.radToDeg(rollRad);
+        pitchDeg = AngularUnits.radToDeg(pitchRad);
       }
-      final yawRateDegS = r.gyroZ != null ? AngularUnits.radToDeg(r.gyroZ!.abs()) : null;
 
       // Nearest GPS within 1.5s (1500ms) tolerance
       LocationReading? nearestGps;
@@ -518,9 +710,17 @@ class ExportRepositoryImpl implements ExportRepository {
           gpsSearchIdx++;
         }
         final candidate1 = gpsFixes[gpsSearchIdx];
-        final candidate2 = (gpsSearchIdx + 1 < gpsFixes.length) ? gpsFixes[gpsSearchIdx + 1] : candidate1;
-        final diff1 = candidate1.timestampUtc.difference(r.timestampUtc).inMilliseconds.abs();
-        final diff2 = candidate2.timestampUtc.difference(r.timestampUtc).inMilliseconds.abs();
+        final candidate2 = (gpsSearchIdx + 1 < gpsFixes.length)
+            ? gpsFixes[gpsSearchIdx + 1]
+            : candidate1;
+        final diff1 = candidate1.timestampUtc
+            .difference(r.timestampUtc)
+            .inMilliseconds
+            .abs();
+        final diff2 = candidate2.timestampUtc
+            .difference(r.timestampUtc)
+            .inMilliseconds
+            .abs();
         final best = diff1 <= diff2 ? candidate1 : candidate2;
         final bestDiff = diff1 <= diff2 ? diff1 : diff2;
         if (bestDiff <= 1500) {
@@ -542,16 +742,19 @@ class ExportRepositoryImpl implements ExportRepository {
           final ctxStart = evtStart.subtract(const Duration(seconds: 3));
           final ctxEnd = evtEnd.add(const Duration(seconds: 3));
 
-          if (!r.timestampUtc.isBefore(evtStart) && !r.timestampUtc.isAfter(evtEnd)) {
+          if (!r.timestampUtc.isBefore(evtStart) &&
+              !r.timestampUtc.isAfter(evtEnd)) {
             bboxMarker = 'EVENT_DATA';
             matchingEvt = evt;
             break;
-          } else if (!r.timestampUtc.isBefore(ctxStart) && r.timestampUtc.isBefore(evtStart)) {
+          } else if (!r.timestampUtc.isBefore(ctxStart) &&
+              r.timestampUtc.isBefore(evtStart)) {
             if (bboxMarker.isEmpty || bboxMarker == 'CONTEXT_POST') {
               bboxMarker = 'CONTEXT_PRE';
               matchingEvt = evt;
             }
-          } else if (r.timestampUtc.isAfter(evtEnd) && !r.timestampUtc.isAfter(ctxEnd)) {
+          } else if (r.timestampUtc.isAfter(evtEnd) &&
+              !r.timestampUtc.isAfter(ctxEnd)) {
             if (bboxMarker.isEmpty) {
               bboxMarker = 'CONTEXT_POST';
               matchingEvt = evt;
@@ -560,16 +763,26 @@ class ExportRepositoryImpl implements ExportRepository {
         }
       }
 
+      // Normalize wrist side (left_hand, right_hand, heart_rate_band)
+      String wristSide = r.mountLocation.toLowerCase();
+      if (wristSide == 'fork') wristSide = 'left_hand';
+      if (wristSide == 'footboard') wristSide = 'right_hand';
+      if (r.sensorType == 'heart_rate' ||
+          r.deviceId.toLowerCase().contains('polar') ||
+          r.deviceId.toLowerCase().contains('hr')) {
+        wristSide = 'heart_rate_band';
+      }
+
+      final fb = matchingEvt?.id != null ? feedbackMap[matchingEvt!.id] : null;
+      final voiceCmd = matchingEvt?.triggerPhrase ?? '';
+      final riderFb = fb?.responseText ?? '';
+
+      // Streamlined 22-column ML telemetry row
       final row = [
         r.timestampUtc.toIso8601String(),
-        r.tripId ?? '',
-        _csvEscape(r.deviceId),
-        _csvEscape(r.mountLocation),
-        _csvEscape(r.sensorType),
-        r.eventId ?? matchingEvt?.id ?? '',
-        r.heartRate ?? '',
-        hrBaseline?.toStringAsFixed(1) ?? '',
-        hrDelta?.toStringAsFixed(1) ?? '',
+        r.timestampUtc.millisecondsSinceEpoch,
+        r.sequenceNo,
+        _csvEscape(wristSide),
         r.accelX?.toStringAsFixed(4) ?? '',
         r.accelY?.toStringAsFixed(4) ?? '',
         r.accelZ?.toStringAsFixed(4) ?? '',
@@ -577,20 +790,18 @@ class ExportRepositoryImpl implements ExportRepository {
         r.gyroX?.toStringAsFixed(4) ?? '',
         r.gyroY?.toStringAsFixed(4) ?? '',
         r.gyroZ?.toStringAsFixed(4) ?? '',
-        jx?.toStringAsFixed(2) ?? '',
-        jy?.toStringAsFixed(2) ?? '',
-        jz?.toStringAsFixed(2) ?? '',
-        jMag?.toStringAsFixed(2) ?? '',
         rollDeg?.toStringAsFixed(2) ?? '',
-        yawRateDegS?.toStringAsFixed(2) ?? '',
+        pitchDeg?.toStringAsFixed(2) ?? '',
+        r.heartRate ?? '',
+        r.ppiMs ?? '',
+        nearestGps?.gpsSpeedMps != null
+            ? (nearestGps!.gpsSpeedMps! * 3.6).toStringAsFixed(1)
+            : '',
         nearestGps?.latitude.toStringAsFixed(6) ?? '',
         nearestGps?.longitude.toStringAsFixed(6) ?? '',
-        nearestGps?.gpsSpeedMps != null ? (nearestGps!.gpsSpeedMps! * 3.6).toStringAsFixed(1) : '',
-        nearestGps?.gpsHeadingDeg?.toStringAsFixed(1) ?? '',
-        nearestGps?.gpsAccuracyM?.toStringAsFixed(1) ?? '',
-        r.ppiMs ?? '',
         _csvEscape(matchingEvt?.eventType ?? ''),
-        _csvEscape(matchingEvt?.classification ?? ''),
+        _csvEscape(voiceCmd),
+        _csvEscape(riderFb),
         _csvEscape(bboxMarker),
       ];
 
@@ -601,14 +812,12 @@ class ExportRepositoryImpl implements ExportRepository {
   }
 
   String _buildTimeseriesCsvHeader() {
-    return 'timestamp_utc,trip_id,device_id,mount_location,sensor_type,event_id,'
-        'heart_rate,hr_baseline,hr_delta,'
+    return 'timestamp_iso8601,timestamp_epoch_ms,sequence_no,wrist_side,'
         'accel_x,accel_y,accel_z,accel_magnitude,'
-        'gyro_x,gyro_y,gyro_z,'
-        'jerk_x,jerk_y,jerk_z,jerk_magnitude,'
-        'roll_angle_deg,yaw_rate_deg_s,'
-        'latitude,longitude,gps_speed_kmh,gps_heading_deg,gps_accuracy_m,'
-        'ppi_ms,event_type,event_classification,bbox_marker\n';
+        'gyro_x,gyro_y,gyro_z,roll_deg,pitch_deg,'
+        'heart_rate_bpm,ppi_ms,'
+        'gps_speed_kmh,latitude,longitude,'
+        'event_type,voice_command,rider_feedback,bbox_marker\n';
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -620,16 +829,20 @@ class ExportRepositoryImpl implements ExportRepository {
     DateTime? endUtc,
     bool onlyCrossConfirmed = false,
   }) async {
-    final events = await _fetchEventsInRange(startUtc, endUtc, onlyCrossConfirmed: onlyCrossConfirmed);
+    final events = await _fetchEventsInRange(
+      startUtc,
+      endUtc,
+      onlyCrossConfirmed: onlyCrossConfirmed,
+    );
 
     final buffer = StringBuffer();
     buffer.writeln(
       'event_id,trip_id,event_type,trigger_phrase,'
       'start_timestamp_utc,end_timestamp_utc,duration_ms,'
-      'mount_location_primary,'
+      'wrist_side_primary,'
       'peak_g_force,jerk_peak_magnitude,'
       'peak_yaw_rate_deg_s,max_lean_angle_deg,turn_direction,'
-      'cross_confirmed,fork_foot_lag_ms,'
+      'dual_wrist_confirmed,'
       'hr_spike_confirmed,hr_delta_at_event,'
       'gps_speed_at_event_kmh,gps_heading_change_deg,'
       'camera_linked,camera_event_class,camera_confidence,'
@@ -642,10 +855,14 @@ class ExportRepositoryImpl implements ExportRepository {
           : 0;
 
       // Find camera detections linked to this event
-      final detections = await (_db.select(_db.cameraDetections)..where((t) => t.linkedEventId.equals(e.id))).get();
+      final detections = await (_db.select(
+        _db.cameraDetections,
+      )..where((t) => t.linkedEventId.equals(e.id))).get();
       final hasCam = detections.isNotEmpty;
       final camClass = hasCam ? detections.first.eventClass : '';
-      final camConf = hasCam ? detections.first.confidence.toStringAsFixed(3) : '';
+      final camConf = hasCam
+          ? detections.first.confidence.toStringAsFixed(3)
+          : '';
 
       final isConfirmed = e.crossConfirmed && durationMs >= 80;
 
@@ -654,17 +871,26 @@ class ExportRepositoryImpl implements ExportRepository {
         params = EventParameters.fromJsonString(e.computedParameters);
       }
 
-      String primaryMount = 'hands';
-      final evReadings = await (_db.select(_db.sensorReadings)
-            ..where((t) => t.eventId.equals(e.id))
-            ..limit(1))
-          .get();
+      String primaryWrist = 'left_hand';
+      final evReadings =
+          await (_db.select(_db.sensorReadings)
+                ..where((t) => t.eventId.equals(e.id))
+                ..limit(1))
+              .get();
       if (evReadings.isNotEmpty && evReadings.first.mountLocation.isNotEmpty) {
-        primaryMount = evReadings.first.mountLocation;
+        var loc = evReadings.first.mountLocation.toLowerCase();
+        if (loc == 'fork') loc = 'left_hand';
+        if (loc == 'footboard') loc = 'right_hand';
+        primaryWrist = loc;
       }
 
-      final peakG = params?.bump?.peakGForce ?? (e.peakMetric != null ? AngularUnits.accelToG(e.peakMetric!) : null);
-      final jerk = e.jerkPeakMagnitude ?? params?.bump?.jerkPeakMagnitude ?? params?.speed?.jerkPeakMagnitude;
+      final peakG =
+          params?.bump?.peakGForce ??
+          (e.peakMetric != null ? AngularUnits.accelToG(e.peakMetric!) : null);
+      final jerk =
+          e.jerkPeakMagnitude ??
+          params?.bump?.jerkPeakMagnitude ??
+          params?.speed?.jerkPeakMagnitude;
       final yawRate = params?.turn?.peakGyroDegPerSec;
       final lean = params?.turn?.maxLeanAngleDeg;
       final turnDir = params?.turn?.turnDirection ?? '';
@@ -678,14 +904,13 @@ class ExportRepositoryImpl implements ExportRepository {
         e.startTimestamp.toIso8601String(),
         e.endTimestamp?.toIso8601String() ?? '',
         durationMs,
-        _csvEscape(primaryMount),
+        _csvEscape(primaryWrist),
         peakG?.toStringAsFixed(2) ?? '',
         jerk?.toStringAsFixed(2) ?? '',
         yawRate?.toStringAsFixed(1) ?? '',
         lean?.toStringAsFixed(1) ?? '',
         _csvEscape(turnDir),
         e.crossConfirmed,
-        e.forkFootLagMs?.toStringAsFixed(1) ?? '',
         e.hrSpikeConfirmed,
         e.hrDeltaAtEvent?.toStringAsFixed(1) ?? '',
         e.gpsSpeedAtEventKmh?.toStringAsFixed(1) ?? '',
@@ -713,18 +938,27 @@ class ExportRepositoryImpl implements ExportRepository {
   }) async {
     var query = _db.select(_db.trips);
     if (startUtc != null) {
-      query = query..where((t) => t.startTimestampUtc.isBiggerOrEqualValue(startUtc));
+      query = query
+        ..where((t) => t.startTimestampUtc.isBiggerOrEqualValue(startUtc));
     }
     if (endUtc != null) {
-      query = query..where((t) => t.startTimestampUtc.isSmallerOrEqualValue(endUtc));
+      query = query
+        ..where((t) => t.startTimestampUtc.isSmallerOrEqualValue(endUtc));
     }
-    final tripsList = await (query..orderBy([(t) => OrderingTerm(expression: t.startTimestampUtc)])).get();
+    final tripsList =
+        await (query
+              ..orderBy([(t) => OrderingTerm(expression: t.startTimestampUtc)]))
+            .get();
 
     final tripIds = tripsList.map((t) => t.id).toSet();
     final calibrations = tripIds.isNotEmpty
-        ? await (_db.select(_db.tripCalibrations)..where((c) => c.tripId.isIn(tripIds))).get()
+        ? await (_db.select(
+            _db.tripCalibrations,
+          )..where((c) => c.tripId.isIn(tripIds))).get()
         : <TripCalibration>[];
-    final calMap = <int, TripCalibration>{for (final c in calibrations) c.tripId: c};
+    final calMap = <int, TripCalibration>{
+      for (final c in calibrations) c.tripId: c,
+    };
 
     final buffer = StringBuffer();
     buffer.writeln(
@@ -762,7 +996,9 @@ class ExportRepositoryImpl implements ExportRepository {
         t.nightDrivingPct?.toStringAsFixed(1) ?? '',
         t.driverScore?.toStringAsFixed(1) ?? '',
         cal?.calibrationValid ?? false,
-        cal?.engineNoiseFreqHz != null ? cal!.engineNoiseFreqHz.toStringAsFixed(2) : '',
+        cal?.engineNoiseFreqHz != null
+            ? cal!.engineNoiseFreqHz.toStringAsFixed(2)
+            : '',
       ];
       buffer.writeln(row.join(','));
     }
@@ -781,7 +1017,8 @@ class ExportRepositoryImpl implements ExportRepository {
     var query = _db.select(_db.preAlerts)
       ..orderBy([(t) => OrderingTerm(expression: t.alertedAtUtc)]);
     if (startUtc != null) {
-      query = query..where((t) => t.alertedAtUtc.isBiggerOrEqualValue(startUtc));
+      query = query
+        ..where((t) => t.alertedAtUtc.isBiggerOrEqualValue(startUtc));
     }
     if (endUtc != null) {
       query = query..where((t) => t.alertedAtUtc.isSmallerOrEqualValue(endUtc));
@@ -891,7 +1128,11 @@ class ExportRepositoryImpl implements ExportRepository {
     String? deviceId,
     bool onlyCrossConfirmed = false,
   }) async {
-    final events = await _fetchEventsInRange(startUtc, endUtc, onlyCrossConfirmed: onlyCrossConfirmed);
+    final events = await _fetchEventsInRange(
+      startUtc,
+      endUtc,
+      onlyCrossConfirmed: onlyCrossConfirmed,
+    );
     final eventMap = <int, EventRecord>{for (var e in events) e.id: e};
     final eventIds = eventMap.keys.toSet();
 
@@ -901,7 +1142,8 @@ class ExportRepositoryImpl implements ExportRepository {
       query = query..where((t) => t.eventId.isIn(eventIds));
     }
     if (startUtc != null) {
-      query = query..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
+      query = query
+        ..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
     }
     if (endUtc != null) {
       query = query..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
@@ -910,12 +1152,18 @@ class ExportRepositoryImpl implements ExportRepository {
       query = query..where((t) => t.deviceId.equals(deviceId));
     }
 
-    final readings = await (query
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
-            (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
-          ]))
-        .get();
+    final readings =
+        await (query..orderBy([
+              (t) => OrderingTerm(
+                expression: t.sequenceNo,
+                mode: OrderingMode.asc,
+              ),
+              (t) => OrderingTerm(
+                expression: t.timestampUtc,
+                mode: OrderingMode.asc,
+              ),
+            ]))
+            .get();
 
     return _generateLegacyCsvFromReadings(readings, eventMap);
   }
@@ -927,7 +1175,11 @@ class ExportRepositoryImpl implements ExportRepository {
     required ExportMode mode,
     bool onlyCrossConfirmed = false,
   }) async {
-    final events = await _fetchEventsInRange(startUtc, endUtc, onlyCrossConfirmed: onlyCrossConfirmed);
+    final events = await _fetchEventsInRange(
+      startUtc,
+      endUtc,
+      onlyCrossConfirmed: onlyCrossConfirmed,
+    );
     final eventMap = <int, EventRecord>{for (var e in events) e.id: e};
     final eventIds = eventMap.keys.toSet();
 
@@ -937,18 +1189,25 @@ class ExportRepositoryImpl implements ExportRepository {
       query = query..where((t) => t.eventId.isIn(eventIds));
     }
     if (startUtc != null) {
-      query = query..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
+      query = query
+        ..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
     }
     if (endUtc != null) {
       query = query..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
     }
 
-    final allReadings = await (query
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
-            (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
-          ]))
-        .get();
+    final allReadings =
+        await (query..orderBy([
+              (t) => OrderingTerm(
+                expression: t.sequenceNo,
+                mode: OrderingMode.asc,
+              ),
+              (t) => OrderingTerm(
+                expression: t.timestampUtc,
+                mode: OrderingMode.asc,
+              ),
+            ]))
+            .get();
 
     final readingsByDevice = <String, List<SensorReading>>{};
     for (final r in allReadings) {
@@ -963,14 +1222,18 @@ class ExportRepositoryImpl implements ExportRepository {
     return result;
   }
 
-  String _generateLegacyCsvFromReadings(List<SensorReading> readings, Map<int, EventRecord> eventMap) {
+  String _generateLegacyCsvFromReadings(
+    List<SensorReading> readings,
+    Map<int, EventRecord> eventMap,
+  ) {
     final buffer = StringBuffer();
     final localDateFormat = DateFormat('yyyy-MM-dd HH:mm:ss.SSS');
 
     buffer.writeln(
       'reading_id,timestamp_iso8601,timestamp_local,timestamp_epoch_ms,sequence_no,device_id,device_type,mount_location,sensor_type,'
-      'heart_rate_bpm,accel_x,accel_y,accel_z,gyro_x,gyro_y,gyro_z,ppi_ms,'
-      'trip_id,event_id,event_type,event_classification,event_peak_metric,cross_confirmed,param_summary',
+      'heart_rate_bpm,accel_x,accel_y,accel_z,linear_accel_x,linear_accel_y,linear_accel_z,'
+      'gyro_x,gyro_y,gyro_z,quat_w,quat_x,quat_y,quat_z,timestamp_monotonic_micros,barometer_altitude_m,ppi_ms,'
+      'trip_id,event_id,event_type,event_classification,event_peak_metric,cross_confirmed,voice_command,param_summary',
     );
 
     for (final r in readings) {
@@ -982,6 +1245,45 @@ class ExportRepositoryImpl implements ExportRepository {
       final localFormatted = localDateFormat.format(r.timestampUtc.toLocal());
       final epochMs = r.timestampUtc.millisecondsSinceEpoch;
 
+      double? linAx = r.linearAccelX;
+      double? linAy = r.linearAccelY;
+      double? linAz = r.linearAccelZ;
+      double? qW = r.quatW;
+      double? qX = r.quatX;
+      double? qY = r.quatY;
+      double? qZ = r.quatZ;
+
+      if ((qW == null || linAx == null) &&
+          r.accelX != null &&
+          r.accelY != null &&
+          r.accelZ != null) {
+        final roll = math.atan2(r.accelY!, r.accelZ!);
+        final pitch = math.atan2(
+          -r.accelX!,
+          math.sqrt(r.accelY! * r.accelY! + r.accelZ! * r.accelZ!),
+        );
+        final cr = math.cos(roll * 0.5);
+        final sr = math.sin(roll * 0.5);
+        final cp = math.cos(pitch * 0.5);
+        final sp = math.sin(pitch * 0.5);
+
+        qW ??= cr * cp;
+        qX ??= sr * cp;
+        qY ??= cr * sp;
+        qZ ??= -sr * sp;
+
+        final gxEst = 2.0 * (qX * qZ - qW * qY) * 9.80665;
+        final gyEst = 2.0 * (qW * qX + qY * qZ) * 9.80665;
+        final gzEst = (qW * qW - qX * qX - qY * qY + qZ * qZ) * 9.80665;
+
+        linAx ??= r.accelX! - gxEst;
+        linAy ??= r.accelY! - gyEst;
+        linAz ??= r.accelZ! - gzEst;
+      }
+
+      final monotonicMicros =
+          r.timestampMonotonicMicros ?? (r.timestampUtc.microsecondsSinceEpoch);
+
       final row = [
         r.id,
         r.timestampUtc.toIso8601String(),
@@ -990,15 +1292,31 @@ class ExportRepositoryImpl implements ExportRepository {
         r.sequenceNo,
         _csvEscape(r.deviceId),
         _csvEscape(r.deviceType),
-        _csvEscape(r.mountLocation),
+        _csvEscape(
+          (() {
+            var loc = r.mountLocation.toLowerCase();
+            if (loc == 'fork') return 'left_hand';
+            if (loc == 'footboard') return 'right_hand';
+            return loc;
+          })(),
+        ),
         _csvEscape(r.sensorType),
         r.heartRate ?? '',
         r.accelX?.toStringAsFixed(4) ?? '',
         r.accelY?.toStringAsFixed(4) ?? '',
         r.accelZ?.toStringAsFixed(4) ?? '',
+        linAx?.toStringAsFixed(4) ?? '',
+        linAy?.toStringAsFixed(4) ?? '',
+        linAz?.toStringAsFixed(4) ?? '',
         r.gyroX?.toStringAsFixed(4) ?? '',
         r.gyroY?.toStringAsFixed(4) ?? '',
         r.gyroZ?.toStringAsFixed(4) ?? '',
+        qW?.toStringAsFixed(4) ?? '',
+        qX?.toStringAsFixed(4) ?? '',
+        qY?.toStringAsFixed(4) ?? '',
+        qZ?.toStringAsFixed(4) ?? '',
+        monotonicMicros,
+        r.barometerAltitudeM?.toStringAsFixed(2) ?? '',
         r.ppiMs ?? '',
         r.tripId ?? '',
         r.eventId ?? '',
@@ -1006,8 +1324,10 @@ class ExportRepositoryImpl implements ExportRepository {
         _csvEscape(evt?.classification ?? ''),
         evt?.peakMetric?.toStringAsFixed(2) ?? '',
         evt?.crossConfirmed ?? false,
+        _csvEscape(evt?.triggerPhrase ?? ''),
         _csvEscape(params ?? ''),
       ];
+
       buffer.writeln(row.join(','));
     }
 
@@ -1016,27 +1336,53 @@ class ExportRepositoryImpl implements ExportRepository {
 
   @override
   Future<String> exportTripCsv(int tripId) async {
-    final trip = await (_db.select(_db.trips)..where((t) => t.id.equals(tripId))).getSingleOrNull();
-    final events = await (_db.select(_db.eventRecords)..where((t) => t.tripId.equals(tripId))).get();
+    final trip = await (_db.select(
+      _db.trips,
+    )..where((t) => t.id.equals(tripId))).getSingleOrNull();
+    final events = await (_db.select(
+      _db.eventRecords,
+    )..where((t) => t.tripId.equals(tripId))).get();
     final eventMap = <int, EventRecord>{for (var e in events) e.id: e};
 
-    final readings = await (_db.select(_db.sensorReadings)
-          ..where((t) => t.tripId.equals(tripId))
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
-            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
-          ]))
-        .get();
+    final feedbacks = await (_db.select(
+      _db.eventFeedbacks,
+    )..where((t) => t.tripId.equals(tripId))).get();
+    final feedbackMap = <int, EventFeedback>{
+      for (final fb in feedbacks)
+        if (fb.eventId != null) fb.eventId!: fb,
+    };
 
-    final gpsFixes = await (_db.select(_db.locationReadings)
-          ..where((t) => t.tripId.equals(tripId))
-          ..orderBy([(t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc)]))
-        .get();
+    final readings =
+        await (_db.select(_db.sensorReadings)
+              ..where((t) => t.tripId.equals(tripId))
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.timestampUtc,
+                  mode: OrderingMode.asc,
+                ),
+                (t) => OrderingTerm(
+                  expression: t.sequenceNo,
+                  mode: OrderingMode.asc,
+                ),
+              ]))
+            .get();
+
+    final gpsFixes =
+        await (_db.select(_db.locationReadings)
+              ..where((t) => t.tripId.equals(tripId))
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.timestampUtc,
+                  mode: OrderingMode.asc,
+                ),
+              ]))
+            .get();
 
     return _buildEventBoundingBoxCsv(
       readings: readings,
       eventMap: eventMap,
       events: events,
+      feedbackMap: feedbackMap,
       trip: trip,
       gpsFixes: gpsFixes,
     );
@@ -1056,20 +1402,21 @@ class ExportRepositoryImpl implements ExportRepository {
     required List<SensorReading> readings,
     required Map<int, EventRecord> eventMap,
     required List<EventRecord> events,
+    Map<int, EventFeedback> feedbackMap = const {},
     Trip? trip,
     List<LocationReading> gpsFixes = const [],
   }) {
     final buffer = StringBuffer();
     final fmt = DateFormat('yyyy-MM-dd HH:mm:ss.SSS');
 
-    // ── Header (32 standardized ML dataset fields) ──
+    // ── Header (22 standardized ML dataset fields) ──
     buffer.writeln(
-      'reading_id,timestamp_iso8601,timestamp_local,timestamp_epoch_ms,sequence_no,'
-      'device_id,device_type,mount_location,sensor_type,'
-      'heart_rate_bpm,accel_x,accel_y,accel_z,accel_magnitude,gyro_x,gyro_y,gyro_z,jerk_magnitude,'
-      'latitude,longitude,gps_speed_kmh,gps_heading_deg,gps_accuracy_m,ppi_ms,'
-      'trip_id,event_id,event_type,event_classification,event_peak_metric,'
-      'cross_confirmed,param_summary,bbox_marker',
+      'timestamp_iso8601,timestamp_epoch_ms,sequence_no,wrist_side,'
+      'accel_x,accel_y,accel_z,accel_magnitude,'
+      'gyro_x,gyro_y,gyro_z,roll_deg,pitch_deg,'
+      'heart_rate_bpm,ppi_ms,'
+      'gps_speed_kmh,latitude,longitude,'
+      'event_type,voice_command,rider_feedback,bbox_marker',
     );
 
     if (readings.isEmpty) return buffer.toString();
@@ -1083,31 +1430,31 @@ class ExportRepositoryImpl implements ExportRepository {
     // Set of eventIds whose EVENT_END sentinel has been written
     final endWritten = <int>{};
 
-    // ── Helper: write a zero-data sentinel row (32 fields) ──
+    // ── Helper: write a zero-data sentinel row (22 fields) ──
     void writeSentinel(String markerType, EventRecord evt) {
       final ts = (markerType == 'EVENT_START' || markerType == 'CONTEXT_PRE')
           ? evt.startTimestamp
           : (evt.endTimestamp ?? evt.startTimestamp);
-      final localFmt = fmt.format(ts.toLocal());
-      buffer.writeln([
-        '',                                         // reading_id
-        ts.toIso8601String(),                       // timestamp_iso8601
-        _csvEscape(localFmt),                       // timestamp_local
-        ts.millisecondsSinceEpoch,                  // timestamp_epoch_ms
-        '',                                         // sequence_no
-        '', '', '', '',                             // device fields
-        '', '', '', '', '', '', '', '', '',         // sensor data & magnitudes (HR, Ax, Ay, Az, Amag, Gx, Gy, Gz, Jmag)
-        '', '', '', '', '',                         // GPS data
-        '',                                         // ppi_ms
-        evt.tripId ?? '',                           // trip_id
-        evt.id,                                     // event_id
-        _csvEscape(evt.eventType),                  // event_type
-        _csvEscape(evt.classification ?? ''),        // event_classification
-        evt.peakMetric?.toStringAsFixed(2) ?? '',   // event_peak_metric
-        evt.crossConfirmed,                         // cross_confirmed
-        '',                                         // param_summary
-        _csvEscape(markerType),                     // bbox_marker
-      ].join(','));
+      final fb = feedbackMap[evt.id];
+      final voiceCmd = evt.triggerPhrase ?? '';
+      final riderFb = fb?.responseText ?? '';
+
+      buffer.writeln(
+        [
+          ts.toIso8601String(), // 1. timestamp_iso8601
+          ts.millisecondsSinceEpoch, // 2. timestamp_epoch_ms
+          '', // 3. sequence_no
+          '', // 4. wrist_side
+          '', '', '', '', // 5-8. accel_x, y, z, magnitude
+          '', '', '', '', '', // 9-13. gyro_x, y, z, roll_deg, pitch_deg
+          '', '', // 14-15. heart_rate_bpm, ppi_ms
+          '', '', '', // 16-18. gps_speed_kmh, latitude, longitude
+          _csvEscape(evt.eventType), // 19. event_type
+          _csvEscape(voiceCmd), // 20. voice_command
+          _csvEscape(riderFb), // 21. rider_feedback
+          _csvEscape(markerType), // 22. bbox_marker
+        ].join(','),
+      );
     }
 
     final lastReadingByDevice = <String, SensorReading>{};
@@ -1129,16 +1476,21 @@ class ExportRepositoryImpl implements ExportRepository {
       // 2. Accel & Jerk Magnitude per physical device
       double? accelMag;
       if (r.accelX != null && r.accelY != null && r.accelZ != null) {
-        accelMag = math.sqrt(r.accelX! * r.accelX! + r.accelY! * r.accelY! + r.accelZ! * r.accelZ!);
+        accelMag = math.sqrt(
+          r.accelX! * r.accelX! + r.accelY! * r.accelY! + r.accelZ! * r.accelZ!,
+        );
       }
 
       double? jMag;
       final prevR = lastReadingByDevice[r.deviceId];
       lastReadingByDevice[r.deviceId] = r;
       if (prevR != null &&
-          r.accelX != null && prevR.accelX != null &&
-          r.accelY != null && prevR.accelY != null &&
-          r.accelZ != null && prevR.accelZ != null) {
+          r.accelX != null &&
+          prevR.accelX != null &&
+          r.accelY != null &&
+          prevR.accelY != null &&
+          r.accelZ != null &&
+          prevR.accelZ != null) {
         final dt = rTime.difference(prevR.timestampUtc).inMilliseconds / 1000.0;
         if (dt > 0.005 && dt < 0.2) {
           final jx = (r.accelX! - prevR.accelX!) / dt;
@@ -1156,9 +1508,17 @@ class ExportRepositoryImpl implements ExportRepository {
           gpsSearchIdx++;
         }
         final candidate1 = gpsFixes[gpsSearchIdx];
-        final candidate2 = (gpsSearchIdx + 1 < gpsFixes.length) ? gpsFixes[gpsSearchIdx + 1] : candidate1;
-        final diff1 = candidate1.timestampUtc.difference(rTime).inMilliseconds.abs();
-        final diff2 = candidate2.timestampUtc.difference(rTime).inMilliseconds.abs();
+        final candidate2 = (gpsSearchIdx + 1 < gpsFixes.length)
+            ? gpsFixes[gpsSearchIdx + 1]
+            : candidate1;
+        final diff1 = candidate1.timestampUtc
+            .difference(rTime)
+            .inMilliseconds
+            .abs();
+        final diff2 = candidate2.timestampUtc
+            .difference(rTime)
+            .inMilliseconds
+            .abs();
         final best = diff1 <= diff2 ? candidate1 : candidate2;
         final bestDiff = diff1 <= diff2 ? diff1 : diff2;
         if (bestDiff <= 2000) {
@@ -1192,7 +1552,8 @@ class ExportRepositoryImpl implements ExportRepository {
             bboxMarker = 'EVENT_DATA';
             matchingEvt = evt;
             break;
-          } else if (!rTime.isBefore(contextStart) && rTime.isBefore(evtStart)) {
+          } else if (!rTime.isBefore(contextStart) &&
+              rTime.isBefore(evtStart)) {
             // Pre-event context window
             if (bboxMarker.isEmpty || bboxMarker == 'CONTEXT_POST') {
               bboxMarker = 'CONTEXT_PRE';
@@ -1216,53 +1577,80 @@ class ExportRepositoryImpl implements ExportRepository {
         rowPeakMetric = effectiveEvt.peakMetric;
         rowCrossConfirmed = effectiveEvt.crossConfirmed;
         rowParamSummary = effectiveEvt.computedParameters != null
-            ? (EventParameters.fromJsonString(effectiveEvt.computedParameters)?.summary ?? '')
+            ? (EventParameters.fromJsonString(effectiveEvt.computedParameters)
+                      ?.summary ??
+                  '')
             : '';
       }
 
-      // 5. Write sensor data row (32 fields)
-      final localFormatted = fmt.format(rTime.toLocal());
-      buffer.writeln([
-        r.id,
-        rTime.toIso8601String(),
-        _csvEscape(localFormatted),
-        rTime.millisecondsSinceEpoch,
-        r.sequenceNo,
-        _csvEscape(r.deviceId),
-        _csvEscape(r.deviceType),
-        _csvEscape(r.mountLocation),
-        _csvEscape(r.sensorType),
-        r.heartRate ?? '',
-        r.accelX?.toStringAsFixed(4) ?? '',
-        r.accelY?.toStringAsFixed(4) ?? '',
-        r.accelZ?.toStringAsFixed(4) ?? '',
-        accelMag?.toStringAsFixed(4) ?? '',
-        r.gyroX?.toStringAsFixed(4) ?? '',
-        r.gyroY?.toStringAsFixed(4) ?? '',
-        r.gyroZ?.toStringAsFixed(4) ?? '',
-        jMag?.toStringAsFixed(2) ?? '',
-        nearestGps?.latitude.toStringAsFixed(6) ?? '',
-        nearestGps?.longitude.toStringAsFixed(6) ?? '',
-        nearestGps?.gpsSpeedMps != null ? (nearestGps!.gpsSpeedMps! * 3.6).toStringAsFixed(1) : '',
-        nearestGps?.gpsHeadingDeg?.toStringAsFixed(1) ?? '',
-        nearestGps?.gpsAccuracyM?.toStringAsFixed(1) ?? '',
-        r.ppiMs ?? '',
-        r.tripId ?? '',
-        r.eventId ?? effectiveEvt?.id ?? '',
-        _csvEscape(rowEventType),
-        _csvEscape(rowClassification),
-        rowPeakMetric?.toStringAsFixed(2) ?? '',
-        effectiveEvt != null ? rowCrossConfirmed : '',
-        _csvEscape(rowParamSummary),
-        _csvEscape(bboxMarker),
-      ].join(','));
+      // 5. Write sensor data row (22 fields)
+      String wristSide = r.mountLocation.toLowerCase();
+      if (wristSide == 'fork') wristSide = 'left_hand';
+      if (wristSide == 'footboard') wristSide = 'right_hand';
+      if (r.sensorType == 'heart_rate' ||
+          r.deviceId.toLowerCase().contains('polar') ||
+          r.deviceId.toLowerCase().contains('hr')) {
+        wristSide = 'heart_rate_band';
+      }
+
+      double? rollDeg;
+      double? pitchDeg;
+      if (r.accelX != null && r.accelY != null && r.accelZ != null) {
+        final rollRad = math.atan2(
+          r.accelY!,
+          math.sqrt(r.accelX! * r.accelX! + r.accelZ! * r.accelZ!),
+        );
+        final pitchRad = math.atan2(
+          -r.accelX!,
+          math.sqrt(r.accelY! * r.accelY! + r.accelZ! * r.accelZ!),
+        );
+        rollDeg = AngularUnits.radToDeg(rollRad);
+        pitchDeg = AngularUnits.radToDeg(pitchRad);
+      }
+
+      final fb = effectiveEvt?.id != null
+          ? feedbackMap[effectiveEvt!.id]
+          : null;
+      final voiceCmd = effectiveEvt?.triggerPhrase ?? '';
+      final riderFb = fb?.responseText ?? '';
+
+      buffer.writeln(
+        [
+          rTime.toIso8601String(),
+          rTime.millisecondsSinceEpoch,
+          r.sequenceNo,
+          _csvEscape(wristSide),
+          r.accelX?.toStringAsFixed(4) ?? '',
+          r.accelY?.toStringAsFixed(4) ?? '',
+          r.accelZ?.toStringAsFixed(4) ?? '',
+          accelMag?.toStringAsFixed(4) ?? '',
+          r.gyroX?.toStringAsFixed(4) ?? '',
+          r.gyroY?.toStringAsFixed(4) ?? '',
+          r.gyroZ?.toStringAsFixed(4) ?? '',
+          rollDeg?.toStringAsFixed(2) ?? '',
+          pitchDeg?.toStringAsFixed(2) ?? '',
+          r.heartRate ?? '',
+          r.ppiMs ?? '',
+          nearestGps?.gpsSpeedMps != null
+              ? (nearestGps!.gpsSpeedMps! * 3.6).toStringAsFixed(1)
+              : '',
+          nearestGps?.latitude.toStringAsFixed(6) ?? '',
+          nearestGps?.longitude.toStringAsFixed(6) ?? '',
+          _csvEscape(rowEventType),
+          _csvEscape(voiceCmd),
+          _csvEscape(riderFb),
+          _csvEscape(bboxMarker),
+        ].join(','),
+      );
 
       // 6. Inject EVENT_END sentinels for events whose window closed
       for (final evt in sortedEvts) {
         if (endWritten.contains(evt.id)) continue;
         if (!startWritten.contains(evt.id)) continue;
         final evtEnd = evt.endTimestamp;
-        if (evtEnd != null && (!rTime.isBefore(evtEnd) || (r.eventId != evt.id && r.eventId != null))) {
+        if (evtEnd != null &&
+            (!rTime.isBefore(evtEnd) ||
+                (r.eventId != evt.id && r.eventId != null))) {
           writeSentinel('EVENT_END', evt);
           endWritten.add(evt.id);
         }
@@ -1284,27 +1672,56 @@ class ExportRepositoryImpl implements ExportRepository {
     return buffer.toString();
   }
 
-
   @override
   Future<Map<String, dynamic>> exportTripJson(int tripId) async {
-    final trip = await (_db.select(_db.trips)..where((t) => t.id.equals(tripId))).getSingleOrNull();
+    final trip = await (_db.select(
+      _db.trips,
+    )..where((t) => t.id.equals(tripId))).getSingleOrNull();
     if (trip == null) return {'error': 'Trip not found', 'trip_id': tripId};
 
-    final events = await (_db.select(_db.eventRecords)..where((t) => t.tripId.equals(tripId))).get();
+    final events = await (_db.select(
+      _db.eventRecords,
+    )..where((t) => t.tripId.equals(tripId))).get();
 
-    final readings = await (_db.select(_db.sensorReadings)
-          ..where((t) => t.tripId.equals(tripId))
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
-            (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
-          ]))
-        .get();
+    final readings =
+        await (_db.select(_db.sensorReadings)
+              ..where((t) => t.tripId.equals(tripId))
+              ..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.sequenceNo,
+                  mode: OrderingMode.asc,
+                ),
+                (t) => OrderingTerm(
+                  expression: t.timestampUtc,
+                  mode: OrderingMode.asc,
+                ),
+              ]))
+            .get();
+
+    final captures =
+        await (_db.select(_db.cameraCaptures)
+              ..where((t) => t.tripId.equals(tripId))
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.capturedAtUtc),
+                (t) => OrderingTerm.asc(t.sequenceNo),
+              ]))
+            .get();
+    final capturesByEvent = <int, List<Map<String, dynamic>>>{};
+    for (final capture in captures) {
+      final eventId = capture.linkedEventId;
+      if (eventId != null) {
+        capturesByEvent
+            .putIfAbsent(eventId, () => [])
+            .add(_formatCapture(capture));
+      }
+    }
 
     final eventsJson = events.map((e) {
       Map<String, dynamic>? parsedParams;
       if (e.computedParameters != null) {
         try {
-          parsedParams = jsonDecode(e.computedParameters!) as Map<String, dynamic>;
+          parsedParams =
+              jsonDecode(e.computedParameters!) as Map<String, dynamic>;
         } catch (_) {}
       }
       return {
@@ -1324,6 +1741,7 @@ class ExportRepositoryImpl implements ExportRepository {
         'gps_speed_at_event_kmh': e.gpsSpeedAtEventKmh,
         'gps_heading_change_deg': e.gpsHeadingChangeDeg,
         'parameters': parsedParams,
+        'camera_captures': capturesByEvent[e.id] ?? const [],
       };
     }).toList();
 
@@ -1336,20 +1754,25 @@ class ExportRepositoryImpl implements ExportRepository {
 
     final distanceMeters = trip.distanceMeters > 0
         ? trip.distanceMeters
-        : (trip.totalDistanceKm != null ? trip.totalDistanceKm! * 1000 : trip.distanceMeters);
+        : (trip.totalDistanceKm != null
+              ? trip.totalDistanceKm! * 1000
+              : trip.distanceMeters);
     final totalDistKm = trip.totalDistanceKm ?? (trip.distanceMeters / 1000.0);
     final totalDurMin = trip.totalDurationMin ?? (trip.durationSeconds / 60.0);
 
-    final cal = await (_db.select(_db.tripCalibrations)
-          ..where((c) => c.tripId.equals(tripId))
-          ..limit(1))
-        .getSingleOrNull();
+    final cal =
+        await (_db.select(_db.tripCalibrations)
+              ..where((c) => c.tripId.equals(tripId))
+              ..limit(1))
+            .getSingleOrNull();
 
     return {
       'trip_id': trip.id,
       'rider_name': trip.riderName,
-      'start_timestamp_utc': (trip.startTimestampUtc ?? trip.startTimeUtc).toIso8601String(),
-      'end_timestamp_utc': (trip.endTimestampUtc ?? trip.endTimeUtc)?.toIso8601String(),
+      'start_timestamp_utc': (trip.startTimestampUtc ?? trip.startTimeUtc)
+          .toIso8601String(),
+      'end_timestamp_utc': (trip.endTimestampUtc ?? trip.endTimeUtc)
+          ?.toIso8601String(),
       'duration_seconds': trip.durationSeconds,
       'distance_meters': distanceMeters,
       'total_distance_km': totalDistKm,
@@ -1377,11 +1800,15 @@ class ExportRepositoryImpl implements ExportRepository {
       'engine_noise_freq_hz': cal?.engineNoiseFreqHz,
       'events': eventsJson,
       'sensor_readings': readings.map(_formatReading).toList(),
+      'camera_captures': captures.map(_formatCapture).toList(),
     };
   }
 
   @override
-  Future<List<File>> generateTripExportFiles(int tripId, {required ExportFormat format}) async {
+  Future<List<File>> generateTripExportFiles(
+    int tripId, {
+    required ExportFormat format,
+  }) async {
     final docsDir = await getApplicationDocumentsDirectory();
     final exportDir = Directory(p.join(docsDir.path, 'exports'));
     if (!await exportDir.exists()) {
@@ -1389,7 +1816,9 @@ class ExportRepositoryImpl implements ExportRepository {
     }
 
     // Fetch trip metadata for descriptive filenames
-    final trip = await (_db.select(_db.trips)..where((t) => t.id.equals(tripId))).getSingleOrNull();
+    final trip = await (_db.select(
+      _db.trips,
+    )..where((t) => t.id.equals(tripId))).getSingleOrNull();
     final riderSlug = (trip?.riderName ?? 'rider')
         .trim()
         .replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_')
@@ -1421,7 +1850,9 @@ class ExportRepositoryImpl implements ExportRepository {
       // Pre-computed rolling ML Feature Table (features_windowed_trip_X.csv)
       final windowedCsv = await buildWindowedFeaturesCsvExport(tripId: tripId);
       if (windowedCsv.isNotEmpty) {
-        final windowedFile = File(p.join(exportDir.path, 'features_windowed_$fileBase.csv'));
+        final windowedFile = File(
+          p.join(exportDir.path, 'features_windowed_$fileBase.csv'),
+        );
         await windowedFile.writeAsString(windowedCsv);
         createdFiles.add(windowedFile);
       }
@@ -1430,9 +1861,33 @@ class ExportRepositoryImpl implements ExportRepository {
       final pyScript = MlStarterScriptGenerator.generateTrainBaselineScript(
         defaultCsvFilename: csvFilename,
       );
-      final pyFile = File(p.join(exportDir.path, 'train_baseline_${tripId}_$timestampStr.py'));
+      final pyFile = File(
+        p.join(exportDir.path, 'train_baseline_${tripId}_$timestampStr.py'),
+      );
       await pyFile.writeAsString(pyScript);
       createdFiles.add(pyFile);
+    }
+
+    // The manifest and original JPEGs travel with the telemetry export so a
+    // training job can resolve every event/photo mapping without app storage.
+    final captures =
+        await (_db.select(_db.cameraCaptures)
+              ..where((t) => t.tripId.equals(tripId))
+              ..orderBy([
+                (t) => OrderingTerm.asc(t.capturedAtUtc),
+                (t) => OrderingTerm.asc(t.sequenceNo),
+              ]))
+            .get();
+    if (captures.isNotEmpty) {
+      final manifest = File(
+        p.join(exportDir.path, 'camera_manifest_$fileBase.csv'),
+      );
+      await manifest.writeAsString(_cameraCaptureCsv(captures));
+      createdFiles.add(manifest);
+      for (final capture in captures) {
+        final image = File(capture.filePath);
+        if (await image.exists()) createdFiles.add(image);
+      }
     }
 
     return createdFiles;
@@ -1451,25 +1906,44 @@ class ExportRepositoryImpl implements ExportRepository {
     List<EventRecord> events;
 
     if (tripId != null) {
-      readings = await (_db.select(_db.sensorReadings)
-            ..where((t) => t.tripId.equals(tripId))
-            ..orderBy([(t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc)]))
-          .get();
-      events = await (_db.select(_db.eventRecords)
-            ..where((t) => t.tripId.equals(tripId))
-            ..orderBy([(t) => OrderingTerm(expression: t.startTimestamp, mode: OrderingMode.asc)]))
-          .get();
+      readings =
+          await (_db.select(_db.sensorReadings)
+                ..where((t) => t.tripId.equals(tripId))
+                ..orderBy([
+                  (t) => OrderingTerm(
+                    expression: t.timestampUtc,
+                    mode: OrderingMode.asc,
+                  ),
+                ]))
+              .get();
+      events =
+          await (_db.select(_db.eventRecords)
+                ..where((t) => t.tripId.equals(tripId))
+                ..orderBy([
+                  (t) => OrderingTerm(
+                    expression: t.startTimestamp,
+                    mode: OrderingMode.asc,
+                  ),
+                ]))
+              .get();
     } else {
       var query = _db.select(_db.sensorReadings);
       if (startUtc != null) {
-        query = query..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
+        query = query
+          ..where((t) => t.timestampUtc.isBiggerOrEqualValue(startUtc));
       }
       if (endUtc != null) {
-        query = query..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
+        query = query
+          ..where((t) => t.timestampUtc.isSmallerOrEqualValue(endUtc));
       }
-      readings = await (query
-            ..orderBy([(t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc)]))
-          .get();
+      readings =
+          await (query..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.timestampUtc,
+                  mode: OrderingMode.asc,
+                ),
+              ]))
+              .get();
       events = await _fetchEventsInRange(startUtc, endUtc);
     }
 
@@ -1489,7 +1963,6 @@ class ExportRepositoryImpl implements ExportRepository {
     return extractor.buildCsv(windows);
   }
 
-
   @override
   Future<String> buildCameraCsvExport({
     DateTime? startUtc,
@@ -1504,33 +1977,46 @@ class ExportRepositoryImpl implements ExportRepository {
       if (eventIds.isEmpty) {
         detections = [];
       } else {
-        detections = await (_db.select(_db.cameraDetections)
-              ..where((t) => t.linkedEventId.isIn(eventIds))
-              ..orderBy([
-                (t) => OrderingTerm(expression: t.cameraTimestampUtc, mode: OrderingMode.asc),
-              ]))
-            .get();
+        detections =
+            await (_db.select(_db.cameraDetections)
+                  ..where((t) => t.linkedEventId.isIn(eventIds))
+                  ..orderBy([
+                    (t) => OrderingTerm(
+                      expression: t.cameraTimestampUtc,
+                      mode: OrderingMode.asc,
+                    ),
+                  ]))
+                .get();
       }
     } else {
       var query = _db.select(_db.cameraDetections);
       if (startUtc != null) {
-        query = query..where((t) => t.cameraTimestampUtc.isBiggerOrEqualValue(startUtc));
+        query = query
+          ..where((t) => t.cameraTimestampUtc.isBiggerOrEqualValue(startUtc));
       }
       if (endUtc != null) {
-        query = query..where((t) => t.cameraTimestampUtc.isSmallerOrEqualValue(endUtc));
+        query = query
+          ..where((t) => t.cameraTimestampUtc.isSmallerOrEqualValue(endUtc));
       }
-      detections = await (query
-            ..orderBy([
-              (t) => OrderingTerm(expression: t.cameraTimestampUtc, mode: OrderingMode.asc),
-            ]))
-          .get();
+      detections =
+          await (query..orderBy([
+                (t) => OrderingTerm(
+                  expression: t.cameraTimestampUtc,
+                  mode: OrderingMode.asc,
+                ),
+              ]))
+              .get();
     }
 
     final buffer = StringBuffer();
-    buffer.writeln('detection_id,camera_timestamp_utc,received_at_utc,device_id,event_class,confidence,linked_event_id,latency_ms');
+    buffer.writeln(
+      'detection_id,camera_timestamp_utc,received_at_utc,device_id,event_class,confidence,linked_event_id,latency_ms',
+    );
 
     for (final d in detections) {
-      final latencyMs = d.receivedAtUtc.difference(d.cameraTimestampUtc).inMilliseconds;
+      final latencyMs = d.receivedAtUtc
+          .difference(d.cameraTimestampUtc)
+          .inMilliseconds;
       final row = [
         d.id,
         d.cameraTimestampUtc.toIso8601String(),
@@ -1547,8 +2033,84 @@ class ExportRepositoryImpl implements ExportRepository {
     return buffer.toString();
   }
 
+  @override
+  Future<String> buildCameraCaptureCsvExport({
+    DateTime? startUtc,
+    DateTime? endUtc,
+    required ExportMode mode,
+  }) async {
+    final captures = await _fetchCameraCaptures(
+      startUtc: startUtc,
+      endUtc: endUtc,
+      mode: mode,
+    );
+    return _cameraCaptureCsv(captures);
+  }
+
+  Future<List<CameraCapture>> _fetchCameraCaptures({
+    DateTime? startUtc,
+    DateTime? endUtc,
+    required ExportMode mode,
+  }) async {
+    final events = await _fetchEventsInRange(startUtc, endUtc);
+    final eventIds = events.map((e) => e.id).toSet();
+    var query = _db.select(_db.cameraCaptures);
+    if (mode == ExportMode.eventsOnly) {
+      if (eventIds.isEmpty) return [];
+      query = query..where((t) => t.linkedEventId.isIn(eventIds));
+    }
+    if (startUtc != null) {
+      query = query
+        ..where((t) => t.capturedAtUtc.isBiggerOrEqualValue(startUtc));
+    }
+    if (endUtc != null) {
+      query = query
+        ..where((t) => t.capturedAtUtc.isSmallerOrEqualValue(endUtc));
+    }
+    return (query..orderBy([
+          (t) => OrderingTerm.asc(t.capturedAtUtc),
+          (t) => OrderingTerm.asc(t.sequenceNo),
+        ]))
+        .get();
+  }
+
+  String _cameraCaptureCsv(List<CameraCapture> captures) {
+    final buffer = StringBuffer()
+      ..writeln(
+        'capture_id,capture_key,trip_id,event_id,device_id,sequence_no,'
+        'captured_at_utc,received_at_utc,trigger,image_file_name,'
+        'storage_path,mime_type,width,height,byte_length,sha256',
+      );
+    for (final capture in captures) {
+      buffer.writeln(
+        [
+          capture.id,
+          _csvEscape(capture.captureKey),
+          capture.tripId ?? '',
+          capture.linkedEventId ?? '',
+          _csvEscape(capture.deviceId),
+          capture.sequenceNo,
+          capture.capturedAtUtc.toIso8601String(),
+          capture.receivedAtUtc.toIso8601String(),
+          _csvEscape(capture.trigger),
+          _csvEscape(p.basename(capture.filePath)),
+          _csvEscape(capture.filePath),
+          capture.mimeType,
+          capture.width,
+          capture.height,
+          capture.byteLength,
+          capture.sha256,
+        ].join(','),
+      );
+    }
+    return buffer.toString();
+  }
+
   String _csvEscape(String val) {
-    if (val.contains(',') || val.contains('"') || val.contains('\n') || val.contains('\r')) {
+    if (val.contains(',') ||
+        val.contains('"') ||
+        val.contains('\n') ||
+        val.contains('\r')) {
       return '"${val.replaceAll('"', '""')}"';
     }
     return val;
@@ -1581,7 +2143,9 @@ class ExportRepositoryImpl implements ExportRepository {
         onlyCrossConfirmed: onlyCrossConfirmed,
       );
       final jsonString = const JsonEncoder.withIndent('  ').convert(jsonMap);
-      final jsonFile = File(p.join(exportDir.path, 'ride_dataset_ml_$timestampStr.json'));
+      final jsonFile = File(
+        p.join(exportDir.path, 'ride_dataset_ml_$timestampStr.json'),
+      );
       await jsonFile.writeAsString(jsonString);
       createdFiles.add(jsonFile);
     }
@@ -1595,7 +2159,9 @@ class ExportRepositoryImpl implements ExportRepository {
         mode: mode,
         onlyCrossConfirmed: onlyCrossConfirmed,
       );
-      final timeseriesFile = File(p.join(exportDir.path, 'sensor_timeseries_export_$timestampStr.csv'));
+      final timeseriesFile = File(
+        p.join(exportDir.path, 'sensor_timeseries_export_$timestampStr.csv'),
+      );
       await timeseriesFile.writeAsString(timeseriesCsv);
       createdFiles.add(timeseriesFile);
 
@@ -1605,7 +2171,9 @@ class ExportRepositoryImpl implements ExportRepository {
         endUtc: endUtc,
         onlyCrossConfirmed: onlyCrossConfirmed,
       );
-      final eventRecordsFile = File(p.join(exportDir.path, 'event_records_export_$timestampStr.csv'));
+      final eventRecordsFile = File(
+        p.join(exportDir.path, 'event_records_export_$timestampStr.csv'),
+      );
       await eventRecordsFile.writeAsString(eventRecordsCsv);
       createdFiles.add(eventRecordsFile);
 
@@ -1614,7 +2182,9 @@ class ExportRepositoryImpl implements ExportRepository {
         startUtc: startUtc,
         endUtc: endUtc,
       );
-      final tripSummaryFile = File(p.join(exportDir.path, 'trip_summary_export_$timestampStr.csv'));
+      final tripSummaryFile = File(
+        p.join(exportDir.path, 'trip_summary_export_$timestampStr.csv'),
+      );
       await tripSummaryFile.writeAsString(tripSummaryCsv);
       createdFiles.add(tripSummaryFile);
 
@@ -1624,7 +2194,9 @@ class ExportRepositoryImpl implements ExportRepository {
         endUtc: endUtc,
       );
       if (windowedCsv.isNotEmpty) {
-        final windowedFile = File(p.join(exportDir.path, 'features_windowed_session_$timestampStr.csv'));
+        final windowedFile = File(
+          p.join(exportDir.path, 'features_windowed_session_$timestampStr.csv'),
+        );
         await windowedFile.writeAsString(windowedCsv);
         createdFiles.add(windowedFile);
       }
@@ -1634,7 +2206,9 @@ class ExportRepositoryImpl implements ExportRepository {
         startUtc: startUtc,
         endUtc: endUtc,
       );
-      final preAlertsFile = File(p.join(exportDir.path, 'pre_alerts_export_$timestampStr.csv'));
+      final preAlertsFile = File(
+        p.join(exportDir.path, 'pre_alerts_export_$timestampStr.csv'),
+      );
       await preAlertsFile.writeAsString(preAlertsCsv);
       createdFiles.add(preAlertsFile);
 
@@ -1643,8 +2217,9 @@ class ExportRepositoryImpl implements ExportRepository {
         startUtc: startUtc,
         endUtc: endUtc,
       );
-      final effectivenessFile =
-          File(p.join(exportDir.path, 'alert_effectiveness_export_$timestampStr.csv'));
+      final effectivenessFile = File(
+        p.join(exportDir.path, 'alert_effectiveness_export_$timestampStr.csv'),
+      );
       await effectivenessFile.writeAsString(effectivenessCsv);
       createdFiles.add(effectivenessFile);
 
@@ -1653,7 +2228,9 @@ class ExportRepositoryImpl implements ExportRepository {
         startUtc: startUtc,
         endUtc: endUtc,
       );
-      final reportFile = File(p.join(exportDir.path, 'alert_effectiveness_report_$timestampStr.md'));
+      final reportFile = File(
+        p.join(exportDir.path, 'alert_effectiveness_report_$timestampStr.md'),
+      );
       await reportFile.writeAsString(report.toMarkdown());
       createdFiles.add(reportFile);
 
@@ -1661,9 +2238,28 @@ class ExportRepositoryImpl implements ExportRepository {
       final pyScript = MlStarterScriptGenerator.generateTrainBaselineScript(
         defaultCsvFilename: 'features_windowed_session_$timestampStr.csv',
       );
-      final pyFile = File(p.join(exportDir.path, 'train_baseline_$timestampStr.py'));
+      final pyFile = File(
+        p.join(exportDir.path, 'train_baseline_$timestampStr.py'),
+      );
       await pyFile.writeAsString(pyScript);
       createdFiles.add(pyFile);
+    }
+
+    final captures = await _fetchCameraCaptures(
+      startUtc: startUtc,
+      endUtc: endUtc,
+      mode: mode,
+    );
+    if (captures.isNotEmpty) {
+      final manifest = File(
+        p.join(exportDir.path, 'camera_capture_manifest_$timestampStr.csv'),
+      );
+      await manifest.writeAsString(_cameraCaptureCsv(captures));
+      createdFiles.add(manifest);
+      for (final capture in captures) {
+        final image = File(capture.filePath);
+        if (await image.exists()) createdFiles.add(image);
+      }
     }
 
     return createdFiles;
@@ -1690,13 +2286,17 @@ class ExportRepositoryImpl implements ExportRepository {
       final files = exportDir
           .listSync()
           .whereType<File>()
-          .where((f) =>
-              f.path.endsWith('.json') ||
-              f.path.endsWith('.csv') ||
-              f.path.endsWith('.md'))
+          .where(
+            (f) =>
+                f.path.endsWith('.json') ||
+                f.path.endsWith('.csv') ||
+                f.path.endsWith('.md'),
+          )
           .toList();
 
-      files.sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
+      files.sort(
+        (a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()),
+      );
       return files;
     } catch (_) {
       return [];

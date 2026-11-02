@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
@@ -12,6 +13,7 @@ import '../../../providers/export_providers.dart';
 import '../../dashboard/presentation/live_map_widget.dart';
 import '../../events/event_recording_controller.dart';
 import '../../export/models/export_options.dart';
+import 'trip_scrubber_widget.dart';
 
 class TripDetailScreen extends ConsumerStatefulWidget {
   final Trip trip;
@@ -24,6 +26,8 @@ class TripDetailScreen extends ConsumerStatefulWidget {
 
 class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   bool _isExporting = false;
+  Map<String, dynamic>? _scrubPoint;
+  EventRecord? _scrubEvent;
 
   @override
   Widget build(BuildContext context) {
@@ -305,13 +309,43 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // OpenStreetMap Route View
+                  // OpenStreetMap Route View with synchronized scrubber tracking
                   TripRouteMapWidget(
                     routePoints: routePoints,
                     startLat: trip.startLat,
                     startLng: trip.startLng,
                     endLat: trip.endLat,
                     endLng: trip.endLng,
+                    tripEvents: tripEvents,
+                    scrubPosition: _scrubPoint != null && _scrubPoint!['lat'] != null && _scrubPoint!['lng'] != null
+                        ? LatLng((_scrubPoint!['lat'] as num).toDouble(), (_scrubPoint!['lng'] as num).toDouble())
+                        : null,
+                    scrubSpeedKmh: _scrubPoint != null && _scrubPoint!['speed_kmh'] != null
+                        ? (_scrubPoint!['speed_kmh'] as num).toDouble()
+                        : null,
+                    scrubAltitude: _scrubPoint != null && _scrubPoint!['altitude'] != null
+                        ? (_scrubPoint!['altitude'] as num).toDouble()
+                        : null,
+                    scrubEventName: _scrubEvent?.eventType,
+                  ),
+
+                  const SizedBox(height: 14),
+
+                  // Feature Set E: Synchronized Interactive Scrubber & Telemetry Preview
+                  TripScrubberWidget(
+                    trip: trip,
+                    routePoints: routePoints,
+                    tripEvents: tripEvents,
+                    onScrubChanged: (pt) {
+                      setState(() {
+                        _scrubPoint = pt;
+                      });
+                    },
+                    onEventDetected: (ev) {
+                      setState(() {
+                        _scrubEvent = ev;
+                      });
+                    },
                   ),
 
                   const SizedBox(height: 16),

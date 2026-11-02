@@ -75,7 +75,7 @@ void main() {
 
       // Row 2 (index 2) is beyond 1.5s tolerance, should have empty GPS fields
       final row2Cols = lines[2].split(',');
-      expect(row2Cols[22], isEmpty);
+      expect(row2Cols[16], isEmpty); // latitude column
       expect(lines[2], isNot(contains('37.774900')));
     });
   });

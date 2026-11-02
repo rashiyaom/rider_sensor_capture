@@ -97,6 +97,7 @@ flowchart TB
 * **Predictive Pre-Alert Warnings**: Learns geo-tagged road hazards and speaks a voice warning *before* the rider reaches them, with the distance, the time-to-event and the recommended speed computed from GPS and ground speed.
 * **Post-Event Feedback Learning Loop**: Prompts the rider for feedback after every event, transcribes the answer (voice or text) and scores the warning with an LLM — the resulting insights are compiled into the exported report.
 * **Embedded AI Camera Server**: Built-in HTTP server (`Shelf`) listening for real-time edge vision detections from microcontrollers or Raspberry Pi over local Wi-Fi.
+* **USB-C UVC Camera Capture**: Live DFRobot DFR1154/OV3660 preview, manual and incident-triggered JPEG capture, app-owned file storage, and ordered SQLite trip/event mapping.
 * **High-Performance 60 FPS Telemetry**: Optimized `FlChart` waveforms isolated with `RepaintBoundary` and zero animation duration to eliminate UI jank.
 * **Direct ML Dataset Export**: Exports time-aligned telemetry with active event labels into structured JSON and CSV formats.
 
@@ -236,6 +237,18 @@ The app runs an internal HTTP server accessible on the phone's local network at 
 ---
 
 ## 🗄️ Database Schema & Persistence Pipeline
+
+### `camera_captures` Table (USB-C image manifest)
+
+JPEG bytes are stored below the app documents directory in ordered trip/day
+folders. SQLite stores the durable manifest: device ID, monotonic sequence
+number, UTC capture/receive times, trip ID, event ID, trigger source, file
+path, dimensions, byte length, and SHA-256. Trip exports include both the
+manifest and the original JPEG files.
+
+Connect the flashed DFR1154 from the app's **Camera** tab with a data-capable
+USB-C OTG cable. The firmware and recovery guide are in
+`../camera_firmware/README.md`.
 
 All tables are managed by **Drift** backed by SQLite in **Write-Ahead Logging (WAL)** mode.
 

@@ -30,6 +30,18 @@ class SensorReadings extends Table {
   // GPS speed snapshot at time of this reading (km/h) — feeds speedometer CSV column
   RealColumn get gpsSpeedKmh => real().nullable()();
 
+  // Advanced Academic Field Experiment Extensions (SAE / IEEE Benchmark)
+  RealColumn get linearAccelX => real().nullable()();
+  RealColumn get linearAccelY => real().nullable()();
+  RealColumn get linearAccelZ => real().nullable()();
+  RealColumn get quatW => real().nullable()();
+  RealColumn get quatX => real().nullable()();
+  RealColumn get quatY => real().nullable()();
+  RealColumn get quatZ => real().nullable()();
+  IntColumn get timestampMonotonicMicros => integer().nullable()();
+  RealColumn get barometerAltitudeM => real().nullable()();
+
   // Raw payload for backward/forward compatibility
   TextColumn get rawPayload => text().nullable()();
 }
+

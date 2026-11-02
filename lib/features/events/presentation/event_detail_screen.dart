@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -9,15 +11,15 @@ import '../../../core/theme/app_theme.dart';
 import '../../../data/local_db/database.dart';
 import '../../../data/models/event_parameters.dart';
 import '../../../providers/db_providers.dart';
+import '../../../providers/camera_providers.dart';
 
 /// Stable family provider — one stream per eventId, cached across rebuilds.
 /// This fixes the chart blank-state bug caused by inline StreamProvider creation.
-final _eventReadingsProvider =
-    StreamProvider.family.autoDispose<List<SensorReading>, int>((ref, eventId) {
-  final repo = ref.watch(sensorRepositoryProvider);
-  return repo.watchReadingsForEvent(eventId);
-});
-
+final _eventReadingsProvider = StreamProvider.family
+    .autoDispose<List<SensorReading>, int>((ref, eventId) {
+      final repo = ref.watch(sensorRepositoryProvider);
+      return repo.watchReadingsForEvent(eventId);
+    });
 
 class EventDetailScreen extends ConsumerStatefulWidget {
   final EventRecord event;
@@ -38,7 +40,8 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
     final params = EventParameters.fromJsonString(event.computedParameters);
 
-    final startFormatted = DateFormat('yyyy-MM-dd HH:mm:ss').format(event.startTimestamp.toLocal());
+    final startFormatted = DateFormat('yyyy-MM-dd HH:mm:ss')
+        .format(event.startTimestamp.toLocal());
     final endFormatted = event.endTimestamp != null
         ? DateFormat('HH:mm:ss').format(event.endTimestamp!.toLocal())
         : 'In progress';
@@ -54,7 +57,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
         title: Text('${event.eventType.toUpperCase()} #${event.id}'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_outline_rounded, color: AppColors.accentRed),
+            icon: const Icon(
+              Icons.delete_outline_rounded,
+              color: AppColors.accentRed,
+            ),
             tooltip: 'Delete event',
             onPressed: () async {
               HapticFeedback.mediumImpact();
@@ -62,7 +68,13 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 context: context,
                 builder: (_) => AlertDialog(
                   backgroundColor: AppColors.card,
-                  title: const Text('Delete Event?', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w800)),
+                  title: const Text(
+                    'Delete Event?',
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   content: const Text(
                     'This will permanently delete this event and all associated sensor readings. This cannot be undone.',
                     style: TextStyle(color: AppColors.textSecondary),
@@ -70,11 +82,20 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: AppColors.textSecondary),
+                      ),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text('Delete', style: TextStyle(color: AppColors.accentRed, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'Delete',
+                        style: TextStyle(
+                          color: AppColors.accentRed,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -111,7 +132,10 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                     ),
                     if (event.classification != null)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.accentGreenBg,
                           borderRadius: BorderRadius.circular(6),
@@ -131,15 +155,27 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 const SizedBox(height: 4),
                 Text(
                   '${(duration.inMilliseconds / 1000).toStringAsFixed(2)}s duration • $startFormatted',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 16),
                 const Divider(height: 1),
                 const SizedBox(height: 14),
-                _buildInfoRow('Trigger', '"${event.triggerPhrase ?? "manual"}"'),
-                _buildInfoRow('Time Interval', '$startFormatted → $endFormatted'),
+                _buildInfoRow(
+                  'Trigger',
+                  '"${event.triggerPhrase ?? "manual"}"',
+                ),
+                _buildInfoRow(
+                  'Time Interval',
+                  '$startFormatted → $endFormatted',
+                ),
                 if (event.startGpsLat != null && event.startGpsLng != null)
-                  _buildInfoRow('Start GPS', '${event.startGpsLat!.toStringAsFixed(5)}, ${event.startGpsLng!.toStringAsFixed(5)}'),
+                  _buildInfoRow(
+                    'Start GPS',
+                    '${event.startGpsLat!.toStringAsFixed(5)}, ${event.startGpsLng!.toStringAsFixed(5)}',
+                  ),
               ],
             ),
           ),
@@ -166,11 +202,24 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                 if (params?.bump != null) _buildBumpDetails(params!.bump!),
                 if (params?.turn != null) _buildTurnDetails(params!.turn!),
                 if (params?.speed != null) _buildSpeedDetails(params!.speed!),
-                if (params == null || (params.bump == null && params.turn == null && params.speed == null))
-                  const Text('No parameters computed for this event.', style: TextStyle(color: AppColors.textTertiary, fontSize: 12)),
+                if (params == null ||
+                    (params.bump == null &&
+                        params.turn == null &&
+                        params.speed == null))
+                  const Text(
+                    'No parameters computed for this event.',
+                    style: TextStyle(
+                      color: AppColors.textTertiary,
+                      fontSize: 12,
+                    ),
+                  ),
               ],
             ),
           ),
+
+          const SizedBox(height: 14),
+
+          _EventCameraGallery(eventId: event.id),
 
           const SizedBox(height: 14),
 
@@ -179,29 +228,53 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
             GestureDetector(
               onTap: () => _openInMaps(params),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 decoration: AppStyles.cardDecoration(
-                  border: Border.all(color: AppColors.accentCyan.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: AppColors.accentCyan.withValues(alpha: 0.3),
+                  ),
                   backgroundColor: AppColors.accentCyanBg,
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.map_rounded, color: AppColors.accentCyan, size: 18),
+                    const Icon(
+                      Icons.map_rounded,
+                      color: AppColors.accentCyan,
+                      size: 18,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Open Event Location in Maps', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 13)),
+                          const Text(
+                            'Open Event Location in Maps',
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                            ),
+                          ),
                           const SizedBox(height: 2),
                           Text(
                             '${params!.gpsLat!.toStringAsFixed(6)}, ${params.gpsLng!.toStringAsFixed(6)}',
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 11, fontFamily: 'monospace'),
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                              fontFamily: 'monospace',
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    const Icon(Icons.open_in_new_rounded, color: AppColors.accentCyan, size: 16),
+                    const Icon(
+                      Icons.open_in_new_rounded,
+                      color: AppColors.accentCyan,
+                      size: 16,
+                    ),
                   ],
                 ),
               ),
@@ -221,7 +294,11 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   children: [
                     const Text(
                       'Acceleration Trace (XYZ)',
-                      style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
                     ),
                     Row(
                       children: [
@@ -240,30 +317,53 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                     if (readings.isEmpty) {
                       return const SizedBox(
                         height: 120,
-                        child: Center(child: Text('No tagged readings found.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12))),
+                        child: Center(
+                          child: Text(
+                            'No tagged readings found.',
+                            style: TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
                       );
                     }
 
                     // Discover all distinct devices/mount locations in this event window
                     final devices = readings
-                        .map((r) => r.mountLocation.isNotEmpty ? r.mountLocation : r.deviceId)
+                        .map(
+                          (r) => r.mountLocation.isNotEmpty
+                              ? r.mountLocation
+                              : r.deviceId,
+                        )
                         .toSet()
                         .toList();
 
-                    final activeDevice = (_selectedDevice != null && devices.contains(_selectedDevice))
+                    final activeDevice =
+                        (_selectedDevice != null &&
+                            devices.contains(_selectedDevice))
                         ? _selectedDevice!
                         : (devices.isNotEmpty ? devices.first : null);
 
                     final filteredReadings = activeDevice == null
                         ? readings
-                        : readings.where((r) => (r.mountLocation.isNotEmpty ? r.mountLocation : r.deviceId) == activeDevice).toList();
+                        : readings
+                              .where(
+                                (r) =>
+                                    (r.mountLocation.isNotEmpty
+                                        ? r.mountLocation
+                                        : r.deviceId) ==
+                                    activeDevice,
+                              )
+                              .toList();
 
                     // Downsample to max 150 points for smooth charting performance
                     List<SensorReading> sampled = filteredReadings;
                     if (filteredReadings.length > 150) {
                       final step = filteredReadings.length / 150.0;
                       sampled = [
-                        for (int i = 0; i < 150; i++) filteredReadings[(i * step).floor()],
+                        for (int i = 0; i < 150; i++)
+                          filteredReadings[(i * step).floor()],
                       ];
                     }
 
@@ -273,7 +373,9 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
 
                     for (int i = 0; i < sampled.length; i++) {
                       final r = sampled[i];
-                      if (r.accelX != null && r.accelY != null && r.accelZ != null) {
+                      if (r.accelX != null &&
+                          r.accelY != null &&
+                          r.accelZ != null) {
                         final t = i.toDouble();
                         spotsX.add(FlSpot(t, r.accelX!));
                         spotsY.add(FlSpot(t, r.accelY!));
@@ -293,12 +395,23 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                                 final label = dev == 'left_hand'
                                     ? 'Left Hand'
                                     : dev == 'right_hand'
-                                        ? 'Right Hand'
-                                        : dev;
+                                    ? 'Right Hand'
+                                    : dev;
                                 return Padding(
-                                  padding: const EdgeInsets.only(right: 8, bottom: 8),
+                                  padding: const EdgeInsets.only(
+                                    right: 8,
+                                    bottom: 8,
+                                  ),
                                   child: ChoiceChip(
-                                    label: Text(label, style: TextStyle(fontSize: 11, color: isSelected ? Colors.black : AppColors.textSecondary)),
+                                    label: Text(
+                                      label,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isSelected
+                                            ? Colors.black
+                                            : AppColors.textSecondary,
+                                      ),
+                                    ),
                                     selected: isSelected,
                                     selectedColor: AppColors.accentCyan,
                                     backgroundColor: AppColors.cardElevated,
@@ -319,24 +432,64 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                         SizedBox(
                           height: 180,
                           child: spotsX.isEmpty
-                              ? const Center(child: Text('Selected stream contains no IMU acceleration.', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)))
+                              ? const Center(
+                                  child: Text(
+                                    'Selected stream contains no IMU acceleration.',
+                                    style: TextStyle(
+                                      color: AppColors.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
                               : LineChart(
                                   LineChartData(
                                     gridData: FlGridData(
                                       show: true,
                                       horizontalInterval: 5,
-                                      getDrawingHorizontalLine: (_) => FlLine(color: Colors.white.withValues(alpha: 0.04), strokeWidth: 1),
+                                      getDrawingHorizontalLine: (_) => FlLine(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.04,
+                                        ),
+                                        strokeWidth: 1,
+                                      ),
                                     ),
                                     titlesData: const FlTitlesData(
-                                      topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                      rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                                      bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                                      topTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
+                                      rightTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
+                                      bottomTitles: AxisTitles(
+                                        sideTitles: SideTitles(
+                                          showTitles: false,
+                                        ),
+                                      ),
                                     ),
                                     borderData: FlBorderData(show: false),
                                     lineBarsData: [
-                                      LineChartBarData(spots: spotsX, color: AppColors.primaryWhite, barWidth: 1.5, dotData: const FlDotData(show: false)),
-                                      LineChartBarData(spots: spotsY, color: AppColors.accentCyan, barWidth: 1.5, dotData: const FlDotData(show: false)),
-                                      LineChartBarData(spots: spotsZ, color: AppColors.textSecondary, barWidth: 1.5, dotData: const FlDotData(show: false)),
+                                      LineChartBarData(
+                                        spots: spotsX,
+                                        color: AppColors.primaryWhite,
+                                        barWidth: 1.5,
+                                        dotData: const FlDotData(show: false),
+                                      ),
+                                      LineChartBarData(
+                                        spots: spotsY,
+                                        color: AppColors.accentCyan,
+                                        barWidth: 1.5,
+                                        dotData: const FlDotData(show: false),
+                                      ),
+                                      LineChartBarData(
+                                        spots: spotsZ,
+                                        color: AppColors.textSecondary,
+                                        barWidth: 1.5,
+                                        dotData: const FlDotData(show: false),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -346,11 +499,20 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
                   },
                   loading: () => const SizedBox(
                     height: 180,
-                    child: Center(child: CircularProgressIndicator(color: AppColors.primaryWhite)),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: AppColors.primaryWhite,
+                      ),
+                    ),
                   ),
                   error: (err, _) => SizedBox(
                     height: 180,
-                    child: Center(child: Text('Error loading trace: $err', style: const TextStyle(color: AppColors.accentRed))),
+                    child: Center(
+                      child: Text(
+                        'Error loading trace: $err',
+                        style: const TextStyle(color: AppColors.accentRed),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -369,8 +531,21 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-          Text(value, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -385,9 +560,15 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       ),
       child: Column(
         children: [
-          _buildInfoRow('Peak Accel', '${b.peakGForce.toStringAsFixed(2)}g (${b.peakAccelMagnitude.toStringAsFixed(1)} m/s²)'),
+          _buildInfoRow(
+            'Peak Accel',
+            '${b.peakGForce.toStringAsFixed(2)}g (${b.peakAccelMagnitude.toStringAsFixed(1)} m/s²)',
+          ),
           _buildInfoRow('Bump Severity', b.severity.toUpperCase()),
-          _buildInfoRow('Accel Delta', '${b.accelDelta.toStringAsFixed(2)} m/s²'),
+          _buildInfoRow(
+            'Accel Delta',
+            '${b.accelDelta.toStringAsFixed(2)} m/s²',
+          ),
           _buildInfoRow('Duration', '${b.durationMs}ms'),
         ],
       ),
@@ -403,8 +584,14 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       ),
       child: Column(
         children: [
-          _buildInfoRow('Peak Lateral Accel', '${t.peakLateralAccel.toStringAsFixed(1)} m/s²'),
-          _buildInfoRow('Peak Gyro Rate', '${t.peakGyroDegPerSec.toStringAsFixed(1)}°/s'),
+          _buildInfoRow(
+            'Peak Lateral Accel',
+            '${t.peakLateralAccel.toStringAsFixed(1)} m/s²',
+          ),
+          _buildInfoRow(
+            'Peak Gyro Rate',
+            '${t.peakGyroDegPerSec.toStringAsFixed(1)}°/s',
+          ),
           _buildInfoRow('Turn Severity', t.classification.toUpperCase()),
           _buildInfoRow('Duration', '${t.durationMs}ms'),
         ],
@@ -421,9 +608,18 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
       ),
       child: Column(
         children: [
-          _buildInfoRow('Decel Magnitude', '${s.decelMagnitude.toStringAsFixed(2)} m/s²'),
-          _buildInfoRow('Avg Acceleration', '${s.avgAcceleration.toStringAsFixed(2)} m/s²'),
-          _buildInfoRow('Peak Speed', '${s.peakSpeedKmh.toStringAsFixed(1)} km/h'),
+          _buildInfoRow(
+            'Decel Magnitude',
+            '${s.decelMagnitude.toStringAsFixed(2)} m/s²',
+          ),
+          _buildInfoRow(
+            'Avg Acceleration',
+            '${s.avgAcceleration.toStringAsFixed(2)} m/s²',
+          ),
+          _buildInfoRow(
+            'Peak Speed',
+            '${s.peakSpeedKmh.toStringAsFixed(1)} km/h',
+          ),
           _buildInfoRow('Duration', '${s.durationMs}ms'),
         ],
       ),
@@ -434,9 +630,20 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Container(width: 6, height: 6, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 6,
+          height: 6,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 4),
-        Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ],
     );
   }
@@ -451,5 +658,104 @@ class _EventDetailScreenState extends ConsumerState<EventDetailScreen> {
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
+  }
+}
+
+class _EventCameraGallery extends ConsumerWidget {
+  const _EventCameraGallery({required this.eventId});
+
+  final int eventId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final captures =
+        ref.watch(cameraCapturesForEventProvider(eventId)).value ?? const [];
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppStyles.cardDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Incident Camera Context',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                '${captures.length} photo${captures.length == 1 ? '' : 's'}',
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (captures.isEmpty)
+            const Text(
+              'No USB camera image was mapped to this incident.',
+              style: TextStyle(color: AppColors.textTertiary, fontSize: 12),
+            )
+          else
+            SizedBox(
+              height: 112,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: captures.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
+                itemBuilder: (_, index) {
+                  final capture = captures[index];
+                  final file = File(capture.filePath);
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 150,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          file.existsSync()
+                              ? Image.file(
+                                  file,
+                                  fit: BoxFit.cover,
+                                  cacheWidth: 450,
+                                )
+                              : const ColoredBox(
+                                  color: AppColors.cardElevated,
+                                  child: Icon(
+                                    Icons.broken_image_outlined,
+                                    color: AppColors.textTertiary,
+                                  ),
+                                ),
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(6),
+                              color: Colors.black.withValues(alpha: 0.68),
+                              child: Text(
+                                '#${capture.sequenceNo} • ${capture.trigger.replaceAll('_', ' ')}',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
