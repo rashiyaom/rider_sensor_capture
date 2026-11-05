@@ -81,8 +81,9 @@ class _TripCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dateFormat = DateFormat('MMM d, yyyy • h:mm a');
     final dateStr = dateFormat.format(trip.startTimeUtc.toLocal());
-    final durationMins = (trip.durationSeconds / 60.0).toStringAsFixed(1);
-    final distanceKm = (trip.distanceMeters / 1000.0).toStringAsFixed(2);
+    final durationMins = ((trip.durationSeconds) / 60.0).toStringAsFixed(1);
+    final distanceKm = ((trip.distanceMeters) / 1000.0).toStringAsFixed(2);
+    final rider = trip.riderName.isNotEmpty ? trip.riderName : 'Rider';
 
     return Dismissible(
       key: ValueKey('trip_${trip.id}'),
@@ -160,7 +161,7 @@ class _TripCard extends ConsumerWidget {
                                 border: Border.all(color: AppColors.accentCyan.withValues(alpha: 0.3)),
                               ),
                               child: Text(
-                                trip.riderName,
+                                rider,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(color: AppColors.accentCyan, fontSize: 11, fontWeight: FontWeight.bold),

@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:drift/drift.dart' as drift;
@@ -105,6 +108,9 @@ class HandsfreeSessionService {
   bool _shouldKeepListening = false;
   bool _isDisposed = false;
 
+  // 5-second audio clip recorder (.mp4 / AAC)
+  AudioRecorder? _audioRecorder;
+
   // Stream exposed to the UI layer
   final _stateController =
       StreamController<HandsfreeSessionState>.broadcast();
@@ -136,11 +142,15 @@ class HandsfreeSessionService {
 
     await _tts.ensureInitialized();
 
-    final micOk = await Permission.microphone.request();
-    await Permission.speech.request();
+    bool micOk = false;
+    try {
+      final micReq = await Permission.microphone.request();
+      await Permission.speech.request();
+      micOk = micReq.isGranted || micReq.isLimited;
+    } catch (_) {}
 
     bool sttOk = false;
-    if (micOk.isGranted || micOk.isLimited) {
+    if (micOk) {
       try {
         sttOk = await _stt.initialize(
           onError: (e) {
@@ -177,6 +187,11 @@ class HandsfreeSessionService {
     try {
       await _stt.stop();
     } catch (_) {}
+    try {
+      if (_audioRecorder != null && await _audioRecorder!.isRecording()) {
+        await _audioRecorder!.stop();
+      }
+    } catch (_) {}
     await _tts.stop();
     _setState(_state.copyWith(mode: HandsfreeMode.off));
   }
@@ -187,6 +202,9 @@ class HandsfreeSessionService {
     _keepAliveTimer?.cancel();
     try {
       _stt.stop();
+    } catch (_) {}
+    try {
+      _audioRecorder?.dispose();
     } catch (_) {}
     _tts.dispose();
     _stateController.close();
@@ -235,9 +253,195 @@ class HandsfreeSessionService {
     await _speakAndResume(msg);
   }
 
+  /// Called right after an event is saved during a ride.
+  /// 1. Speaks "Event detected: [name]. How was it?" into rider's earbuds.
+  /// 2. Records a 5-second voice clip (.mp4) and transcribes answer.
+  /// 3. Automatically saves audio file path in EventRecords and EventFeedbacks tables.
+  /// 4. Registers hazard in road_events at (latitude, longitude) for future pre-alerts.
+  /// 5. Confirms saving via audio feedback.
+  Future<void> promptAndRecordEventFeedback({
+    required int eventId,
+    required String eventType,
+    int? tripId,
+    double? latitude,
+    double? longitude,
+    int? roadEventId,
+    int? preAlertId,
+  }) async {
+    if (_isDisposed) return;
+
+    _setState(_state.copyWith(mode: HandsfreeMode.speaking));
+
+    final humanName = _humanLabel(eventType);
+    await _speakOnly('Event detected: $humanName. How was it?');
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    _setState(_state.copyWith(mode: HandsfreeMode.awaitingUnknownEventAnswer));
+
+    // 5-second voice clip capture
+    final capture = await _record5SecondClip(prefix: 'event_$eventId');
+
+    // Update EventRecord with the audio file path
+    try {
+      await (db.update(db.eventRecords)..where((t) => t.id.equals(eventId))).write(
+        EventRecordsCompanion(
+          audioFilePath: drift.Value(capture.audioFilePath),
+        ),
+      );
+    } catch (e) {
+      if (kDebugMode) debugPrint('Failed to update eventRecord audio path: $e');
+    }
+
+    // Insert into EventFeedbacks
+    try {
+      await db.into(db.eventFeedbacks).insert(
+        EventFeedbacksCompanion.insert(
+          eventId: drift.Value(eventId),
+          tripId: drift.Value(tripId),
+          roadEventId: drift.Value(roadEventId),
+          preAlertId: drift.Value(preAlertId),
+          eventType: eventType,
+          prompt: 'Event detected: $humanName. How was it?',
+          responseText: capture.transcript ?? '5-second voice clip recorded',
+          responseSource: 'voice',
+          transcriptConfidence:
+              drift.Value(capture.confidence > 0 ? capture.confidence : null),
+          audioFilePath: drift.Value(capture.audioFilePath),
+          createdAtUtc: DateTime.now().toUtc(),
+        ),
+      );
+    } catch (e) {
+      if (kDebugMode) debugPrint('Failed to insert event feedback: $e');
+    }
+
+    // Ensure geo-tagged hazard is stored in road_events for future warnings
+    if (latitude != null && longitude != null && roadEventId == null) {
+      final kind = RoadEventKind.fromString(eventType);
+      if (kind != RoadEventKind.unknown) {
+        try {
+          await db.into(db.roadEvents).insert(
+            RoadEventsCompanion.insert(
+              tripId: drift.Value(tripId),
+              eventType: kind.name,
+              latitude: latitude,
+              longitude: longitude,
+              severity: const drift.Value(0.6),
+              confidence: const drift.Value(0.85),
+              source: const drift.Value('voice'),
+              detectedAtUtc: DateTime.now().toUtc(),
+              note: drift.Value('Event #$eventId: 5s audio clip recorded'),
+            ),
+          );
+        } catch (_) {}
+      }
+    }
+
+    // Confirm in earbuds
+    await _speakOnly('Got it. 5-second audio clip and event saved.');
+
+    // Resume ambient listening
+    _setState(_state.copyWith(mode: HandsfreeMode.listening));
+    await Future.delayed(const Duration(milliseconds: 300));
+    _startListeningLoop();
+  }
+
+  /// Records a preset 5-second audio clip (.mp4 / AAC) to local storage.
+  /// Also listens for speech transcription simultaneously.
+  /// Automatically stops when 5 seconds elapse.
+  Future<({String? audioFilePath, String? transcript, double confidence})>
+      _record5SecondClip({required String prefix}) async {
+    String? audioPath;
+    String transcript = '';
+    double confidence = 0.0;
+
+    try {
+      final docsDir = await getApplicationDocumentsDirectory();
+      final audioDir = Directory('${docsDir.path}/event_audio');
+      if (!await audioDir.exists()) {
+        await audioDir.create(recursive: true);
+      }
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final targetPath = '${audioDir.path}/${prefix}_$ts.mp4';
+
+      AudioRecorder? recorder;
+      try {
+        _audioRecorder ??= AudioRecorder();
+        recorder = _audioRecorder;
+      } catch (_) {}
+
+      if (recorder != null) {
+        try {
+          final hasPermission = await recorder.hasPermission();
+          if (hasPermission) {
+            await recorder.start(
+              const RecordConfig(
+                encoder: AudioEncoder.aacLc,
+                sampleRate: 44100,
+                bitRate: 64000,
+              ),
+              path: targetPath,
+            );
+          }
+        } catch (_) {}
+      }
+
+      // Simultaneously attempt to transcribe speech via STT
+      if (_sttReady) {
+        try {
+          await _stt.listen(
+            onResult: (result) {
+              final words = result.recognizedWords.trim();
+              if (words.isNotEmpty) {
+                transcript = words;
+                confidence = result.confidence;
+              }
+            },
+            listenOptions: SpeechListenOptions(
+              partialResults: true,
+              cancelOnError: false,
+              listenMode: ListenMode.dictation,
+              listenFor: const Duration(seconds: 5),
+              pauseFor: const Duration(seconds: 2),
+            ),
+          );
+        } catch (_) {}
+      }
+
+      // Exactly 5-second preset audio recording clip
+      await Future.delayed(const Duration(seconds: 5));
+
+      // Stop audio recording
+      if (recorder != null) {
+        try {
+          if (await recorder.isRecording()) {
+            audioPath = await recorder.stop();
+          }
+        } catch (_) {}
+      }
+
+      // Stop STT
+      try {
+        await _stt.stop();
+      } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) debugPrint('Error during 5s audio recording: $e');
+      try {
+        if (_audioRecorder != null && await _audioRecorder!.isRecording()) {
+          audioPath = await _audioRecorder!.stop();
+        }
+      } catch (_) {}
+    }
+
+    return (
+      audioFilePath: audioPath,
+      transcript: transcript.isNotEmpty ? transcript : null,
+      confidence: confidence,
+    );
+  }
+
   /// Called by the IMU/ML pipeline when an anomaly does not map to any known
-  /// event type.  Asks the rider what it was, records the answer, and
-  /// optionally registers a new [RoadEvents] entry.
+  /// event type. Asks the rider what it was, records the answer, and
+  /// registers a new [RoadEvents] entry for future warnings.
   Future<void> reportUnknownImuEvent({
     double? latitude,
     double? longitude,
@@ -258,19 +462,28 @@ class HandsfreeSessionService {
       detectedAt: DateTime.now().toUtc(),
     );
 
-    _setState(
-        _state.copyWith(mode: HandsfreeMode.awaitingUnknownEventAnswer));
+    _setState(_state.copyWith(mode: HandsfreeMode.speaking));
 
     // Stop ambient listening so the answer capture is clean
     try {
       await _stt.stop();
     } catch (_) {}
 
-    await _speakOnly('Unknown event detected. What was that?');
-    await Future.delayed(const Duration(milliseconds: 400));
+    await _speakOnly('Event detected. How was it?');
+    await Future.delayed(const Duration(milliseconds: 300));
 
-    // Start a short focused listening window for the rider's answer
-    await _listenForAnswer();
+    _setState(_state.copyWith(mode: HandsfreeMode.awaitingUnknownEventAnswer));
+
+    // Record preset 5-second audio clip
+    final capture = await _record5SecondClip(
+      prefix: 'unknown_${DateTime.now().millisecondsSinceEpoch}',
+    );
+
+    await _handleUnknownAnswer(
+      capture.transcript,
+      confidence: capture.confidence,
+      audioFilePath: capture.audioFilePath,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -302,51 +515,10 @@ class HandsfreeSessionService {
     } catch (_) {}
   }
 
-  Future<void> _listenForAnswer() async {
-    if (!_sttReady || _isDisposed) {
-      await _handleUnknownAnswer(null, confidence: 0);
-      return;
-    }
-
-    final completer = Completer<void>();
-    String? capturedAnswer;
-    double capturedConfidence = 0;
-
-    try {
-      await _stt.listen(
-        onResult: (result) {
-          if (result.finalResult) {
-            capturedAnswer = result.recognizedWords.trim();
-            capturedConfidence = result.confidence;
-            if (!completer.isCompleted) completer.complete();
-          }
-        },
-        listenOptions: SpeechListenOptions(
-          partialResults: false,
-          cancelOnError: false,
-          listenMode: ListenMode.confirmation,
-          listenFor: const Duration(seconds: 15),
-          pauseFor: const Duration(seconds: 3),
-        ),
-      );
-    } catch (_) {}
-
-    // Fallback timeout so we don't block forever
-    Timer(const Duration(seconds: 16), () {
-      if (!completer.isCompleted) completer.complete();
-    });
-
-    await completer.future;
-
-    await _handleUnknownAnswer(
-      capturedAnswer?.isEmpty == true ? null : capturedAnswer,
-      confidence: capturedConfidence,
-    );
-  }
-
   Future<void> _handleUnknownAnswer(
     String? answer, {
     required double confidence,
+    String? audioFilePath,
   }) async {
     final pending = _pendingUnknown;
     _pendingUnknown = null;
@@ -354,7 +526,35 @@ class HandsfreeSessionService {
     final resolvedLabel =
         answer != null ? _normaliseLabel(answer) : null;
 
-    // Persist to DB
+    int? promotedRoadEventId;
+    // Register as a permanent road hazard for future pre-alerts at these coordinates
+    if (pending != null && pending.latitude != null && pending.longitude != null) {
+      final labelToUse = resolvedLabel ?? 'bump';
+      final kind = RoadEventKind.fromString(labelToUse);
+      if (kind != RoadEventKind.unknown) {
+        try {
+          promotedRoadEventId = await db.into(db.roadEvents).insert(
+            RoadEventsCompanion.insert(
+              tripId: drift.Value(pending.tripId),
+              eventType: kind.name,
+              latitude: pending.latitude!,
+              longitude: pending.longitude!,
+              severity: const drift.Value(0.6),
+              confidence: const drift.Value(0.85),
+              source: const drift.Value('voice'),
+              detectedAtUtc: pending.detectedAt,
+              note: drift.Value(answer != null && answer.isNotEmpty
+                  ? 'Voice classified: "$answer"'
+                  : 'IMU anomaly at coords'),
+            ),
+          );
+        } catch (e) {
+          if (kDebugMode) debugPrint('Failed to save road event for future: $e');
+        }
+      }
+    }
+
+    // Persist to UnknownEvents table
     try {
       await db.into(db.unknownEvents).insert(
             UnknownEventsCompanion.insert(
@@ -364,11 +564,14 @@ class HandsfreeSessionService {
               imuSnapshotJson: drift.Value(pending?.imuSnapshotJson),
               peakAccelMagnitude: drift.Value(pending?.peakAccelMagnitude),
               durationMs: drift.Value(pending?.durationMs),
-              questionSpoken: 'Unknown event detected. What was that?',
+              questionSpoken: 'Event detected. How was it?',
               riderAnswerRaw: drift.Value(answer),
               transcriptConfidence:
                   drift.Value(confidence > 0 ? confidence : null),
               resolvedLabel: drift.Value(resolvedLabel),
+              promoted: drift.Value(promotedRoadEventId != null),
+              promotedRoadEventId: drift.Value(promotedRoadEventId),
+              audioFilePath: drift.Value(audioFilePath),
               detectedAtUtc:
                   pending?.detectedAt ?? DateTime.now().toUtc(),
               answeredAtUtc: drift.Value(DateTime.now().toUtc()),
@@ -379,12 +582,19 @@ class HandsfreeSessionService {
     }
 
     // Speak confirmation
-    if (answer != null && answer.isNotEmpty) {
-      final label =
-          resolvedLabel != null ? _humanLabel(resolvedLabel) : answer;
-      await _speakOnly('Got it. $label has been recorded. Thank you.');
+    if (resolvedLabel != null && resolvedLabel.isNotEmpty) {
+      final label = _humanLabel(resolvedLabel);
+      if (promotedRoadEventId != null) {
+        await _speakOnly('Got it. $label saved as road hazard for future warnings.');
+      } else {
+        await _speakOnly('Got it. $label has been recorded. Thank you.');
+      }
     } else {
-      await _speakOnly('No answer captured. Event saved as unknown.');
+      if (promotedRoadEventId != null) {
+        await _speakOnly('Got it. Event audio clip saved as hazard for future warnings.');
+      } else {
+        await _speakOnly('Event audio clip saved.');
+      }
     }
 
     // Return to ambient listening

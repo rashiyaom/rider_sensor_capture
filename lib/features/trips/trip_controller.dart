@@ -9,6 +9,7 @@ import '../../core/services/rider_feedback_service.dart';
 import '../../data/local_db/database.dart';
 import '../../providers/db_providers.dart';
 import '../../providers/pre_alert_providers.dart';
+import '../../providers/handsfree_providers.dart';
 import '../../providers/ride_recording_provider.dart';
 import '../events/event_recording_controller.dart';
 
@@ -211,6 +212,12 @@ class TripController extends StateNotifier<TripState> {
       final preAlert = ref.read(preAlertServiceProvider);
       preAlert.setActiveTripId(tripId);
       unawaited(preAlert.start());
+    } catch (_) {}
+
+    // Auto-start hands-free rider assistant for the journey
+    try {
+      final handsfree = ref.read(handsfreeSessionServiceProvider);
+      unawaited(handsfree.start());
     } catch (_) {}
 
     _lastGpsPoint = startPos;
@@ -478,6 +485,12 @@ class TripController extends StateNotifier<TripState> {
         final preAlert = ref.read(preAlertServiceProvider);
         await preAlert.stop();
         preAlert.setActiveTripId(null);
+      } catch (_) {}
+
+      // Auto-stop hands-free rider assistant when journey ends
+      try {
+        final handsfree = ref.read(handsfreeSessionServiceProvider);
+        await handsfree.stop();
       } catch (_) {}
 
       state = state.copyWith(

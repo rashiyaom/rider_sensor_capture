@@ -306,29 +306,23 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       statusMessage: 'Saved #$activeId: ${computedParams.summary}',
     );
 
-    // ── Hands-free spoken confirmation ──
-    // Notify the rider through their earbuds that the event was stored.
-    try {
-      final hf = ref.read(handsfreeSessionServiceProvider);
-      String? peakUnit;
-      double? peakVal2;
-      if (computedParams.bump != null) {
-        peakVal2 = computedParams.bump!.peakGForce;
-        peakUnit = 'g';
-      } else if (computedParams.turn != null) {
-        peakVal2 = computedParams.turn!.peakLateralAccel;
-        peakUnit = 'metres per second squared';
-      } else if (computedParams.speed != null) {
-        peakVal2 = computedParams.speed!.peakSpeedKmh;
-        peakUnit = 'kilometres per hour';
-      }
-      unawaited(hf.announceEventSaved(
-        eventType: eventTypeStr,
-        classification: classVal,
-        peakMetric: peakVal2,
-        peakUnit: peakUnit,
-      ));
-    } catch (_) {}
+    // ── Hands-free spoken confirmation & 5-second audio feedback capture ──
+    // Notify the rider through their earbuds, record preset 5s voice clip (.mp4),
+    // and save with the event record & as a permanent road hazard for future pre-alerts.
+    if (activeId != null) {
+      try {
+        final hf = ref.read(handsfreeSessionServiceProvider);
+        unawaited(hf.promptAndRecordEventFeedback(
+          eventId: activeId,
+          eventType: eventTypeStr,
+          tripId: state.tripId,
+          latitude: state.startGps?.latitude,
+          longitude: state.startGps?.longitude,
+          preAlertId: preAlertContext.preAlertId,
+          roadEventId: preAlertContext.roadEventId,
+        ));
+      } catch (_) {}
+    }
 
     _savedResetTimer?.cancel();
     _savedResetTimer = Timer(const Duration(seconds: 2), () {

@@ -29,6 +29,13 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   Map<String, dynamic>? _scrubPoint;
   EventRecord? _scrubEvent;
 
+  static double? _safeNum(dynamic val) {
+    if (val == null) return null;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val);
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final trip = widget.trip;
@@ -317,15 +324,16 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                     endLat: trip.endLat,
                     endLng: trip.endLng,
                     tripEvents: tripEvents,
-                    scrubPosition: _scrubPoint != null && _scrubPoint!['lat'] != null && _scrubPoint!['lng'] != null
-                        ? LatLng((_scrubPoint!['lat'] as num).toDouble(), (_scrubPoint!['lng'] as num).toDouble())
-                        : null,
-                    scrubSpeedKmh: _scrubPoint != null && _scrubPoint!['speed_kmh'] != null
-                        ? (_scrubPoint!['speed_kmh'] as num).toDouble()
-                        : null,
-                    scrubAltitude: _scrubPoint != null && _scrubPoint!['altitude'] != null
-                        ? (_scrubPoint!['altitude'] as num).toDouble()
-                        : null,
+                    scrubPosition: () {
+                      final lat = _safeNum(_scrubPoint?['lat']);
+                      final lng = _safeNum(_scrubPoint?['lng']);
+                      if (lat != null && lng != null && lat.isFinite && lng.isFinite) {
+                        return LatLng(lat, lng);
+                      }
+                      return null;
+                    }(),
+                    scrubSpeedKmh: _safeNum(_scrubPoint?['speed_kmh']),
+                    scrubAltitude: _safeNum(_scrubPoint?['altitude']),
                     scrubEventName: _scrubEvent?.eventType,
                   ),
 

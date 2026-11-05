@@ -1770,6 +1770,17 @@ class $EventRecordsTable extends EventRecords
         type: DriftSqlType.double,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _audioFilePathMeta = const VerificationMeta(
+    'audioFilePath',
+  );
+  @override
+  late final GeneratedColumn<String> audioFilePath = GeneratedColumn<String>(
+    'audio_file_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1793,6 +1804,7 @@ class $EventRecordsTable extends EventRecords
     jerkPeakMagnitude,
     gpsSpeedAtEventKmh,
     gpsHeadingChangeDeg,
+    audioFilePath,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1977,6 +1989,15 @@ class $EventRecordsTable extends EventRecords
         ),
       );
     }
+    if (data.containsKey('audio_file_path')) {
+      context.handle(
+        _audioFilePathMeta,
+        audioFilePath.isAcceptableOrUnknown(
+          data['audio_file_path']!,
+          _audioFilePathMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -2070,6 +2091,10 @@ class $EventRecordsTable extends EventRecords
         DriftSqlType.double,
         data['${effectivePrefix}gps_heading_change_deg'],
       ),
+      audioFilePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}audio_file_path'],
+      ),
     );
   }
 
@@ -2101,6 +2126,7 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
   final double? jerkPeakMagnitude;
   final double? gpsSpeedAtEventKmh;
   final double? gpsHeadingChangeDeg;
+  final String? audioFilePath;
   const EventRecord({
     required this.id,
     required this.eventType,
@@ -2123,6 +2149,7 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
     this.jerkPeakMagnitude,
     this.gpsSpeedAtEventKmh,
     this.gpsHeadingChangeDeg,
+    this.audioFilePath,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2177,6 +2204,9 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
     }
     if (!nullToAbsent || gpsHeadingChangeDeg != null) {
       map['gps_heading_change_deg'] = Variable<double>(gpsHeadingChangeDeg);
+    }
+    if (!nullToAbsent || audioFilePath != null) {
+      map['audio_file_path'] = Variable<String>(audioFilePath);
     }
     return map;
   }
@@ -2234,6 +2264,9 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
       gpsHeadingChangeDeg: gpsHeadingChangeDeg == null && nullToAbsent
           ? const Value.absent()
           : Value(gpsHeadingChangeDeg),
+      audioFilePath: audioFilePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(audioFilePath),
     );
   }
 
@@ -2272,6 +2305,7 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
       gpsHeadingChangeDeg: serializer.fromJson<double?>(
         json['gpsHeadingChangeDeg'],
       ),
+      audioFilePath: serializer.fromJson<String?>(json['audioFilePath']),
     );
   }
   @override
@@ -2299,6 +2333,7 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
       'jerkPeakMagnitude': serializer.toJson<double?>(jerkPeakMagnitude),
       'gpsSpeedAtEventKmh': serializer.toJson<double?>(gpsSpeedAtEventKmh),
       'gpsHeadingChangeDeg': serializer.toJson<double?>(gpsHeadingChangeDeg),
+      'audioFilePath': serializer.toJson<String?>(audioFilePath),
     };
   }
 
@@ -2324,6 +2359,7 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
     Value<double?> jerkPeakMagnitude = const Value.absent(),
     Value<double?> gpsSpeedAtEventKmh = const Value.absent(),
     Value<double?> gpsHeadingChangeDeg = const Value.absent(),
+    Value<String?> audioFilePath = const Value.absent(),
   }) => EventRecord(
     id: id ?? this.id,
     eventType: eventType ?? this.eventType,
@@ -2362,6 +2398,9 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
     gpsHeadingChangeDeg: gpsHeadingChangeDeg.present
         ? gpsHeadingChangeDeg.value
         : this.gpsHeadingChangeDeg,
+    audioFilePath: audioFilePath.present
+        ? audioFilePath.value
+        : this.audioFilePath,
   );
   EventRecord copyWithCompanion(EventRecordsCompanion data) {
     return EventRecord(
@@ -2416,6 +2455,9 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
       gpsHeadingChangeDeg: data.gpsHeadingChangeDeg.present
           ? data.gpsHeadingChangeDeg.value
           : this.gpsHeadingChangeDeg,
+      audioFilePath: data.audioFilePath.present
+          ? data.audioFilePath.value
+          : this.audioFilePath,
     );
   }
 
@@ -2442,7 +2484,8 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
           ..write('hrDeltaAtEvent: $hrDeltaAtEvent, ')
           ..write('jerkPeakMagnitude: $jerkPeakMagnitude, ')
           ..write('gpsSpeedAtEventKmh: $gpsSpeedAtEventKmh, ')
-          ..write('gpsHeadingChangeDeg: $gpsHeadingChangeDeg')
+          ..write('gpsHeadingChangeDeg: $gpsHeadingChangeDeg, ')
+          ..write('audioFilePath: $audioFilePath')
           ..write(')'))
         .toString();
   }
@@ -2470,6 +2513,7 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
     jerkPeakMagnitude,
     gpsSpeedAtEventKmh,
     gpsHeadingChangeDeg,
+    audioFilePath,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -2495,7 +2539,8 @@ class EventRecord extends DataClass implements Insertable<EventRecord> {
           other.hrDeltaAtEvent == this.hrDeltaAtEvent &&
           other.jerkPeakMagnitude == this.jerkPeakMagnitude &&
           other.gpsSpeedAtEventKmh == this.gpsSpeedAtEventKmh &&
-          other.gpsHeadingChangeDeg == this.gpsHeadingChangeDeg);
+          other.gpsHeadingChangeDeg == this.gpsHeadingChangeDeg &&
+          other.audioFilePath == this.audioFilePath);
 }
 
 class EventRecordsCompanion extends UpdateCompanion<EventRecord> {
@@ -2520,6 +2565,7 @@ class EventRecordsCompanion extends UpdateCompanion<EventRecord> {
   final Value<double?> jerkPeakMagnitude;
   final Value<double?> gpsSpeedAtEventKmh;
   final Value<double?> gpsHeadingChangeDeg;
+  final Value<String?> audioFilePath;
   const EventRecordsCompanion({
     this.id = const Value.absent(),
     this.eventType = const Value.absent(),
@@ -2542,6 +2588,7 @@ class EventRecordsCompanion extends UpdateCompanion<EventRecord> {
     this.jerkPeakMagnitude = const Value.absent(),
     this.gpsSpeedAtEventKmh = const Value.absent(),
     this.gpsHeadingChangeDeg = const Value.absent(),
+    this.audioFilePath = const Value.absent(),
   });
   EventRecordsCompanion.insert({
     this.id = const Value.absent(),
@@ -2565,6 +2612,7 @@ class EventRecordsCompanion extends UpdateCompanion<EventRecord> {
     this.jerkPeakMagnitude = const Value.absent(),
     this.gpsSpeedAtEventKmh = const Value.absent(),
     this.gpsHeadingChangeDeg = const Value.absent(),
+    this.audioFilePath = const Value.absent(),
   }) : eventType = Value(eventType),
        startTimestamp = Value(startTimestamp),
        status = Value(status);
@@ -2590,6 +2638,7 @@ class EventRecordsCompanion extends UpdateCompanion<EventRecord> {
     Expression<double>? jerkPeakMagnitude,
     Expression<double>? gpsSpeedAtEventKmh,
     Expression<double>? gpsHeadingChangeDeg,
+    Expression<String>? audioFilePath,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -2615,6 +2664,7 @@ class EventRecordsCompanion extends UpdateCompanion<EventRecord> {
         'gps_speed_at_event_kmh': gpsSpeedAtEventKmh,
       if (gpsHeadingChangeDeg != null)
         'gps_heading_change_deg': gpsHeadingChangeDeg,
+      if (audioFilePath != null) 'audio_file_path': audioFilePath,
     });
   }
 
@@ -2640,6 +2690,7 @@ class EventRecordsCompanion extends UpdateCompanion<EventRecord> {
     Value<double?>? jerkPeakMagnitude,
     Value<double?>? gpsSpeedAtEventKmh,
     Value<double?>? gpsHeadingChangeDeg,
+    Value<String?>? audioFilePath,
   }) {
     return EventRecordsCompanion(
       id: id ?? this.id,
@@ -2663,6 +2714,7 @@ class EventRecordsCompanion extends UpdateCompanion<EventRecord> {
       jerkPeakMagnitude: jerkPeakMagnitude ?? this.jerkPeakMagnitude,
       gpsSpeedAtEventKmh: gpsSpeedAtEventKmh ?? this.gpsSpeedAtEventKmh,
       gpsHeadingChangeDeg: gpsHeadingChangeDeg ?? this.gpsHeadingChangeDeg,
+      audioFilePath: audioFilePath ?? this.audioFilePath,
     );
   }
 
@@ -2736,6 +2788,9 @@ class EventRecordsCompanion extends UpdateCompanion<EventRecord> {
         gpsHeadingChangeDeg.value,
       );
     }
+    if (audioFilePath.present) {
+      map['audio_file_path'] = Variable<String>(audioFilePath.value);
+    }
     return map;
   }
 
@@ -2762,7 +2817,8 @@ class EventRecordsCompanion extends UpdateCompanion<EventRecord> {
           ..write('hrDeltaAtEvent: $hrDeltaAtEvent, ')
           ..write('jerkPeakMagnitude: $jerkPeakMagnitude, ')
           ..write('gpsSpeedAtEventKmh: $gpsSpeedAtEventKmh, ')
-          ..write('gpsHeadingChangeDeg: $gpsHeadingChangeDeg')
+          ..write('gpsHeadingChangeDeg: $gpsHeadingChangeDeg, ')
+          ..write('audioFilePath: $audioFilePath')
           ..write(')'))
         .toString();
   }
@@ -8054,6 +8110,17 @@ class $EventFeedbacksTable extends EventFeedbacks
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _audioFilePathMeta = const VerificationMeta(
+    'audioFilePath',
+  );
+  @override
+  late final GeneratedColumn<String> audioFilePath = GeneratedColumn<String>(
+    'audio_file_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _analysisConfidenceMeta =
       const VerificationMeta('analysisConfidence');
   @override
@@ -8121,6 +8188,7 @@ class $EventFeedbacksTable extends EventFeedbacks
     difficultyLevel,
     riderSummary,
     improvementSuggestion,
+    audioFilePath,
     analysisConfidence,
     analyzedByLlm,
     createdAtUtc,
@@ -8272,6 +8340,15 @@ class $EventFeedbacksTable extends EventFeedbacks
         ),
       );
     }
+    if (data.containsKey('audio_file_path')) {
+      context.handle(
+        _audioFilePathMeta,
+        audioFilePath.isAcceptableOrUnknown(
+          data['audio_file_path']!,
+          _audioFilePathMeta,
+        ),
+      );
+    }
     if (data.containsKey('analysis_confidence')) {
       context.handle(
         _analysisConfidenceMeta,
@@ -8383,6 +8460,10 @@ class $EventFeedbacksTable extends EventFeedbacks
         DriftSqlType.string,
         data['${effectivePrefix}improvement_suggestion'],
       ),
+      audioFilePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}audio_file_path'],
+      ),
       analysisConfidence: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}analysis_confidence'],
@@ -8451,6 +8532,9 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
 
   /// Actionable recommendation for improving alert timing / accuracy.
   final String? improvementSuggestion;
+
+  /// Local filesystem path to the recorded 5-second audio clip (.mp4/.m4a).
+  final String? audioFilePath;
   final double? analysisConfidence;
 
   /// False when the heuristic (offline) analyzer was used instead of the LLM.
@@ -8474,6 +8558,7 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
     this.difficultyLevel,
     this.riderSummary,
     this.improvementSuggestion,
+    this.audioFilePath,
     this.analysisConfidence,
     required this.analyzedByLlm,
     required this.createdAtUtc,
@@ -8519,6 +8604,9 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
     }
     if (!nullToAbsent || improvementSuggestion != null) {
       map['improvement_suggestion'] = Variable<String>(improvementSuggestion);
+    }
+    if (!nullToAbsent || audioFilePath != null) {
+      map['audio_file_path'] = Variable<String>(audioFilePath);
     }
     if (!nullToAbsent || analysisConfidence != null) {
       map['analysis_confidence'] = Variable<double>(analysisConfidence);
@@ -8571,6 +8659,9 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
       improvementSuggestion: improvementSuggestion == null && nullToAbsent
           ? const Value.absent()
           : Value(improvementSuggestion),
+      audioFilePath: audioFilePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(audioFilePath),
       analysisConfidence: analysisConfidence == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisConfidence),
@@ -8612,6 +8703,7 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
       improvementSuggestion: serializer.fromJson<String?>(
         json['improvementSuggestion'],
       ),
+      audioFilePath: serializer.fromJson<String?>(json['audioFilePath']),
       analysisConfidence: serializer.fromJson<double?>(
         json['analysisConfidence'],
       ),
@@ -8642,6 +8734,7 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
       'improvementSuggestion': serializer.toJson<String?>(
         improvementSuggestion,
       ),
+      'audioFilePath': serializer.toJson<String?>(audioFilePath),
       'analysisConfidence': serializer.toJson<double?>(analysisConfidence),
       'analyzedByLlm': serializer.toJson<bool>(analyzedByLlm),
       'createdAtUtc': serializer.toJson<DateTime>(createdAtUtc),
@@ -8666,6 +8759,7 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
     Value<String?> difficultyLevel = const Value.absent(),
     Value<String?> riderSummary = const Value.absent(),
     Value<String?> improvementSuggestion = const Value.absent(),
+    Value<String?> audioFilePath = const Value.absent(),
     Value<double?> analysisConfidence = const Value.absent(),
     bool? analyzedByLlm,
     DateTime? createdAtUtc,
@@ -8697,6 +8791,9 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
     improvementSuggestion: improvementSuggestion.present
         ? improvementSuggestion.value
         : this.improvementSuggestion,
+    audioFilePath: audioFilePath.present
+        ? audioFilePath.value
+        : this.audioFilePath,
     analysisConfidence: analysisConfidence.present
         ? analysisConfidence.value
         : this.analysisConfidence,
@@ -8746,6 +8843,9 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
       improvementSuggestion: data.improvementSuggestion.present
           ? data.improvementSuggestion.value
           : this.improvementSuggestion,
+      audioFilePath: data.audioFilePath.present
+          ? data.audioFilePath.value
+          : this.audioFilePath,
       analysisConfidence: data.analysisConfidence.present
           ? data.analysisConfidence.value
           : this.analysisConfidence,
@@ -8780,6 +8880,7 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
           ..write('difficultyLevel: $difficultyLevel, ')
           ..write('riderSummary: $riderSummary, ')
           ..write('improvementSuggestion: $improvementSuggestion, ')
+          ..write('audioFilePath: $audioFilePath, ')
           ..write('analysisConfidence: $analysisConfidence, ')
           ..write('analyzedByLlm: $analyzedByLlm, ')
           ..write('createdAtUtc: $createdAtUtc, ')
@@ -8789,7 +8890,7 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     eventId,
     tripId,
@@ -8806,11 +8907,12 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
     difficultyLevel,
     riderSummary,
     improvementSuggestion,
+    audioFilePath,
     analysisConfidence,
     analyzedByLlm,
     createdAtUtc,
     analyzedAtUtc,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -8831,6 +8933,7 @@ class EventFeedback extends DataClass implements Insertable<EventFeedback> {
           other.difficultyLevel == this.difficultyLevel &&
           other.riderSummary == this.riderSummary &&
           other.improvementSuggestion == this.improvementSuggestion &&
+          other.audioFilePath == this.audioFilePath &&
           other.analysisConfidence == this.analysisConfidence &&
           other.analyzedByLlm == this.analyzedByLlm &&
           other.createdAtUtc == this.createdAtUtc &&
@@ -8854,6 +8957,7 @@ class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
   final Value<String?> difficultyLevel;
   final Value<String?> riderSummary;
   final Value<String?> improvementSuggestion;
+  final Value<String?> audioFilePath;
   final Value<double?> analysisConfidence;
   final Value<bool> analyzedByLlm;
   final Value<DateTime> createdAtUtc;
@@ -8875,6 +8979,7 @@ class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
     this.difficultyLevel = const Value.absent(),
     this.riderSummary = const Value.absent(),
     this.improvementSuggestion = const Value.absent(),
+    this.audioFilePath = const Value.absent(),
     this.analysisConfidence = const Value.absent(),
     this.analyzedByLlm = const Value.absent(),
     this.createdAtUtc = const Value.absent(),
@@ -8897,6 +9002,7 @@ class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
     this.difficultyLevel = const Value.absent(),
     this.riderSummary = const Value.absent(),
     this.improvementSuggestion = const Value.absent(),
+    this.audioFilePath = const Value.absent(),
     this.analysisConfidence = const Value.absent(),
     this.analyzedByLlm = const Value.absent(),
     required DateTime createdAtUtc,
@@ -8923,6 +9029,7 @@ class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
     Expression<String>? difficultyLevel,
     Expression<String>? riderSummary,
     Expression<String>? improvementSuggestion,
+    Expression<String>? audioFilePath,
     Expression<double>? analysisConfidence,
     Expression<bool>? analyzedByLlm,
     Expression<DateTime>? createdAtUtc,
@@ -8948,6 +9055,7 @@ class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
       if (riderSummary != null) 'rider_summary': riderSummary,
       if (improvementSuggestion != null)
         'improvement_suggestion': improvementSuggestion,
+      if (audioFilePath != null) 'audio_file_path': audioFilePath,
       if (analysisConfidence != null) 'analysis_confidence': analysisConfidence,
       if (analyzedByLlm != null) 'analyzed_by_llm': analyzedByLlm,
       if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
@@ -8972,6 +9080,7 @@ class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
     Value<String?>? difficultyLevel,
     Value<String?>? riderSummary,
     Value<String?>? improvementSuggestion,
+    Value<String?>? audioFilePath,
     Value<double?>? analysisConfidence,
     Value<bool>? analyzedByLlm,
     Value<DateTime>? createdAtUtc,
@@ -8995,6 +9104,7 @@ class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
       riderSummary: riderSummary ?? this.riderSummary,
       improvementSuggestion:
           improvementSuggestion ?? this.improvementSuggestion,
+      audioFilePath: audioFilePath ?? this.audioFilePath,
       analysisConfidence: analysisConfidence ?? this.analysisConfidence,
       analyzedByLlm: analyzedByLlm ?? this.analyzedByLlm,
       createdAtUtc: createdAtUtc ?? this.createdAtUtc,
@@ -9059,6 +9169,9 @@ class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
         improvementSuggestion.value,
       );
     }
+    if (audioFilePath.present) {
+      map['audio_file_path'] = Variable<String>(audioFilePath.value);
+    }
     if (analysisConfidence.present) {
       map['analysis_confidence'] = Variable<double>(analysisConfidence.value);
     }
@@ -9093,6 +9206,7 @@ class EventFeedbacksCompanion extends UpdateCompanion<EventFeedback> {
           ..write('difficultyLevel: $difficultyLevel, ')
           ..write('riderSummary: $riderSummary, ')
           ..write('improvementSuggestion: $improvementSuggestion, ')
+          ..write('audioFilePath: $audioFilePath, ')
           ..write('analysisConfidence: $analysisConfidence, ')
           ..write('analyzedByLlm: $analyzedByLlm, ')
           ..write('createdAtUtc: $createdAtUtc, ')
@@ -9254,6 +9368,17 @@ class $UnknownEventsTable extends UnknownEvents
     type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _audioFilePathMeta = const VerificationMeta(
+    'audioFilePath',
+  );
+  @override
+  late final GeneratedColumn<String> audioFilePath = GeneratedColumn<String>(
+    'audio_file_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _detectedAtUtcMeta = const VerificationMeta(
     'detectedAtUtc',
   );
@@ -9293,6 +9418,7 @@ class $UnknownEventsTable extends UnknownEvents
     resolvedLabel,
     promoted,
     promotedRoadEventId,
+    audioFilePath,
     detectedAtUtc,
     answeredAtUtc,
   ];
@@ -9406,6 +9532,15 @@ class $UnknownEventsTable extends UnknownEvents
         ),
       );
     }
+    if (data.containsKey('audio_file_path')) {
+      context.handle(
+        _audioFilePathMeta,
+        audioFilePath.isAcceptableOrUnknown(
+          data['audio_file_path']!,
+          _audioFilePathMeta,
+        ),
+      );
+    }
     if (data.containsKey('detected_at_utc')) {
       context.handle(
         _detectedAtUtcMeta,
@@ -9487,6 +9622,10 @@ class $UnknownEventsTable extends UnknownEvents
         DriftSqlType.int,
         data['${effectivePrefix}promoted_road_event_id'],
       ),
+      audioFilePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}audio_file_path'],
+      ),
       detectedAtUtc: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}detected_at_utc'],
@@ -9543,6 +9682,9 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
   /// The road_event row id created when the event was promoted (if any).
   final int? promotedRoadEventId;
 
+  /// Local filesystem path to the recorded 5-second audio clip (.mp4/.m4a).
+  final String? audioFilePath;
+
   /// Timestamp when the anomaly was first detected.
   final DateTime detectedAtUtc;
 
@@ -9562,6 +9704,7 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
     this.resolvedLabel,
     required this.promoted,
     this.promotedRoadEventId,
+    this.audioFilePath,
     required this.detectedAtUtc,
     this.answeredAtUtc,
   });
@@ -9600,6 +9743,9 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
     map['promoted'] = Variable<bool>(promoted);
     if (!nullToAbsent || promotedRoadEventId != null) {
       map['promoted_road_event_id'] = Variable<int>(promotedRoadEventId);
+    }
+    if (!nullToAbsent || audioFilePath != null) {
+      map['audio_file_path'] = Variable<String>(audioFilePath);
     }
     map['detected_at_utc'] = Variable<DateTime>(detectedAtUtc);
     if (!nullToAbsent || answeredAtUtc != null) {
@@ -9643,6 +9789,9 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
       promotedRoadEventId: promotedRoadEventId == null && nullToAbsent
           ? const Value.absent()
           : Value(promotedRoadEventId),
+      audioFilePath: audioFilePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(audioFilePath),
       detectedAtUtc: Value(detectedAtUtc),
       answeredAtUtc: answeredAtUtc == null && nullToAbsent
           ? const Value.absent()
@@ -9675,6 +9824,7 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
       promotedRoadEventId: serializer.fromJson<int?>(
         json['promotedRoadEventId'],
       ),
+      audioFilePath: serializer.fromJson<String?>(json['audioFilePath']),
       detectedAtUtc: serializer.fromJson<DateTime>(json['detectedAtUtc']),
       answeredAtUtc: serializer.fromJson<DateTime?>(json['answeredAtUtc']),
     );
@@ -9696,6 +9846,7 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
       'resolvedLabel': serializer.toJson<String?>(resolvedLabel),
       'promoted': serializer.toJson<bool>(promoted),
       'promotedRoadEventId': serializer.toJson<int?>(promotedRoadEventId),
+      'audioFilePath': serializer.toJson<String?>(audioFilePath),
       'detectedAtUtc': serializer.toJson<DateTime>(detectedAtUtc),
       'answeredAtUtc': serializer.toJson<DateTime?>(answeredAtUtc),
     };
@@ -9715,6 +9866,7 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
     Value<String?> resolvedLabel = const Value.absent(),
     bool? promoted,
     Value<int?> promotedRoadEventId = const Value.absent(),
+    Value<String?> audioFilePath = const Value.absent(),
     DateTime? detectedAtUtc,
     Value<DateTime?> answeredAtUtc = const Value.absent(),
   }) => UnknownEvent(
@@ -9743,6 +9895,9 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
     promotedRoadEventId: promotedRoadEventId.present
         ? promotedRoadEventId.value
         : this.promotedRoadEventId,
+    audioFilePath: audioFilePath.present
+        ? audioFilePath.value
+        : this.audioFilePath,
     detectedAtUtc: detectedAtUtc ?? this.detectedAtUtc,
     answeredAtUtc: answeredAtUtc.present
         ? answeredAtUtc.value
@@ -9779,6 +9934,9 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
       promotedRoadEventId: data.promotedRoadEventId.present
           ? data.promotedRoadEventId.value
           : this.promotedRoadEventId,
+      audioFilePath: data.audioFilePath.present
+          ? data.audioFilePath.value
+          : this.audioFilePath,
       detectedAtUtc: data.detectedAtUtc.present
           ? data.detectedAtUtc.value
           : this.detectedAtUtc,
@@ -9804,6 +9962,7 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
           ..write('resolvedLabel: $resolvedLabel, ')
           ..write('promoted: $promoted, ')
           ..write('promotedRoadEventId: $promotedRoadEventId, ')
+          ..write('audioFilePath: $audioFilePath, ')
           ..write('detectedAtUtc: $detectedAtUtc, ')
           ..write('answeredAtUtc: $answeredAtUtc')
           ..write(')'))
@@ -9825,6 +9984,7 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
     resolvedLabel,
     promoted,
     promotedRoadEventId,
+    audioFilePath,
     detectedAtUtc,
     answeredAtUtc,
   );
@@ -9845,6 +10005,7 @@ class UnknownEvent extends DataClass implements Insertable<UnknownEvent> {
           other.resolvedLabel == this.resolvedLabel &&
           other.promoted == this.promoted &&
           other.promotedRoadEventId == this.promotedRoadEventId &&
+          other.audioFilePath == this.audioFilePath &&
           other.detectedAtUtc == this.detectedAtUtc &&
           other.answeredAtUtc == this.answeredAtUtc);
 }
@@ -9863,6 +10024,7 @@ class UnknownEventsCompanion extends UpdateCompanion<UnknownEvent> {
   final Value<String?> resolvedLabel;
   final Value<bool> promoted;
   final Value<int?> promotedRoadEventId;
+  final Value<String?> audioFilePath;
   final Value<DateTime> detectedAtUtc;
   final Value<DateTime?> answeredAtUtc;
   const UnknownEventsCompanion({
@@ -9879,6 +10041,7 @@ class UnknownEventsCompanion extends UpdateCompanion<UnknownEvent> {
     this.resolvedLabel = const Value.absent(),
     this.promoted = const Value.absent(),
     this.promotedRoadEventId = const Value.absent(),
+    this.audioFilePath = const Value.absent(),
     this.detectedAtUtc = const Value.absent(),
     this.answeredAtUtc = const Value.absent(),
   });
@@ -9896,6 +10059,7 @@ class UnknownEventsCompanion extends UpdateCompanion<UnknownEvent> {
     this.resolvedLabel = const Value.absent(),
     this.promoted = const Value.absent(),
     this.promotedRoadEventId = const Value.absent(),
+    this.audioFilePath = const Value.absent(),
     required DateTime detectedAtUtc,
     this.answeredAtUtc = const Value.absent(),
   }) : questionSpoken = Value(questionSpoken),
@@ -9914,6 +10078,7 @@ class UnknownEventsCompanion extends UpdateCompanion<UnknownEvent> {
     Expression<String>? resolvedLabel,
     Expression<bool>? promoted,
     Expression<int>? promotedRoadEventId,
+    Expression<String>? audioFilePath,
     Expression<DateTime>? detectedAtUtc,
     Expression<DateTime>? answeredAtUtc,
   }) {
@@ -9934,6 +10099,7 @@ class UnknownEventsCompanion extends UpdateCompanion<UnknownEvent> {
       if (promoted != null) 'promoted': promoted,
       if (promotedRoadEventId != null)
         'promoted_road_event_id': promotedRoadEventId,
+      if (audioFilePath != null) 'audio_file_path': audioFilePath,
       if (detectedAtUtc != null) 'detected_at_utc': detectedAtUtc,
       if (answeredAtUtc != null) 'answered_at_utc': answeredAtUtc,
     });
@@ -9953,6 +10119,7 @@ class UnknownEventsCompanion extends UpdateCompanion<UnknownEvent> {
     Value<String?>? resolvedLabel,
     Value<bool>? promoted,
     Value<int?>? promotedRoadEventId,
+    Value<String?>? audioFilePath,
     Value<DateTime>? detectedAtUtc,
     Value<DateTime?>? answeredAtUtc,
   }) {
@@ -9970,6 +10137,7 @@ class UnknownEventsCompanion extends UpdateCompanion<UnknownEvent> {
       resolvedLabel: resolvedLabel ?? this.resolvedLabel,
       promoted: promoted ?? this.promoted,
       promotedRoadEventId: promotedRoadEventId ?? this.promotedRoadEventId,
+      audioFilePath: audioFilePath ?? this.audioFilePath,
       detectedAtUtc: detectedAtUtc ?? this.detectedAtUtc,
       answeredAtUtc: answeredAtUtc ?? this.answeredAtUtc,
     );
@@ -10019,6 +10187,9 @@ class UnknownEventsCompanion extends UpdateCompanion<UnknownEvent> {
     if (promotedRoadEventId.present) {
       map['promoted_road_event_id'] = Variable<int>(promotedRoadEventId.value);
     }
+    if (audioFilePath.present) {
+      map['audio_file_path'] = Variable<String>(audioFilePath.value);
+    }
     if (detectedAtUtc.present) {
       map['detected_at_utc'] = Variable<DateTime>(detectedAtUtc.value);
     }
@@ -10044,6 +10215,7 @@ class UnknownEventsCompanion extends UpdateCompanion<UnknownEvent> {
           ..write('resolvedLabel: $resolvedLabel, ')
           ..write('promoted: $promoted, ')
           ..write('promotedRoadEventId: $promotedRoadEventId, ')
+          ..write('audioFilePath: $audioFilePath, ')
           ..write('detectedAtUtc: $detectedAtUtc, ')
           ..write('answeredAtUtc: $answeredAtUtc')
           ..write(')'))
@@ -11630,6 +11802,7 @@ typedef $$EventRecordsTableCreateCompanionBuilder =
       Value<double?> jerkPeakMagnitude,
       Value<double?> gpsSpeedAtEventKmh,
       Value<double?> gpsHeadingChangeDeg,
+      Value<String?> audioFilePath,
     });
 typedef $$EventRecordsTableUpdateCompanionBuilder =
     EventRecordsCompanion Function({
@@ -11654,6 +11827,7 @@ typedef $$EventRecordsTableUpdateCompanionBuilder =
       Value<double?> jerkPeakMagnitude,
       Value<double?> gpsSpeedAtEventKmh,
       Value<double?> gpsHeadingChangeDeg,
+      Value<String?> audioFilePath,
     });
 
 class $$EventRecordsTableFilterComposer
@@ -11767,6 +11941,11 @@ class $$EventRecordsTableFilterComposer
 
   ColumnFilters<double> get gpsHeadingChangeDeg => $composableBuilder(
     column: $table.gpsHeadingChangeDeg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get audioFilePath => $composableBuilder(
+    column: $table.audioFilePath,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -11884,6 +12063,11 @@ class $$EventRecordsTableOrderingComposer
     column: $table.gpsHeadingChangeDeg,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get audioFilePath => $composableBuilder(
+    column: $table.audioFilePath,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$EventRecordsTableAnnotationComposer
@@ -11987,6 +12171,11 @@ class $$EventRecordsTableAnnotationComposer
     column: $table.gpsHeadingChangeDeg,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get audioFilePath => $composableBuilder(
+    column: $table.audioFilePath,
+    builder: (column) => column,
+  );
 }
 
 class $$EventRecordsTableTableManager
@@ -12041,6 +12230,7 @@ class $$EventRecordsTableTableManager
                 Value<double?> jerkPeakMagnitude = const Value.absent(),
                 Value<double?> gpsSpeedAtEventKmh = const Value.absent(),
                 Value<double?> gpsHeadingChangeDeg = const Value.absent(),
+                Value<String?> audioFilePath = const Value.absent(),
               }) => EventRecordsCompanion(
                 id: id,
                 eventType: eventType,
@@ -12063,6 +12253,7 @@ class $$EventRecordsTableTableManager
                 jerkPeakMagnitude: jerkPeakMagnitude,
                 gpsSpeedAtEventKmh: gpsSpeedAtEventKmh,
                 gpsHeadingChangeDeg: gpsHeadingChangeDeg,
+                audioFilePath: audioFilePath,
               ),
           createCompanionCallback:
               ({
@@ -12087,6 +12278,7 @@ class $$EventRecordsTableTableManager
                 Value<double?> jerkPeakMagnitude = const Value.absent(),
                 Value<double?> gpsSpeedAtEventKmh = const Value.absent(),
                 Value<double?> gpsHeadingChangeDeg = const Value.absent(),
+                Value<String?> audioFilePath = const Value.absent(),
               }) => EventRecordsCompanion.insert(
                 id: id,
                 eventType: eventType,
@@ -12109,6 +12301,7 @@ class $$EventRecordsTableTableManager
                 jerkPeakMagnitude: jerkPeakMagnitude,
                 gpsSpeedAtEventKmh: gpsSpeedAtEventKmh,
                 gpsHeadingChangeDeg: gpsHeadingChangeDeg,
+                audioFilePath: audioFilePath,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -14462,6 +14655,7 @@ typedef $$EventFeedbacksTableCreateCompanionBuilder =
       Value<String?> difficultyLevel,
       Value<String?> riderSummary,
       Value<String?> improvementSuggestion,
+      Value<String?> audioFilePath,
       Value<double?> analysisConfidence,
       Value<bool> analyzedByLlm,
       required DateTime createdAtUtc,
@@ -14485,6 +14679,7 @@ typedef $$EventFeedbacksTableUpdateCompanionBuilder =
       Value<String?> difficultyLevel,
       Value<String?> riderSummary,
       Value<String?> improvementSuggestion,
+      Value<String?> audioFilePath,
       Value<double?> analysisConfidence,
       Value<bool> analyzedByLlm,
       Value<DateTime> createdAtUtc,
@@ -14577,6 +14772,11 @@ class $$EventFeedbacksTableFilterComposer
 
   ColumnFilters<String> get improvementSuggestion => $composableBuilder(
     column: $table.improvementSuggestion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get audioFilePath => $composableBuilder(
+    column: $table.audioFilePath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -14690,6 +14890,11 @@ class $$EventFeedbacksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get audioFilePath => $composableBuilder(
+    column: $table.audioFilePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get analysisConfidence => $composableBuilder(
     column: $table.analysisConfidence,
     builder: (column) => ColumnOrderings(column),
@@ -14790,6 +14995,11 @@ class $$EventFeedbacksTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get audioFilePath => $composableBuilder(
+    column: $table.audioFilePath,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<double> get analysisConfidence => $composableBuilder(
     column: $table.analysisConfidence,
     builder: (column) => column,
@@ -14860,6 +15070,7 @@ class $$EventFeedbacksTableTableManager
                 Value<String?> difficultyLevel = const Value.absent(),
                 Value<String?> riderSummary = const Value.absent(),
                 Value<String?> improvementSuggestion = const Value.absent(),
+                Value<String?> audioFilePath = const Value.absent(),
                 Value<double?> analysisConfidence = const Value.absent(),
                 Value<bool> analyzedByLlm = const Value.absent(),
                 Value<DateTime> createdAtUtc = const Value.absent(),
@@ -14881,6 +15092,7 @@ class $$EventFeedbacksTableTableManager
                 difficultyLevel: difficultyLevel,
                 riderSummary: riderSummary,
                 improvementSuggestion: improvementSuggestion,
+                audioFilePath: audioFilePath,
                 analysisConfidence: analysisConfidence,
                 analyzedByLlm: analyzedByLlm,
                 createdAtUtc: createdAtUtc,
@@ -14904,6 +15116,7 @@ class $$EventFeedbacksTableTableManager
                 Value<String?> difficultyLevel = const Value.absent(),
                 Value<String?> riderSummary = const Value.absent(),
                 Value<String?> improvementSuggestion = const Value.absent(),
+                Value<String?> audioFilePath = const Value.absent(),
                 Value<double?> analysisConfidence = const Value.absent(),
                 Value<bool> analyzedByLlm = const Value.absent(),
                 required DateTime createdAtUtc,
@@ -14925,6 +15138,7 @@ class $$EventFeedbacksTableTableManager
                 difficultyLevel: difficultyLevel,
                 riderSummary: riderSummary,
                 improvementSuggestion: improvementSuggestion,
+                audioFilePath: audioFilePath,
                 analysisConfidence: analysisConfidence,
                 analyzedByLlm: analyzedByLlm,
                 createdAtUtc: createdAtUtc,
@@ -14970,6 +15184,7 @@ typedef $$UnknownEventsTableCreateCompanionBuilder =
       Value<String?> resolvedLabel,
       Value<bool> promoted,
       Value<int?> promotedRoadEventId,
+      Value<String?> audioFilePath,
       required DateTime detectedAtUtc,
       Value<DateTime?> answeredAtUtc,
     });
@@ -14988,6 +15203,7 @@ typedef $$UnknownEventsTableUpdateCompanionBuilder =
       Value<String?> resolvedLabel,
       Value<bool> promoted,
       Value<int?> promotedRoadEventId,
+      Value<String?> audioFilePath,
       Value<DateTime> detectedAtUtc,
       Value<DateTime?> answeredAtUtc,
     });
@@ -15063,6 +15279,11 @@ class $$UnknownEventsTableFilterComposer
 
   ColumnFilters<int> get promotedRoadEventId => $composableBuilder(
     column: $table.promotedRoadEventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get audioFilePath => $composableBuilder(
+    column: $table.audioFilePath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15151,6 +15372,11 @@ class $$UnknownEventsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get audioFilePath => $composableBuilder(
+    column: $table.audioFilePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get detectedAtUtc => $composableBuilder(
     column: $table.detectedAtUtc,
     builder: (column) => ColumnOrderings(column),
@@ -15226,6 +15452,11 @@ class $$UnknownEventsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get audioFilePath => $composableBuilder(
+    column: $table.audioFilePath,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<DateTime> get detectedAtUtc => $composableBuilder(
     column: $table.detectedAtUtc,
     builder: (column) => column,
@@ -15281,6 +15512,7 @@ class $$UnknownEventsTableTableManager
                 Value<String?> resolvedLabel = const Value.absent(),
                 Value<bool> promoted = const Value.absent(),
                 Value<int?> promotedRoadEventId = const Value.absent(),
+                Value<String?> audioFilePath = const Value.absent(),
                 Value<DateTime> detectedAtUtc = const Value.absent(),
                 Value<DateTime?> answeredAtUtc = const Value.absent(),
               }) => UnknownEventsCompanion(
@@ -15297,6 +15529,7 @@ class $$UnknownEventsTableTableManager
                 resolvedLabel: resolvedLabel,
                 promoted: promoted,
                 promotedRoadEventId: promotedRoadEventId,
+                audioFilePath: audioFilePath,
                 detectedAtUtc: detectedAtUtc,
                 answeredAtUtc: answeredAtUtc,
               ),
@@ -15315,6 +15548,7 @@ class $$UnknownEventsTableTableManager
                 Value<String?> resolvedLabel = const Value.absent(),
                 Value<bool> promoted = const Value.absent(),
                 Value<int?> promotedRoadEventId = const Value.absent(),
+                Value<String?> audioFilePath = const Value.absent(),
                 required DateTime detectedAtUtc,
                 Value<DateTime?> answeredAtUtc = const Value.absent(),
               }) => UnknownEventsCompanion.insert(
@@ -15331,6 +15565,7 @@ class $$UnknownEventsTableTableManager
                 resolvedLabel: resolvedLabel,
                 promoted: promoted,
                 promotedRoadEventId: promotedRoadEventId,
+                audioFilePath: audioFilePath,
                 detectedAtUtc: detectedAtUtc,
                 answeredAtUtc: answeredAtUtc,
               ),

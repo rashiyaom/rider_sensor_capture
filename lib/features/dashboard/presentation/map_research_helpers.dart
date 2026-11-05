@@ -58,13 +58,15 @@ class MapResearchHelpers {
 
     // Fallback or solid cyan mode
     if (mode == MapHeatmapMode.solidCyan) {
-      final points = routePoints
-          .where((p) => p['lat'] != null && p['lng'] != null)
-          .map((p) => LatLng(
-                (p['lat'] as num).toDouble(),
-                (p['lng'] as num).toDouble(),
-              ))
-          .toList();
+      final points = <LatLng>[];
+      for (final p in routePoints) {
+        final lat = p['lat'] is num ? (p['lat'] as num).toDouble() : (p['lat'] is String ? double.tryParse(p['lat']) : null);
+        final lng = p['lng'] is num ? (p['lng'] as num).toDouble() : (p['lng'] is String ? double.tryParse(p['lng']) : null);
+        if (lat != null && lng != null && lat.isFinite && lng.isFinite && lat.abs() <= 90 && lng.abs() <= 180) {
+          points.add(LatLng(lat, lng));
+        }
+      }
+      if (points.length < 2) return const [];
       return [
         Polyline(
           points: points,
@@ -82,21 +84,20 @@ class MapResearchHelpers {
       final p1 = routePoints[i];
       final p2 = routePoints[i + 1];
 
-      if (p1['lat'] == null ||
-          p1['lng'] == null ||
-          p2['lat'] == null ||
-          p2['lng'] == null) {
+      final lat1 = p1['lat'] is num ? (p1['lat'] as num).toDouble() : (p1['lat'] is String ? double.tryParse(p1['lat']) : null);
+      final lng1 = p1['lng'] is num ? (p1['lng'] as num).toDouble() : (p1['lng'] is String ? double.tryParse(p1['lng']) : null);
+      final lat2 = p2['lat'] is num ? (p2['lat'] as num).toDouble() : (p2['lat'] is String ? double.tryParse(p2['lat']) : null);
+      final lng2 = p2['lng'] is num ? (p2['lng'] as num).toDouble() : (p2['lng'] is String ? double.tryParse(p2['lng']) : null);
+
+      if (lat1 == null || lng1 == null || lat2 == null || lng2 == null) {
+        continue;
+      }
+      if (!lat1.isFinite || !lng1.isFinite || !lat2.isFinite || !lng2.isFinite) {
         continue;
       }
 
-      final pt1 = LatLng(
-        (p1['lat'] as num).toDouble(),
-        (p1['lng'] as num).toDouble(),
-      );
-      final pt2 = LatLng(
-        (p2['lat'] as num).toDouble(),
-        (p2['lng'] as num).toDouble(),
-      );
+      final pt1 = LatLng(lat1, lng1);
+      final pt2 = LatLng(lat2, lng2);
 
       Color segColor;
 

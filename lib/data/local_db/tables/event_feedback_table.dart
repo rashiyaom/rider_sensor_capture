@@ -51,6 +51,9 @@ class EventFeedbacks extends Table {
   /// Actionable recommendation for improving alert timing / accuracy.
   TextColumn get improvementSuggestion => text().nullable()();
 
+  /// Local filesystem path to the recorded 5-second audio clip (.mp4/.m4a).
+  TextColumn get audioFilePath => text().nullable()();
+
   RealColumn get analysisConfidence => real().nullable()();
 
   /// False when the heuristic (offline) analyzer was used instead of the LLM.

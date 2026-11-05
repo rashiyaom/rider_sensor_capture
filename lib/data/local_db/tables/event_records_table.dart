@@ -28,4 +28,5 @@ class EventRecords extends Table {
   RealColumn get jerkPeakMagnitude => real().nullable()();
   RealColumn get gpsSpeedAtEventKmh => real().nullable()();
   RealColumn get gpsHeadingChangeDeg => real().nullable()();
+  TextColumn get audioFilePath => text().nullable()();
 }

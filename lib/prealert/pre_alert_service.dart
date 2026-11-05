@@ -59,6 +59,7 @@ class PreAlertService {
   /// Optional hands-free orchestrator — when set, spoken alerts are routed
   /// through it (which pauses the mic, speaks, then resumes listening).
   final HandsfreeSessionService? _handsfreeService;
+  HandsfreeSessionService? get handsfreeService => _handsfreeService;
 
   /// Stream of warnings that were actually issued.
   Stream<PreAlertDecision> get alertStream => _alertController.stream;
@@ -197,6 +198,7 @@ class PreAlertService {
   }
 
   int? _activeTripId;
+  int? get activeTripId => _activeTripId;
 
   /// Sets the trip that subsequent warnings should be attributed to.
   void setActiveTripId(int? tripId) => _activeTripId = tripId;

@@ -48,6 +48,9 @@ class UnknownEvents extends Table {
   /// The road_event row id created when the event was promoted (if any).
   IntColumn get promotedRoadEventId => integer().nullable()();
 
+  /// Local filesystem path to the recorded 5-second audio clip (.mp4/.m4a).
+  TextColumn get audioFilePath => text().nullable()();
+
   /// Timestamp when the anomaly was first detected.
   DateTimeColumn get detectedAtUtc => dateTime()();
 

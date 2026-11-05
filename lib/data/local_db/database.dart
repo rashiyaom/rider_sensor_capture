@@ -36,7 +36,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -176,10 +176,49 @@ class AppDatabase extends _$AppDatabase {
         // this table carries the trip/event joins used for ML export.
         await m.createTable(cameraCaptures);
       }
+      if (from < 14) {
+        // Hands-free post-event 5-second audio clip path (.mp4/.m4a)
+        Future<void> addIfMissing14(Future<void> Function() fn) async {
+          try {
+            await fn();
+          } catch (_) {}
+        }
+
+        await addIfMissing14(
+          () => m.addColumn(eventRecords, eventRecords.audioFilePath),
+        );
+        await addIfMissing14(
+          () => m.addColumn(eventFeedbacks, eventFeedbacks.audioFilePath),
+        );
+        await addIfMissing14(
+          () => m.addColumn(unknownEvents, unknownEvents.audioFilePath),
+        );
+      }
     },
     beforeOpen: (details) async {
       await customStatement('PRAGMA journal_mode=WAL;');
       await customStatement('PRAGMA synchronous=NORMAL;');
+      // Performance indexes for sensor readings and trips
+      try {
+        await customStatement('CREATE INDEX IF NOT EXISTS idx_sensor_readings_trip ON sensor_readings(trip_id);');
+        await customStatement('CREATE INDEX IF NOT EXISTS idx_sensor_readings_event ON sensor_readings(event_id);');
+        await customStatement('CREATE INDEX IF NOT EXISTS idx_event_records_trip ON event_records(trip_id);');
+        await customStatement('CREATE INDEX IF NOT EXISTS idx_trips_id_desc ON trips(id DESC);');
+      } catch (_) {}
+      // Null-safety sanitization for trips with missing defaults
+      try {
+        await customStatement('UPDATE trips SET rider_name = "Rider" WHERE rider_name IS NULL;');
+        await customStatement('UPDATE trips SET wrist_side = "Left" WHERE wrist_side IS NULL;');
+        await customStatement('UPDATE trips SET harsh_brake_count = 0 WHERE harsh_brake_count IS NULL;');
+        await customStatement('UPDATE trips SET harsh_accel_count = 0 WHERE harsh_accel_count IS NULL;');
+        await customStatement('UPDATE trips SET harsh_turn_count = 0 WHERE harsh_turn_count IS NULL;');
+        await customStatement('UPDATE trips SET bump_count = 0 WHERE bump_count IS NULL;');
+        await customStatement('UPDATE trips SET confirmed_event_count = 0 WHERE confirmed_event_count IS NULL;');
+        await customStatement('UPDATE trips SET duration_seconds = 0 WHERE duration_seconds IS NULL;');
+        await customStatement('UPDATE trips SET distance_meters = 0.0 WHERE distance_meters IS NULL;');
+        await customStatement('UPDATE trips SET total_sensor_rows = 0 WHERE total_sensor_rows IS NULL;');
+        await customStatement('UPDATE trips SET total_events_count = 0 WHERE total_events_count IS NULL;');
+      } catch (_) {}
     },
   );
 }

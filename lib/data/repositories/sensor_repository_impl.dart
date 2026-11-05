@@ -463,13 +463,57 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Future<BleQualityStats> getTripBleQuality(int tripId) async {
-    final seqCol = _db.sensorReadings.sequenceNo;
-    final query = _db.selectOnly(_db.sensorReadings)
-      ..where(_db.sensorReadings.tripId.equals(tripId))
-      ..addColumns([seqCol])
-      ..orderBy([OrderingTerm(expression: seqCol, mode: OrderingMode.asc)]);
-    final rows = await query.get();
-    if (rows.isEmpty) {
+    try {
+      final countExp = _db.sensorReadings.id.count();
+      final minSeqExp = _db.sensorReadings.sequenceNo.min();
+      final maxSeqExp = _db.sensorReadings.sequenceNo.max();
+      final devCol = _db.sensorReadings.deviceId;
+
+      final query = _db.selectOnly(_db.sensorReadings)
+        ..where(_db.sensorReadings.tripId.equals(tripId))
+        ..addColumns([devCol, countExp, minSeqExp, maxSeqExp])
+        ..groupBy([devCol]);
+
+      final rows = await query.get();
+      if (rows.isEmpty) {
+        return const BleQualityStats(
+          totalPackets: 0,
+          droppedPackets: 0,
+          receptionPercentage: 100.0,
+          gapCount: 0,
+        );
+      }
+
+      int totalPackets = 0;
+      int droppedPackets = 0;
+      int gapCount = 0;
+
+      for (final r in rows) {
+        final count = r.read(countExp) ?? 0;
+        final minSeq = r.read(minSeqExp);
+        final maxSeq = r.read(maxSeqExp);
+
+        totalPackets += count;
+        if (minSeq != null && maxSeq != null && maxSeq >= minSeq) {
+          final expected = maxSeq - minSeq + 1;
+          if (expected > count) {
+            final dropped = expected - count;
+            droppedPackets += dropped;
+            gapCount += 1;
+          }
+        }
+      }
+
+      final totalExpected = totalPackets + droppedPackets;
+      final pct = totalExpected > 0 ? (totalPackets / totalExpected) * 100.0 : 100.0;
+
+      return BleQualityStats(
+        totalPackets: totalPackets,
+        droppedPackets: droppedPackets,
+        receptionPercentage: double.parse(pct.clamp(0.0, 100.0).toStringAsFixed(1)),
+        gapCount: gapCount,
+      );
+    } catch (_) {
       return const BleQualityStats(
         totalPackets: 0,
         droppedPackets: 0,
@@ -477,30 +521,6 @@ class SensorRepositoryImpl implements SensorRepository {
         gapCount: 0,
       );
     }
-    int total = rows.length;
-    int gaps = 0;
-    int dropped = 0;
-    int? prevSeq;
-    for (final r in rows) {
-      final seq = r.read(seqCol);
-      if (seq == null) continue;
-      if (prevSeq != null && seq > prevSeq + 1) {
-        final diff = seq - prevSeq - 1;
-        if (diff > 0 && diff < 10000) {
-          dropped += diff;
-          gaps++;
-        }
-      }
-      prevSeq = seq;
-    }
-    final totalExpected = total + dropped;
-    final pct = totalExpected > 0 ? (total / totalExpected) * 100.0 : 100.0;
-    return BleQualityStats(
-      totalPackets: total,
-      droppedPackets: dropped,
-      receptionPercentage: double.parse(pct.toStringAsFixed(1)),
-      gapCount: gaps,
-    );
   }
 
   @override

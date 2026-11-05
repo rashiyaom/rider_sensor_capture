@@ -861,15 +861,19 @@ class _TripRouteMapWidgetState extends State<TripRouteMapWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final latLngs = widget.routePoints
-        .where((p) => p['lat'] != null && p['lng'] != null)
-        .map((p) => LatLng((p['lat'] as num).toDouble(), (p['lng'] as num).toDouble()))
-        .toList();
+    final latLngs = <LatLng>[];
+    for (final p in widget.routePoints) {
+      final lat = p['lat'] is num ? (p['lat'] as num).toDouble() : (p['lat'] is String ? double.tryParse(p['lat']) : null);
+      final lng = p['lng'] is num ? (p['lng'] as num).toDouble() : (p['lng'] is String ? double.tryParse(p['lng']) : null);
+      if (lat != null && lng != null && lat.isFinite && lng.isFinite && lat.abs() <= 90 && lng.abs() <= 180) {
+        latLngs.add(LatLng(lat, lng));
+      }
+    }
 
     if (latLngs.isEmpty) {
       final sl = widget.startLat;
       final slng = widget.startLng;
-      if (sl != null && slng != null) {
+      if (sl != null && slng != null && sl.isFinite && slng.isFinite && sl.abs() <= 90 && slng.abs() <= 180) {
         latLngs.add(LatLng(sl, slng));
       }
     }

@@ -48,14 +48,31 @@ class RoadEventWatcher {
     if (prediction.confidence < minConfidence) return;
 
     final kind = _kindFor(prediction.eventType);
-    if (kind == null) return;
+    final fix = locationService?.currentFix;
+
+    if (kind == null) {
+      // Unmapped / unknown IMU anomaly -> ask rider via handsfree and record 5-second voice clip
+      final hf = preAlertService.handsfreeService;
+      if (hf != null && fix != null) {
+        final peakAccel = prediction.topFeatures['accel_z_rms'] ?? 1.5;
+        unawaited(
+          hf.reportUnknownImuEvent(
+            latitude: fix.latitude,
+            longitude: fix.longitude,
+            peakAccelMagnitude: peakAccel,
+            durationMs: 500,
+            tripId: preAlertService.activeTripId,
+          ),
+        );
+      }
+      return;
+    }
 
     final now = DateTime.now().toUtc();
     final last = _lastRegisteredAt[kind.name];
     if (last != null && now.difference(last) < dedupeWindow) return;
     _lastRegisteredAt[kind.name] = now;
 
-    final fix = locationService?.currentFix;
     if (fix == null) return;
 
     unawaited(

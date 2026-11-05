@@ -70,7 +70,7 @@ class _TripScrubberWidgetState extends State<TripScrubberWidget> {
 
   void _initPoints() {
     if (widget.routePoints.isNotEmpty) {
-      _activePoints = widget.routePoints;
+      _activePoints = List<Map<String, dynamic>>.from(widget.routePoints);
     } else {
       // Synthesize 50 breadcrumbs along trip coordinates or events for demonstration
       final sLat = widget.trip.startLat ?? 19.0760;
@@ -80,7 +80,7 @@ class _TripScrubberWidgetState extends State<TripScrubberWidget> {
       final startTime = widget.trip.startTimeUtc;
       final totalSec = widget.trip.durationSeconds > 0 ? widget.trip.durationSeconds : 180;
 
-      final count = 60;
+      const count = 60;
       _activePoints = List.generate(count, (i) {
         final fraction = i / (count - 1);
         final lat = sLat + (eLat - sLat) * fraction + math.sin(fraction * math.pi * 3) * 0.0015;
@@ -100,11 +100,24 @@ class _TripScrubberWidgetState extends State<TripScrubberWidget> {
     }
 
     _currentIndex = _currentIndex.clamp(0, math.max(0, _activePoints.length - 1));
-    _notifyScrubChanged();
+    // Safely notify scrub changed AFTER the current frame completes to avoid calling
+    // setState() on ancestor while ancestor is in the middle of building.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _notifyScrubChanged();
+      }
+    });
+  }
+
+  double? _toDouble(dynamic val) {
+    if (val == null) return null;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val);
+    return null;
   }
 
   void _notifyScrubChanged() {
-    if (_activePoints.isEmpty) return;
+    if (!mounted || _activePoints.isEmpty) return;
     final point = _activePoints[_currentIndex];
     widget.onScrubChanged(point);
 
@@ -114,8 +127,8 @@ class _TripScrubberWidgetState extends State<TripScrubberWidget> {
 
   EventRecord? _findNearbyEvent(Map<String, dynamic> point) {
     if (widget.tripEvents.isEmpty) return null;
-    final pLat = (point['lat'] as num?)?.toDouble();
-    final pLng = (point['lng'] as num?)?.toDouble();
+    final pLat = _toDouble(point['lat']);
+    final pLng = _toDouble(point['lng']);
     final pTimeStr = point['timestamp_utc'] as String?;
     DateTime? pTime;
     if (pTimeStr != null) {
@@ -257,7 +270,8 @@ class _TripScrubberWidgetState extends State<TripScrubberWidget> {
     final totalDuration = widget.trip.durationSeconds > 0
         ? widget.trip.durationSeconds
         : _activePoints.length * 3;
-    final elapsedSec = (_currentIndex / (_activePoints.length - 1) * totalDuration).round();
+    final divisor = math.max(1, _activePoints.length - 1);
+    final elapsedSec = (_currentIndex / divisor * totalDuration).round();
 
     final elapsedMinStr = '${(elapsedSec ~/ 60).toString().padLeft(2, '0')}:${(elapsedSec % 60).toString().padLeft(2, '0')}';
     final totalMinStr = '${(totalDuration ~/ 60).toString().padLeft(2, '0')}:${(totalDuration % 60).toString().padLeft(2, '0')}';
@@ -348,30 +362,44 @@ class _TripScrubberWidgetState extends State<TripScrubberWidget> {
                 Positioned.fill(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Row(
-                      children: List.generate(_activePoints.length, (idx) {
-                        final pt = _activePoints[idx];
-                        final ev = _findNearbyEvent(pt);
-                        if (ev == null) return const Spacer();
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final trackWidth = constraints.maxWidth;
+                        final tripStart = widget.trip.startTimeUtc;
+                        final totalDuration = widget.trip.durationSeconds > 0
+                            ? widget.trip.durationSeconds
+                            : _activePoints.length * 3;
 
-                        final (color, _) = HazardInspectSheet.getEventStyle(ev.eventType);
-                        return Expanded(
-                          child: Align(
-                            alignment: Alignment.center,
-                            child: Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(color: color.withValues(alpha: 0.8), blurRadius: 4),
-                                ],
+                        return Stack(
+                          alignment: Alignment.centerLeft,
+                          children: widget.tripEvents.map((ev) {
+                            double fraction;
+                            if (totalDuration > 0) {
+                              final sec = ev.startTimestamp.difference(tripStart).inSeconds;
+                              fraction = (sec / totalDuration).clamp(0.0, 1.0);
+                            } else {
+                              fraction = 0.5;
+                            }
+                            final (color, _) = HazardInspectSheet.getEventStyle(ev.eventType);
+                            final leftOffset = (fraction * trackWidth).clamp(0.0, math.max(0.0, trackWidth - 6)).toDouble();
+
+                            return Positioned(
+                              left: leftOffset,
+                              child: Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(color: color.withValues(alpha: 0.8), blurRadius: 4),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          }).toList(),
                         );
-                      }),
+                      },
                     ),
                   ),
                 ),
@@ -388,17 +416,23 @@ class _TripScrubberWidgetState extends State<TripScrubberWidget> {
                   overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
                 ),
                 child: Slider(
-                  value: _currentIndex.toDouble(),
+                  value: _activePoints.length > 1
+                      ? _currentIndex.toDouble().clamp(0.0, (_activePoints.length - 1).toDouble())
+                      : 0.0,
                   min: 0.0,
-                  max: (_activePoints.length - 1).toDouble(),
-                  onChanged: (val) {
-                    setState(() {
-                      _currentIndex = val.round();
-                      _isPlaying = false;
-                    });
-                    _playbackTimer?.cancel();
-                    _notifyScrubChanged();
-                  },
+                  max: _activePoints.length > 1
+                      ? (_activePoints.length - 1).toDouble()
+                      : 1.0,
+                  onChanged: _activePoints.length > 1
+                      ? (val) {
+                          setState(() {
+                            _currentIndex = val.round().clamp(0, _activePoints.length - 1);
+                            _isPlaying = false;
+                          });
+                          _playbackTimer?.cancel();
+                          _notifyScrubChanged();
+                        }
+                      : null,
                 ),
               ),
             ],
