@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/local_db/database.dart';
 import '../location/location_service.dart';
+import '../location/geo_math.dart';
 import '../voice/handsfree_session_service.dart';
 import '../voice/voice_alert_service.dart';
 import 'pre_alert_engine.dart';
@@ -40,6 +41,9 @@ class PreAlertService {
   PreAlertDecision? _activeAlert;
 
   bool _running = false;
+  bool _evaluating = false;
+  int _session = 0;
+  LocationFix? _previousFix;
 
   /// Minimum time before the *same* hazard may be warned about again.
   final Duration reAlertCooldown;
@@ -85,6 +89,8 @@ class PreAlertService {
   /// Stops GPS tracking and clears the session state.
   Future<void> stop() async {
     _running = false;
+    _session++;
+    _previousFix = null;
     await _fixSubscription?.cancel();
     _fixSubscription = null;
     await locationService?.stopTracking();
@@ -97,10 +103,29 @@ class PreAlertService {
   Future<void> handleLocationFix(LocationFix fix) => _onFix(fix);
 
   Future<void> _onFix(LocationFix fix) async {
-    if (!_running) return;
+    if (!_running || _evaluating) return;
 
     final speedKmh = fix.speedKmh ?? 0.0;
-    if (speedKmh <= 0) return;
+    if (!speedKmh.isFinite || speedKmh <= 0) return;
+    if (fix.gpsAccuracyM != null && fix.gpsAccuracyM! > 50) return;
+    final session = _session;
+    _evaluating = true;
+    var heading = fix.gpsHeadingDeg;
+    final previous = _previousFix;
+    if (heading == null && previous != null && GeoMath.distanceMeters(
+        lat1: previous.latitude, lon1: previous.longitude,
+        lat2: fix.latitude, lon2: fix.longitude) >= 5) {
+      heading = GeoMath.bearingDegrees(lat1: previous.latitude, lon1: previous.longitude,
+          lat2: fix.latitude, lon2: fix.longitude);
+    }
+    _previousFix = fix;
+    // Rearm after leaving a location and returning later, including in one trip.
+    for (final id in _alertedEventIds.toList()) {
+      final at = _lastAlertAt[id];
+      if (at != null && fix.timestampUtc.difference(at) >= reAlertCooldown) {
+        _alertedEventIds.remove(id);
+      }
+    }
 
     try {
       final candidates = await registry.loadCandidates(
@@ -108,7 +133,7 @@ class PreAlertService {
         longitude: fix.longitude,
         radiusMeters: engine.maxConsiderDistanceMeters,
       );
-      if (candidates.isEmpty) return;
+      if (!_running || session != _session || candidates.isEmpty) return;
 
       final decision = engine.evaluate(
         latitude: fix.latitude,
@@ -116,7 +141,7 @@ class PreAlertService {
         speedKmh: speedKmh,
         candidates: candidates,
         alreadyAlertedIds: _alertedEventIds,
-        headingDeg: fix.gpsHeadingDeg,
+        headingDeg: heading,
       );
       if (decision == null) return;
 
@@ -127,7 +152,7 @@ class PreAlertService {
       final roadEventId = decision.candidate.id;
       if (roadEventId != null) {
         final last = _lastAlertAt[roadEventId];
-        final now = DateTime.now().toUtc();
+        final now = fix.timestampUtc;
         if (last != null && now.difference(last) < reAlertCooldown) return;
         _lastAlertAt[roadEventId] = now;
         _alertedEventIds.add(roadEventId);
@@ -138,6 +163,8 @@ class PreAlertService {
       if (kDebugMode) {
         debugPrint('PreAlertService: evaluation failed ($e)');
       }
+    } finally {
+      _evaluating = false;
     }
   }
 

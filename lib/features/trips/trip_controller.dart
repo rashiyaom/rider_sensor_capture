@@ -10,8 +10,10 @@ import '../../data/local_db/database.dart';
 import '../../providers/db_providers.dart';
 import '../../providers/pre_alert_providers.dart';
 import '../../providers/handsfree_providers.dart';
+import '../../providers/ml_inference_providers.dart';
 import '../../providers/ride_recording_provider.dart';
 import '../events/event_recording_controller.dart';
+import '../live_events/trip_event_totals.dart';
 
 const Object _undefined = Object();
 
@@ -202,6 +204,8 @@ class TripController extends StateNotifier<TripState> {
       } catch (_) {}
     }
 
+    ref.read(liveMlInferenceServiceProvider).reset();
+    ref.read(roadEventWatcherProvider).beginTrip(tripId);
     repo.setActiveTripId(tripId);
     ref.read(rideRecordingProvider.notifier).startRecording();
     unawaited(RiderFeedbackService.onTripStarted());
@@ -329,6 +333,10 @@ class TripController extends StateNotifier<TripState> {
     await ref.read(eventRecordingControllerProvider.notifier).stopAndSaveEvent(reason: 'Ride ended');
 
     final tripId = state.activeTripId;
+    await ref.read(roadEventWatcherProvider).stop();
+    await ref.read(handsfreeSessionServiceProvider).stop();
+    await ref.read(roadEventWatcherProvider).flush();
+    await ref.read(handsfreeSessionServiceProvider).idle;
     _elapsedTimer?.cancel();
     _elapsedTimer = null;
     _positionSubscription?.cancel();
@@ -469,7 +477,8 @@ class TripController extends StateNotifier<TripState> {
               routeCoordinatesJson: drift.Value(_routePoints.isNotEmpty ? jsonEncode(_routePoints) : null),
             );
             await repo.updateTrip(updated);
-            savedTrip = updated;
+            await refreshTripEventTotals(db, tripId);
+            savedTrip = await repo.getTrip(tripId);
           }
         } catch (_) {}
       }

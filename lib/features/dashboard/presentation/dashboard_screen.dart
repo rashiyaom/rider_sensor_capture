@@ -13,14 +13,13 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/angular_units.dart';
 import '../../../providers/battery_providers.dart';
 import '../../../providers/ble_providers.dart';
-import '../../../data/local_db/database.dart';
 import '../../../providers/dashboard_providers.dart';
 import '../../../providers/db_providers.dart';
 import '../../../providers/sample_rate_provider.dart';
 import '../../../providers/session_health_providers.dart';
 import '../../trips/trip_controller.dart';
 import '../../trips/presentation/trips_history_screen.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../../live_events/trip_event_review.dart';
 import '../../../data/services/live_ml_inference_service.dart';
 import '../../../providers/ml_inference_providers.dart';
 import 'speedometer_widget.dart';
@@ -764,7 +763,8 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
                                 final completed = await ref.read(tripControllerProvider.notifier).endJourney();
                                 if (context.mounted) {
                                   if (completed != null) {
-                                    _showJourneyCompletedDialog(context, completed);
+                                    Navigator.of(context).push(MaterialPageRoute(
+                                      builder: (_) => TripEventReviewScreen(trip: completed)));
                                   } else {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
@@ -1155,220 +1155,6 @@ class _HeroActionSectionState extends ConsumerState<_HeroActionSection> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showJourneyCompletedDialog(BuildContext context, Trip trip) {
-    final durationMins = (trip.durationSeconds / 60.0).toStringAsFixed(1);
-    final distanceKm = (trip.distanceMeters / 1000.0).toStringAsFixed(2);
-    final tripStartTime = trip.startTimeUtc;
-
-    // Fetch events for this trip from provider
-    final tripEvents = ref
-        .read(allEventRecordsStreamProvider)
-        .value
-        ?.where((e) => e.tripId == trip.id && e.status == 'completed')
-        .toList()
-        ?? [];
-
-    // Sort by start time
-    tripEvents.sort((a, b) => a.startTimestamp.compareTo(b.startTimestamp));
-
-    // Helper to compute offset from trip start in seconds
-    int offsetSec(DateTime t) =>
-        t.difference(tripStartTime).inSeconds.clamp(0, trip.durationSeconds);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: Row(
-          children: [
-            const Icon(Icons.check_circle_rounded, color: AppColors.accentGreen, size: 24),
-            const SizedBox(width: 8),
-            const Text('Journey Saved!', style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Rider: ${trip.riderName}  •  Journey #${trip.id}',
-                style: const TextStyle(color: AppColors.accentCyan, fontWeight: FontWeight.w700, fontSize: 13),
-              ),
-              const SizedBox(height: 12),
-              _buildDialogRow('Duration', '$durationMins min'),
-              _buildDialogRow('Distance', '$distanceKm km'),
-              _buildDialogRow('Avg Speed', trip.avgSpeedKmh != null ? '${trip.avgSpeedKmh!.toStringAsFixed(1)} km/h' : '--'),
-              _buildDialogRow('Peak Speed', trip.peakSpeedKmh != null ? '${trip.peakSpeedKmh!.toStringAsFixed(1)} km/h' : '--'),
-              _buildDialogRow('Sensor Rows', '${trip.totalSensorRows} rows recorded'),
-              _buildDialogRow('Labeled Events', '${trip.totalEventsCount} events'),
-
-              // ── Per-Event Breakdown Table ──
-              if (tripEvents.isNotEmpty) ...[
-                const SizedBox(height: 14),
-                const Divider(color: AppColors.cardBorder),
-                const SizedBox(height: 8),
-                const Text(
-                  'Event Timeline (CSV seconds offset)',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Use Start/End cols to locate rows in CSV',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 10),
-                ),
-                const SizedBox(height: 8),
-                // Column headers
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: AppColors.cardElevated,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Row(
-                    children: [
-                      SizedBox(width: 18),
-                      Expanded(flex: 3, child: Text('Type', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w700))),
-                      Expanded(flex: 2, child: Text('Start\n(s)', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w700))),
-                      Expanded(flex: 2, child: Text('End\n(s)', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w700))),
-                      Expanded(flex: 2, child: Text('Dur\n(s)', style: TextStyle(color: AppColors.textSecondary, fontSize: 10, fontWeight: FontWeight.w700))),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                ...tripEvents.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final evt = entry.value;
-                  final startSec = offsetSec(evt.startTimestamp);
-                  final endSec = evt.endTimestamp != null
-                      ? offsetSec(evt.endTimestamp!)
-                      : startSec;
-                  final durSec = endSec - startSec;
-
-                  final Color dotColor = evt.eventType == 'bump'
-                      ? AppColors.accentRed
-                      : (evt.eventType == 'turn'
-                          ? AppColors.accentCyan
-                          : AppColors.accentAmber);
-
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: dotColor.withValues(alpha: 0.06),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: dotColor.withValues(alpha: 0.15)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 10,
-                          height: 10,
-                          margin: const EdgeInsets.only(right: 8),
-                          decoration: BoxDecoration(
-                            color: dotColor,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            '#${idx + 1} ${evt.eventType.toUpperCase()}',
-                            style: TextStyle(
-                              color: dotColor,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            '${startSec}s',
-                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 10, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            '${endSec}s',
-                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 10, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            '${durSec}s',
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 10),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-
-              const SizedBox(height: 12),
-              if (trip.startLat != null && trip.startLng != null)
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF3C3C44)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    minimumSize: const Size(double.infinity, 38),
-                  ),
-                  icon: const Icon(Icons.map_rounded, size: 16, color: AppColors.accentCyan),
-                  label: const Text('Open Location on Google Maps', style: TextStyle(color: AppColors.textPrimary, fontSize: 12)),
-                  onPressed: () {
-                    final uri = Uri.parse('https://maps.google.com/?q=${trip.startLat},${trip.startLng}');
-                    launchUrl(uri, mode: LaunchMode.externalApplication);
-                  },
-                ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const TripsHistoryScreen()),
-              );
-            },
-            child: const Text('View in Log Book', style: TextStyle(color: AppColors.accentCyan, fontWeight: FontWeight.bold)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryWhite,
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Done', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static Widget _buildDialogRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-          Text(value, style: const TextStyle(color: AppColors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
-        ],
       ),
     );
   }

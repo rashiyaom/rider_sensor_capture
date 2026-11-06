@@ -11083,6 +11083,840 @@ class CameraCapturesCompanion extends UpdateCompanion<CameraCapture> {
   }
 }
 
+class $LiveEventReviewsTable extends LiveEventReviews
+    with TableInfo<$LiveEventReviewsTable, LiveEventReview> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LiveEventReviewsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _tripIdMeta = const VerificationMeta('tripId');
+  @override
+  late final GeneratedColumn<int> tripId = GeneratedColumn<int>(
+    'trip_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _eventIdMeta = const VerificationMeta(
+    'eventId',
+  );
+  @override
+  late final GeneratedColumn<int> eventId = GeneratedColumn<int>(
+    'event_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eventTypeMeta = const VerificationMeta(
+    'eventType',
+  );
+  @override
+  late final GeneratedColumn<String> eventType = GeneratedColumn<String>(
+    'event_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _detectedAtUtcMeta = const VerificationMeta(
+    'detectedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> detectedAtUtc =
+      GeneratedColumn<DateTime>(
+        'detected_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sensorFeaturesJsonMeta =
+      const VerificationMeta('sensorFeaturesJson');
+  @override
+  late final GeneratedColumn<String> sensorFeaturesJson =
+      GeneratedColumn<String>(
+        'sensor_features_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _confirmationReplyMeta = const VerificationMeta(
+    'confirmationReply',
+  );
+  @override
+  late final GeneratedColumn<String> confirmationReply =
+      GeneratedColumn<String>(
+        'confirmation_reply',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _confirmedMeta = const VerificationMeta(
+    'confirmed',
+  );
+  @override
+  late final GeneratedColumn<bool> confirmed = GeneratedColumn<bool>(
+    'confirmed',
+    aliasedName,
+    true,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("confirmed" IN (0, 1))',
+    ),
+  );
+  static const VerificationMeta _feedbackMeta = const VerificationMeta(
+    'feedback',
+  );
+  @override
+  late final GeneratedColumn<String> feedback = GeneratedColumn<String>(
+    'feedback',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _reviewStatusMeta = const VerificationMeta(
+    'reviewStatus',
+  );
+  @override
+  late final GeneratedColumn<String> reviewStatus = GeneratedColumn<String>(
+    'review_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _roadEventIdMeta = const VerificationMeta(
+    'roadEventId',
+  );
+  @override
+  late final GeneratedColumn<int> roadEventId = GeneratedColumn<int>(
+    'road_event_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    tripId,
+    eventId,
+    eventType,
+    detectedAtUtc,
+    latitude,
+    longitude,
+    confidence,
+    sensorFeaturesJson,
+    confirmationReply,
+    confirmed,
+    feedback,
+    reviewStatus,
+    roadEventId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'live_event_reviews';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LiveEventReview> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('trip_id')) {
+      context.handle(
+        _tripIdMeta,
+        tripId.isAcceptableOrUnknown(data['trip_id']!, _tripIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_tripIdMeta);
+    }
+    if (data.containsKey('event_id')) {
+      context.handle(
+        _eventIdMeta,
+        eventId.isAcceptableOrUnknown(data['event_id']!, _eventIdMeta),
+      );
+    }
+    if (data.containsKey('event_type')) {
+      context.handle(
+        _eventTypeMeta,
+        eventType.isAcceptableOrUnknown(data['event_type']!, _eventTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_eventTypeMeta);
+    }
+    if (data.containsKey('detected_at_utc')) {
+      context.handle(
+        _detectedAtUtcMeta,
+        detectedAtUtc.isAcceptableOrUnknown(
+          data['detected_at_utc']!,
+          _detectedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_detectedAtUtcMeta);
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_confidenceMeta);
+    }
+    if (data.containsKey('sensor_features_json')) {
+      context.handle(
+        _sensorFeaturesJsonMeta,
+        sensorFeaturesJson.isAcceptableOrUnknown(
+          data['sensor_features_json']!,
+          _sensorFeaturesJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sensorFeaturesJsonMeta);
+    }
+    if (data.containsKey('confirmation_reply')) {
+      context.handle(
+        _confirmationReplyMeta,
+        confirmationReply.isAcceptableOrUnknown(
+          data['confirmation_reply']!,
+          _confirmationReplyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('confirmed')) {
+      context.handle(
+        _confirmedMeta,
+        confirmed.isAcceptableOrUnknown(data['confirmed']!, _confirmedMeta),
+      );
+    }
+    if (data.containsKey('feedback')) {
+      context.handle(
+        _feedbackMeta,
+        feedback.isAcceptableOrUnknown(data['feedback']!, _feedbackMeta),
+      );
+    }
+    if (data.containsKey('review_status')) {
+      context.handle(
+        _reviewStatusMeta,
+        reviewStatus.isAcceptableOrUnknown(
+          data['review_status']!,
+          _reviewStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('road_event_id')) {
+      context.handle(
+        _roadEventIdMeta,
+        roadEventId.isAcceptableOrUnknown(
+          data['road_event_id']!,
+          _roadEventIdMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LiveEventReview map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LiveEventReview(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      tripId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}trip_id'],
+      )!,
+      eventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}event_id'],
+      ),
+      eventType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_type'],
+      )!,
+      detectedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}detected_at_utc'],
+      )!,
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      ),
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      ),
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}confidence'],
+      )!,
+      sensorFeaturesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sensor_features_json'],
+      )!,
+      confirmationReply: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}confirmation_reply'],
+      ),
+      confirmed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}confirmed'],
+      ),
+      feedback: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}feedback'],
+      ),
+      reviewStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}review_status'],
+      )!,
+      roadEventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}road_event_id'],
+      ),
+    );
+  }
+
+  @override
+  $LiveEventReviewsTable createAlias(String alias) {
+    return $LiveEventReviewsTable(attachedDatabase, alias);
+  }
+}
+
+class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
+  final int id;
+  final int tripId;
+  final int? eventId;
+  final String eventType;
+  final DateTime detectedAtUtc;
+  final double? latitude;
+  final double? longitude;
+  final double confidence;
+  final String sensorFeaturesJson;
+  final String? confirmationReply;
+  final bool? confirmed;
+  final String? feedback;
+
+  /// pending | saved | discarded
+  final String reviewStatus;
+  final int? roadEventId;
+  const LiveEventReview({
+    required this.id,
+    required this.tripId,
+    this.eventId,
+    required this.eventType,
+    required this.detectedAtUtc,
+    this.latitude,
+    this.longitude,
+    required this.confidence,
+    required this.sensorFeaturesJson,
+    this.confirmationReply,
+    this.confirmed,
+    this.feedback,
+    required this.reviewStatus,
+    this.roadEventId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['trip_id'] = Variable<int>(tripId);
+    if (!nullToAbsent || eventId != null) {
+      map['event_id'] = Variable<int>(eventId);
+    }
+    map['event_type'] = Variable<String>(eventType);
+    map['detected_at_utc'] = Variable<DateTime>(detectedAtUtc);
+    if (!nullToAbsent || latitude != null) {
+      map['latitude'] = Variable<double>(latitude);
+    }
+    if (!nullToAbsent || longitude != null) {
+      map['longitude'] = Variable<double>(longitude);
+    }
+    map['confidence'] = Variable<double>(confidence);
+    map['sensor_features_json'] = Variable<String>(sensorFeaturesJson);
+    if (!nullToAbsent || confirmationReply != null) {
+      map['confirmation_reply'] = Variable<String>(confirmationReply);
+    }
+    if (!nullToAbsent || confirmed != null) {
+      map['confirmed'] = Variable<bool>(confirmed);
+    }
+    if (!nullToAbsent || feedback != null) {
+      map['feedback'] = Variable<String>(feedback);
+    }
+    map['review_status'] = Variable<String>(reviewStatus);
+    if (!nullToAbsent || roadEventId != null) {
+      map['road_event_id'] = Variable<int>(roadEventId);
+    }
+    return map;
+  }
+
+  LiveEventReviewsCompanion toCompanion(bool nullToAbsent) {
+    return LiveEventReviewsCompanion(
+      id: Value(id),
+      tripId: Value(tripId),
+      eventId: eventId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(eventId),
+      eventType: Value(eventType),
+      detectedAtUtc: Value(detectedAtUtc),
+      latitude: latitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(latitude),
+      longitude: longitude == null && nullToAbsent
+          ? const Value.absent()
+          : Value(longitude),
+      confidence: Value(confidence),
+      sensorFeaturesJson: Value(sensorFeaturesJson),
+      confirmationReply: confirmationReply == null && nullToAbsent
+          ? const Value.absent()
+          : Value(confirmationReply),
+      confirmed: confirmed == null && nullToAbsent
+          ? const Value.absent()
+          : Value(confirmed),
+      feedback: feedback == null && nullToAbsent
+          ? const Value.absent()
+          : Value(feedback),
+      reviewStatus: Value(reviewStatus),
+      roadEventId: roadEventId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(roadEventId),
+    );
+  }
+
+  factory LiveEventReview.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LiveEventReview(
+      id: serializer.fromJson<int>(json['id']),
+      tripId: serializer.fromJson<int>(json['tripId']),
+      eventId: serializer.fromJson<int?>(json['eventId']),
+      eventType: serializer.fromJson<String>(json['eventType']),
+      detectedAtUtc: serializer.fromJson<DateTime>(json['detectedAtUtc']),
+      latitude: serializer.fromJson<double?>(json['latitude']),
+      longitude: serializer.fromJson<double?>(json['longitude']),
+      confidence: serializer.fromJson<double>(json['confidence']),
+      sensorFeaturesJson: serializer.fromJson<String>(
+        json['sensorFeaturesJson'],
+      ),
+      confirmationReply: serializer.fromJson<String?>(
+        json['confirmationReply'],
+      ),
+      confirmed: serializer.fromJson<bool?>(json['confirmed']),
+      feedback: serializer.fromJson<String?>(json['feedback']),
+      reviewStatus: serializer.fromJson<String>(json['reviewStatus']),
+      roadEventId: serializer.fromJson<int?>(json['roadEventId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'tripId': serializer.toJson<int>(tripId),
+      'eventId': serializer.toJson<int?>(eventId),
+      'eventType': serializer.toJson<String>(eventType),
+      'detectedAtUtc': serializer.toJson<DateTime>(detectedAtUtc),
+      'latitude': serializer.toJson<double?>(latitude),
+      'longitude': serializer.toJson<double?>(longitude),
+      'confidence': serializer.toJson<double>(confidence),
+      'sensorFeaturesJson': serializer.toJson<String>(sensorFeaturesJson),
+      'confirmationReply': serializer.toJson<String?>(confirmationReply),
+      'confirmed': serializer.toJson<bool?>(confirmed),
+      'feedback': serializer.toJson<String?>(feedback),
+      'reviewStatus': serializer.toJson<String>(reviewStatus),
+      'roadEventId': serializer.toJson<int?>(roadEventId),
+    };
+  }
+
+  LiveEventReview copyWith({
+    int? id,
+    int? tripId,
+    Value<int?> eventId = const Value.absent(),
+    String? eventType,
+    DateTime? detectedAtUtc,
+    Value<double?> latitude = const Value.absent(),
+    Value<double?> longitude = const Value.absent(),
+    double? confidence,
+    String? sensorFeaturesJson,
+    Value<String?> confirmationReply = const Value.absent(),
+    Value<bool?> confirmed = const Value.absent(),
+    Value<String?> feedback = const Value.absent(),
+    String? reviewStatus,
+    Value<int?> roadEventId = const Value.absent(),
+  }) => LiveEventReview(
+    id: id ?? this.id,
+    tripId: tripId ?? this.tripId,
+    eventId: eventId.present ? eventId.value : this.eventId,
+    eventType: eventType ?? this.eventType,
+    detectedAtUtc: detectedAtUtc ?? this.detectedAtUtc,
+    latitude: latitude.present ? latitude.value : this.latitude,
+    longitude: longitude.present ? longitude.value : this.longitude,
+    confidence: confidence ?? this.confidence,
+    sensorFeaturesJson: sensorFeaturesJson ?? this.sensorFeaturesJson,
+    confirmationReply: confirmationReply.present
+        ? confirmationReply.value
+        : this.confirmationReply,
+    confirmed: confirmed.present ? confirmed.value : this.confirmed,
+    feedback: feedback.present ? feedback.value : this.feedback,
+    reviewStatus: reviewStatus ?? this.reviewStatus,
+    roadEventId: roadEventId.present ? roadEventId.value : this.roadEventId,
+  );
+  LiveEventReview copyWithCompanion(LiveEventReviewsCompanion data) {
+    return LiveEventReview(
+      id: data.id.present ? data.id.value : this.id,
+      tripId: data.tripId.present ? data.tripId.value : this.tripId,
+      eventId: data.eventId.present ? data.eventId.value : this.eventId,
+      eventType: data.eventType.present ? data.eventType.value : this.eventType,
+      detectedAtUtc: data.detectedAtUtc.present
+          ? data.detectedAtUtc.value
+          : this.detectedAtUtc,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+      sensorFeaturesJson: data.sensorFeaturesJson.present
+          ? data.sensorFeaturesJson.value
+          : this.sensorFeaturesJson,
+      confirmationReply: data.confirmationReply.present
+          ? data.confirmationReply.value
+          : this.confirmationReply,
+      confirmed: data.confirmed.present ? data.confirmed.value : this.confirmed,
+      feedback: data.feedback.present ? data.feedback.value : this.feedback,
+      reviewStatus: data.reviewStatus.present
+          ? data.reviewStatus.value
+          : this.reviewStatus,
+      roadEventId: data.roadEventId.present
+          ? data.roadEventId.value
+          : this.roadEventId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LiveEventReview(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('eventId: $eventId, ')
+          ..write('eventType: $eventType, ')
+          ..write('detectedAtUtc: $detectedAtUtc, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('confidence: $confidence, ')
+          ..write('sensorFeaturesJson: $sensorFeaturesJson, ')
+          ..write('confirmationReply: $confirmationReply, ')
+          ..write('confirmed: $confirmed, ')
+          ..write('feedback: $feedback, ')
+          ..write('reviewStatus: $reviewStatus, ')
+          ..write('roadEventId: $roadEventId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    tripId,
+    eventId,
+    eventType,
+    detectedAtUtc,
+    latitude,
+    longitude,
+    confidence,
+    sensorFeaturesJson,
+    confirmationReply,
+    confirmed,
+    feedback,
+    reviewStatus,
+    roadEventId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LiveEventReview &&
+          other.id == this.id &&
+          other.tripId == this.tripId &&
+          other.eventId == this.eventId &&
+          other.eventType == this.eventType &&
+          other.detectedAtUtc == this.detectedAtUtc &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.confidence == this.confidence &&
+          other.sensorFeaturesJson == this.sensorFeaturesJson &&
+          other.confirmationReply == this.confirmationReply &&
+          other.confirmed == this.confirmed &&
+          other.feedback == this.feedback &&
+          other.reviewStatus == this.reviewStatus &&
+          other.roadEventId == this.roadEventId);
+}
+
+class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
+  final Value<int> id;
+  final Value<int> tripId;
+  final Value<int?> eventId;
+  final Value<String> eventType;
+  final Value<DateTime> detectedAtUtc;
+  final Value<double?> latitude;
+  final Value<double?> longitude;
+  final Value<double> confidence;
+  final Value<String> sensorFeaturesJson;
+  final Value<String?> confirmationReply;
+  final Value<bool?> confirmed;
+  final Value<String?> feedback;
+  final Value<String> reviewStatus;
+  final Value<int?> roadEventId;
+  const LiveEventReviewsCompanion({
+    this.id = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.eventId = const Value.absent(),
+    this.eventType = const Value.absent(),
+    this.detectedAtUtc = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.sensorFeaturesJson = const Value.absent(),
+    this.confirmationReply = const Value.absent(),
+    this.confirmed = const Value.absent(),
+    this.feedback = const Value.absent(),
+    this.reviewStatus = const Value.absent(),
+    this.roadEventId = const Value.absent(),
+  });
+  LiveEventReviewsCompanion.insert({
+    this.id = const Value.absent(),
+    required int tripId,
+    this.eventId = const Value.absent(),
+    required String eventType,
+    required DateTime detectedAtUtc,
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    required double confidence,
+    required String sensorFeaturesJson,
+    this.confirmationReply = const Value.absent(),
+    this.confirmed = const Value.absent(),
+    this.feedback = const Value.absent(),
+    this.reviewStatus = const Value.absent(),
+    this.roadEventId = const Value.absent(),
+  }) : tripId = Value(tripId),
+       eventType = Value(eventType),
+       detectedAtUtc = Value(detectedAtUtc),
+       confidence = Value(confidence),
+       sensorFeaturesJson = Value(sensorFeaturesJson);
+  static Insertable<LiveEventReview> custom({
+    Expression<int>? id,
+    Expression<int>? tripId,
+    Expression<int>? eventId,
+    Expression<String>? eventType,
+    Expression<DateTime>? detectedAtUtc,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<double>? confidence,
+    Expression<String>? sensorFeaturesJson,
+    Expression<String>? confirmationReply,
+    Expression<bool>? confirmed,
+    Expression<String>? feedback,
+    Expression<String>? reviewStatus,
+    Expression<int>? roadEventId,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (tripId != null) 'trip_id': tripId,
+      if (eventId != null) 'event_id': eventId,
+      if (eventType != null) 'event_type': eventType,
+      if (detectedAtUtc != null) 'detected_at_utc': detectedAtUtc,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (confidence != null) 'confidence': confidence,
+      if (sensorFeaturesJson != null)
+        'sensor_features_json': sensorFeaturesJson,
+      if (confirmationReply != null) 'confirmation_reply': confirmationReply,
+      if (confirmed != null) 'confirmed': confirmed,
+      if (feedback != null) 'feedback': feedback,
+      if (reviewStatus != null) 'review_status': reviewStatus,
+      if (roadEventId != null) 'road_event_id': roadEventId,
+    });
+  }
+
+  LiveEventReviewsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? tripId,
+    Value<int?>? eventId,
+    Value<String>? eventType,
+    Value<DateTime>? detectedAtUtc,
+    Value<double?>? latitude,
+    Value<double?>? longitude,
+    Value<double>? confidence,
+    Value<String>? sensorFeaturesJson,
+    Value<String?>? confirmationReply,
+    Value<bool?>? confirmed,
+    Value<String?>? feedback,
+    Value<String>? reviewStatus,
+    Value<int?>? roadEventId,
+  }) {
+    return LiveEventReviewsCompanion(
+      id: id ?? this.id,
+      tripId: tripId ?? this.tripId,
+      eventId: eventId ?? this.eventId,
+      eventType: eventType ?? this.eventType,
+      detectedAtUtc: detectedAtUtc ?? this.detectedAtUtc,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      confidence: confidence ?? this.confidence,
+      sensorFeaturesJson: sensorFeaturesJson ?? this.sensorFeaturesJson,
+      confirmationReply: confirmationReply ?? this.confirmationReply,
+      confirmed: confirmed ?? this.confirmed,
+      feedback: feedback ?? this.feedback,
+      reviewStatus: reviewStatus ?? this.reviewStatus,
+      roadEventId: roadEventId ?? this.roadEventId,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (tripId.present) {
+      map['trip_id'] = Variable<int>(tripId.value);
+    }
+    if (eventId.present) {
+      map['event_id'] = Variable<int>(eventId.value);
+    }
+    if (eventType.present) {
+      map['event_type'] = Variable<String>(eventType.value);
+    }
+    if (detectedAtUtc.present) {
+      map['detected_at_utc'] = Variable<DateTime>(detectedAtUtc.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
+    }
+    if (sensorFeaturesJson.present) {
+      map['sensor_features_json'] = Variable<String>(sensorFeaturesJson.value);
+    }
+    if (confirmationReply.present) {
+      map['confirmation_reply'] = Variable<String>(confirmationReply.value);
+    }
+    if (confirmed.present) {
+      map['confirmed'] = Variable<bool>(confirmed.value);
+    }
+    if (feedback.present) {
+      map['feedback'] = Variable<String>(feedback.value);
+    }
+    if (reviewStatus.present) {
+      map['review_status'] = Variable<String>(reviewStatus.value);
+    }
+    if (roadEventId.present) {
+      map['road_event_id'] = Variable<int>(roadEventId.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LiveEventReviewsCompanion(')
+          ..write('id: $id, ')
+          ..write('tripId: $tripId, ')
+          ..write('eventId: $eventId, ')
+          ..write('eventType: $eventType, ')
+          ..write('detectedAtUtc: $detectedAtUtc, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('confidence: $confidence, ')
+          ..write('sensorFeaturesJson: $sensorFeaturesJson, ')
+          ..write('confirmationReply: $confirmationReply, ')
+          ..write('confirmed: $confirmed, ')
+          ..write('feedback: $feedback, ')
+          ..write('reviewStatus: $reviewStatus, ')
+          ..write('roadEventId: $roadEventId')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -11103,6 +11937,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $EventFeedbacksTable eventFeedbacks = $EventFeedbacksTable(this);
   late final $UnknownEventsTable unknownEvents = $UnknownEventsTable(this);
   late final $CameraCapturesTable cameraCaptures = $CameraCapturesTable(this);
+  late final $LiveEventReviewsTable liveEventReviews = $LiveEventReviewsTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -11119,6 +11956,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     eventFeedbacks,
     unknownEvents,
     cameraCaptures,
+    liveEventReviews,
   ];
 }
 
@@ -15992,6 +16830,389 @@ typedef $$CameraCapturesTableProcessedTableManager =
       CameraCapture,
       PrefetchHooks Function()
     >;
+typedef $$LiveEventReviewsTableCreateCompanionBuilder =
+    LiveEventReviewsCompanion Function({
+      Value<int> id,
+      required int tripId,
+      Value<int?> eventId,
+      required String eventType,
+      required DateTime detectedAtUtc,
+      Value<double?> latitude,
+      Value<double?> longitude,
+      required double confidence,
+      required String sensorFeaturesJson,
+      Value<String?> confirmationReply,
+      Value<bool?> confirmed,
+      Value<String?> feedback,
+      Value<String> reviewStatus,
+      Value<int?> roadEventId,
+    });
+typedef $$LiveEventReviewsTableUpdateCompanionBuilder =
+    LiveEventReviewsCompanion Function({
+      Value<int> id,
+      Value<int> tripId,
+      Value<int?> eventId,
+      Value<String> eventType,
+      Value<DateTime> detectedAtUtc,
+      Value<double?> latitude,
+      Value<double?> longitude,
+      Value<double> confidence,
+      Value<String> sensorFeaturesJson,
+      Value<String?> confirmationReply,
+      Value<bool?> confirmed,
+      Value<String?> feedback,
+      Value<String> reviewStatus,
+      Value<int?> roadEventId,
+    });
+
+class $$LiveEventReviewsTableFilterComposer
+    extends Composer<_$AppDatabase, $LiveEventReviewsTable> {
+  $$LiveEventReviewsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get detectedAtUtc => $composableBuilder(
+    column: $table.detectedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sensorFeaturesJson => $composableBuilder(
+    column: $table.sensorFeaturesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get confirmationReply => $composableBuilder(
+    column: $table.confirmationReply,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get confirmed => $composableBuilder(
+    column: $table.confirmed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get feedback => $composableBuilder(
+    column: $table.feedback,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reviewStatus => $composableBuilder(
+    column: $table.reviewStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get roadEventId => $composableBuilder(
+    column: $table.roadEventId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LiveEventReviewsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LiveEventReviewsTable> {
+  $$LiveEventReviewsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get eventId => $composableBuilder(
+    column: $table.eventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get detectedAtUtc => $composableBuilder(
+    column: $table.detectedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sensorFeaturesJson => $composableBuilder(
+    column: $table.sensorFeaturesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get confirmationReply => $composableBuilder(
+    column: $table.confirmationReply,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get confirmed => $composableBuilder(
+    column: $table.confirmed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get feedback => $composableBuilder(
+    column: $table.feedback,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reviewStatus => $composableBuilder(
+    column: $table.reviewStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get roadEventId => $composableBuilder(
+    column: $table.roadEventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LiveEventReviewsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LiveEventReviewsTable> {
+  $$LiveEventReviewsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get tripId =>
+      $composableBuilder(column: $table.tripId, builder: (column) => column);
+
+  GeneratedColumn<int> get eventId =>
+      $composableBuilder(column: $table.eventId, builder: (column) => column);
+
+  GeneratedColumn<String> get eventType =>
+      $composableBuilder(column: $table.eventType, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get detectedAtUtc => $composableBuilder(
+    column: $table.detectedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get sensorFeaturesJson => $composableBuilder(
+    column: $table.sensorFeaturesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get confirmationReply => $composableBuilder(
+    column: $table.confirmationReply,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get confirmed =>
+      $composableBuilder(column: $table.confirmed, builder: (column) => column);
+
+  GeneratedColumn<String> get feedback =>
+      $composableBuilder(column: $table.feedback, builder: (column) => column);
+
+  GeneratedColumn<String> get reviewStatus => $composableBuilder(
+    column: $table.reviewStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get roadEventId => $composableBuilder(
+    column: $table.roadEventId,
+    builder: (column) => column,
+  );
+}
+
+class $$LiveEventReviewsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LiveEventReviewsTable,
+          LiveEventReview,
+          $$LiveEventReviewsTableFilterComposer,
+          $$LiveEventReviewsTableOrderingComposer,
+          $$LiveEventReviewsTableAnnotationComposer,
+          $$LiveEventReviewsTableCreateCompanionBuilder,
+          $$LiveEventReviewsTableUpdateCompanionBuilder,
+          (
+            LiveEventReview,
+            BaseReferences<
+              _$AppDatabase,
+              $LiveEventReviewsTable,
+              LiveEventReview
+            >,
+          ),
+          LiveEventReview,
+          PrefetchHooks Function()
+        > {
+  $$LiveEventReviewsTableTableManager(
+    _$AppDatabase db,
+    $LiveEventReviewsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LiveEventReviewsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LiveEventReviewsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LiveEventReviewsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> tripId = const Value.absent(),
+                Value<int?> eventId = const Value.absent(),
+                Value<String> eventType = const Value.absent(),
+                Value<DateTime> detectedAtUtc = const Value.absent(),
+                Value<double?> latitude = const Value.absent(),
+                Value<double?> longitude = const Value.absent(),
+                Value<double> confidence = const Value.absent(),
+                Value<String> sensorFeaturesJson = const Value.absent(),
+                Value<String?> confirmationReply = const Value.absent(),
+                Value<bool?> confirmed = const Value.absent(),
+                Value<String?> feedback = const Value.absent(),
+                Value<String> reviewStatus = const Value.absent(),
+                Value<int?> roadEventId = const Value.absent(),
+              }) => LiveEventReviewsCompanion(
+                id: id,
+                tripId: tripId,
+                eventId: eventId,
+                eventType: eventType,
+                detectedAtUtc: detectedAtUtc,
+                latitude: latitude,
+                longitude: longitude,
+                confidence: confidence,
+                sensorFeaturesJson: sensorFeaturesJson,
+                confirmationReply: confirmationReply,
+                confirmed: confirmed,
+                feedback: feedback,
+                reviewStatus: reviewStatus,
+                roadEventId: roadEventId,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int tripId,
+                Value<int?> eventId = const Value.absent(),
+                required String eventType,
+                required DateTime detectedAtUtc,
+                Value<double?> latitude = const Value.absent(),
+                Value<double?> longitude = const Value.absent(),
+                required double confidence,
+                required String sensorFeaturesJson,
+                Value<String?> confirmationReply = const Value.absent(),
+                Value<bool?> confirmed = const Value.absent(),
+                Value<String?> feedback = const Value.absent(),
+                Value<String> reviewStatus = const Value.absent(),
+                Value<int?> roadEventId = const Value.absent(),
+              }) => LiveEventReviewsCompanion.insert(
+                id: id,
+                tripId: tripId,
+                eventId: eventId,
+                eventType: eventType,
+                detectedAtUtc: detectedAtUtc,
+                latitude: latitude,
+                longitude: longitude,
+                confidence: confidence,
+                sensorFeaturesJson: sensorFeaturesJson,
+                confirmationReply: confirmationReply,
+                confirmed: confirmed,
+                feedback: feedback,
+                reviewStatus: reviewStatus,
+                roadEventId: roadEventId,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LiveEventReviewsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LiveEventReviewsTable,
+      LiveEventReview,
+      $$LiveEventReviewsTableFilterComposer,
+      $$LiveEventReviewsTableOrderingComposer,
+      $$LiveEventReviewsTableAnnotationComposer,
+      $$LiveEventReviewsTableCreateCompanionBuilder,
+      $$LiveEventReviewsTableUpdateCompanionBuilder,
+      (
+        LiveEventReview,
+        BaseReferences<_$AppDatabase, $LiveEventReviewsTable, LiveEventReview>,
+      ),
+      LiveEventReview,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -16018,4 +17239,6 @@ class $AppDatabaseManager {
       $$UnknownEventsTableTableManager(_db, _db.unknownEvents);
   $$CameraCapturesTableTableManager get cameraCaptures =>
       $$CameraCapturesTableTableManager(_db, _db.cameraCaptures);
+  $$LiveEventReviewsTableTableManager get liveEventReviews =>
+      $$LiveEventReviewsTableTableManager(_db, _db.liveEventReviews);
 }

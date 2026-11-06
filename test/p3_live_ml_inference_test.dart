@@ -188,6 +188,42 @@ void main() {
       expect(service.latestPrediction.eventType, equals(MlPredictedEventType.normalRiding));
       expect(service.latestPrediction.isAnomaly, isFalse);
     });
+    test('rotated wrist impact is detected without assuming gravity is on Z', () {
+      final now = DateTime.now().toUtc();
+      for (var i = 0; i < 25; i++) {
+        service.ingestReading(RawSensorData(deviceId: 'left', deviceName: 'left',
+          deviceType: DeviceType.watch, mountLocation: 'left_hand',
+          timestamp: now.add(Duration(milliseconds: i * 20)),
+          accelX: i == 15 ? 24 : 9.81, accelY: 0, accelZ: 0, rawBytes: const []), forceInference: true);
+      }
+      expect(service.latestPrediction.eventType, MlPredictedEventType.severeBump);
+    });
+    test('separate stationary watches and HR-only packets do not fabricate impacts', () {
+      final now = DateTime.now().toUtc();
+      for (var i = 0; i < 25; i++) {
+        for (final id in ['left', 'right']) {
+          service.ingestReading(RawSensorData(deviceId: id, deviceName: id,
+            deviceType: DeviceType.watch, mountLocation: '${id}_hand',
+            timestamp: now.add(Duration(milliseconds: i * 20)),
+            accelX: id == 'left' ? 9.81 : 0, accelY: 0,
+            accelZ: id == 'right' ? -9.81 : 0, rawBytes: const []), forceInference: true);
+        }
+        service.ingestReading(RawSensorData(deviceId: 'hr', deviceName: 'hr',
+          deviceType: DeviceType.verityBand, timestamp: now.add(Duration(milliseconds: i * 20)),
+          heartRate: 100, rawBytes: const []));
+      }
+      expect(service.latestPrediction.eventType, MlPredictedEventType.normalRiding);
+    });
+    test('slow samples use actual dt rather than a fixed 20ms jerk', () {
+      final now = DateTime.now().toUtc();
+      for (var i = 0; i < 20; i++) {
+        service.ingestReading(RawSensorData(deviceId: 'watch', deviceName: 'watch',
+          deviceType: DeviceType.watch, timestamp: now.add(Duration(milliseconds: i * 100)),
+          accelX: 0, accelY: 0, accelZ: 9.81 + i * .2, rawBytes: const []), forceInference: true);
+      }
+      expect(service.latestPrediction.topFeatures['peak_jerk_mps3'], closeTo(2, .01));
+      expect(service.latestPrediction.eventType, MlPredictedEventType.normalRiding);
+    });
   });
 }
 

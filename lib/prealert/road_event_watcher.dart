@@ -1,116 +1,77 @@
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
-
 import '../data/services/live_ml_inference_service.dart';
+import '../features/live_events/live_event_repository.dart';
 import '../location/location_service.dart';
-import 'pre_alert_engine.dart';
 import 'pre_alert_service.dart';
 
-/// Watches the live on-device ML classifier and turns confirmed road events
-/// into geo-tagged entries in the road-event knowledge base.
-///
-/// This is what makes the predictive pre-alert system *proactive*: the very
-/// first time the rider hits a bump it is learned, and from then on the phone
-/// warns them before they reach it again.
+/// Records distinct live sensor events for confirmation and trip-end review.
 class RoadEventWatcher {
   final PreAlertService preAlertService;
   final LocationService? locationService;
-
-  StreamSubscription<LiveMlPrediction>? _predictionSubscription;
-
-  /// Minimum ML confidence required before a detection is trusted enough to
-  /// be written into the knowledge base.
   final double minConfidence;
-
-  /// Minimum seconds between two registrations of the same event class, so a
-  /// single rough stretch of road does not spam the knowledge base.
   final Duration dedupeWindow;
+  StreamSubscription<LiveMlPrediction>? _predictionSubscription;
+  String? _episode;
+  DateTime? _normalSince;
+  DateTime? _lastDetectedAt;
+  int? _tripId;
+  final Set<Future<void>> _pending = {};
 
-  final Map<String, DateTime> _lastRegisteredAt = <String, DateTime>{};
+  RoadEventWatcher({required this.preAlertService, this.locationService,
+    this.minConfidence = 0.70, this.dedupeWindow = const Duration(seconds: 3)});
 
-  RoadEventWatcher({
-    required this.preAlertService,
-    this.locationService,
-    this.minConfidence = 0.80,
-    this.dedupeWindow = const Duration(seconds: 30),
-  });
+  void beginTrip(int tripId) {
+    _tripId = tripId;
+    _episode = null;
+    _normalSince = null;
+    _lastDetectedAt = null;
+  }
 
-  /// Starts listening to the ML prediction stream.
   void start(Stream<LiveMlPrediction> predictions) {
     _predictionSubscription?.cancel();
     _predictionSubscription = predictions.listen(handlePrediction);
   }
 
-  /// Feeds a prediction into the watcher (also usable directly in tests).
   void handlePrediction(LiveMlPrediction prediction) {
-    if (!prediction.isAnomaly) return;
-    if (prediction.confidence < minConfidence) return;
-
-    final kind = _kindFor(prediction.eventType);
-    final fix = locationService?.currentFix;
-
-    if (kind == null) {
-      // Unmapped / unknown IMU anomaly -> ask rider via handsfree and record 5-second voice clip
-      final hf = preAlertService.handsfreeService;
-      if (hf != null && fix != null) {
-        final peakAccel = prediction.topFeatures['accel_z_rms'] ?? 1.5;
-        unawaited(
-          hf.reportUnknownImuEvent(
-            latitude: fix.latitude,
-            longitude: fix.longitude,
-            peakAccelMagnitude: peakAccel,
-            durationMs: 500,
-            tripId: preAlertService.activeTripId,
-          ),
-        );
+    final tripId = _tripId;
+    if (tripId == null) return;
+    if (!prediction.isAnomaly) {
+      _normalSince ??= prediction.timestampUtc;
+      if (prediction.timestampUtc.difference(_normalSince!) >= const Duration(milliseconds: 600)) {
+        _episode = null;
       }
       return;
     }
-
-    final now = DateTime.now().toUtc();
-    final last = _lastRegisteredAt[kind.name];
-    if (last != null && now.difference(last) < dedupeWindow) return;
-    _lastRegisteredAt[kind.name] = now;
-
-    if (fix == null) return;
-
-    unawaited(
-      preAlertService.registerDetectedRoadEvent(
-        kind: kind,
-        latitude: fix.latitude,
-        longitude: fix.longitude,
-        severity: prediction.confidence,
-        confidence: prediction.confidence,
-        source: 'ml',
-        speedKmhAtDetection: fix.speedKmh,
-        note: prediction.explanation,
-      ),
-    );
-  }
-
-  /// Maps an ML prediction class onto a road-event kind.
-  static RoadEventKind? _kindFor(MlPredictedEventType type) {
-    switch (type) {
-      case MlPredictedEventType.severeBump:
-        return RoadEventKind.pothole;
-      case MlPredictedEventType.mildBump:
-        return RoadEventKind.bump;
-      case MlPredictedEventType.sharpTurn:
-        return RoadEventKind.turn;
-      case MlPredictedEventType.hardBraking:
-        return RoadEventKind.braking;
-      case MlPredictedEventType.rapidAcceleration:
-      case MlPredictedEventType.normalRiding:
-        return null;
-    }
+    _normalSince = null;
+    if (!prediction.confidence.isFinite || prediction.confidence < minConfidence) return;
+    final type = LiveEventRepository.typeFor(prediction.eventType);
+    if (_episode == type) return;
+    if (_lastDetectedAt != null && prediction.timestampUtc.difference(_lastDetectedAt!) < dedupeWindow) return;
+    _episode = type;
+    _lastDetectedAt = prediction.timestampUtc;
+    final fix = locationService?.currentFix;
+    // Never stamp a new event with an old fix or a wildly inaccurate location.
+    final validFix = fix != null &&
+        prediction.timestampUtc.difference(fix.timestampUtc).inSeconds.abs() <= 10 &&
+        (fix.gpsAccuracyM == null || fix.gpsAccuracyM! <= 50) ? fix : null;
+    final hf = preAlertService.handsfreeService;
+    final operation = (hf != null
+        ? hf.reviewLiveDetection(tripId: tripId, prediction: prediction, fix: validFix)
+        : LiveEventRepository(preAlertService.db).capture(
+            tripId: tripId, prediction: prediction, fix: validFix).then<void>((_) {}))
+        .catchError((Object error) {
+          if (kDebugMode) debugPrint('Live event capture failed: $error');
+        });
+    _pending.add(operation);
+    unawaited(operation.whenComplete(() => _pending.remove(operation)));
   }
 
   Future<void> stop() async {
+    _tripId = null;
     await _predictionSubscription?.cancel();
     _predictionSubscription = null;
-    if (kDebugMode) {
-      // Intentionally silent in release builds.
-    }
   }
+
+  Future<void> flush() => Future.wait(_pending.toList());
 }

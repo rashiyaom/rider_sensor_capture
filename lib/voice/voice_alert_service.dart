@@ -19,7 +19,12 @@ class VoiceAlertService {
   /// Set to false to disable speech synthesis entirely (haptics only).
   final bool ttsEnabled;
 
-  bool _initialized = false;
+  Future<bool>? _initialization;
+  Future<void> _speechQueue = Future<void>.value();
+  Future<void> _stopFuture = Future<void>.value();
+  Completer<bool>? _activeSpeech;
+  int _generation = 0;
+  bool _disposed = false;
   bool _engineReady = false;
   bool _speaking = false;
 
@@ -37,10 +42,12 @@ class VoiceAlertService {
   bool get isSpeaking => _speaking;
 
   /// Lazily prepares the speech engine. Safe to call multiple times.
-  Future<bool> ensureInitialized() async {
-    if (_initialized) return _engineReady;
-    _initialized = true;
+  Future<bool> ensureInitialized() {
+    if (_disposed) return Future.value(false);
+    return _initialization ??= _initialize();
+  }
 
+  Future<bool> _initialize() async {
     if (!ttsEnabled) {
       _engineReady = false;
       return false;
@@ -48,12 +55,18 @@ class VoiceAlertService {
 
     try {
       final engine = _tts ??= FlutterTts();
-      await engine.awaitSpeakCompletion(false);
+      // Keep callers waiting until the last word has actually finished.
+      await engine.awaitSpeakCompletion(true);
+      engine.setErrorHandler((message) {
+        if (kDebugMode) debugPrint('VoiceAlertService: $message');
+        final active = _activeSpeech;
+        if (active != null && !active.isCompleted) active.complete(false);
+      });
       await engine.setLanguage('en-US');
       await engine.setSpeechRate(0.55);
       await engine.setPitch(1.0);
       await engine.setVolume(1.0);
-      _engineReady = true;
+      _engineReady = !_disposed;
     } catch (e) {
       if (kDebugMode) {
         debugPrint('VoiceAlertService: TTS unavailable ($e)');
@@ -63,66 +76,96 @@ class VoiceAlertService {
     return _engineReady;
   }
 
-  /// Speaks the given text.
-  ///
-  /// Returns `true` when the utterance was handed to the speech engine.
+  /// Speaks messages in order and returns true only after playback completes.
+  /// Use [interrupt] explicitly when the current and queued messages must stop.
   Future<bool> speak(
     String text, {
     double rate = 0.55,
     double pitch = 1.0,
-    bool interrupt = true,
+    bool interrupt = false,
     bool hapticFallback = true,
-  }) async {
+  }) {
     final trimmed = text.trim();
-    if (trimmed.isEmpty) return false;
+    if (trimmed.isEmpty || _disposed) return Future.value(false);
+    if (interrupt) unawaited(stop());
+    final generation = _generation;
+    final result = _speechQueue.then(
+      (_) => _speak(
+        trimmed,
+        rate: rate,
+        pitch: pitch,
+        hapticFallback: hapticFallback,
+        generation: generation,
+      ),
+    );
+    _speechQueue = result.then<void>((_) {});
+    return result;
+  }
 
+  bool _isCurrent(int generation) => !_disposed && generation == _generation;
+
+  Future<bool> _speak(
+    String text, {
+    required double rate,
+    required double pitch,
+    required bool hapticFallback,
+    required int generation,
+  }) async {
+    if (!_isCurrent(generation)) return false;
+    await _stopFuture;
+    if (!_isCurrent(generation)) return false;
     final ready = await ensureInitialized();
+    if (!_isCurrent(generation)) return false;
     if (!ready) {
-      if (hapticFallback) {
-        await _pulse();
-      }
+      if (hapticFallback) await _pulse();
       return false;
     }
 
     try {
-      final engine = _tts;
-      if (engine == null) {
-        if (hapticFallback) await _pulse();
-        return false;
-      }
-      if (interrupt) {
-        await engine.stop();
-      }
+      final engine = _tts!;
       await engine.setSpeechRate(rate);
+      if (!_isCurrent(generation)) return false;
       await engine.setPitch(pitch);
-      currentUtterance = trimmed;
+      if (!_isCurrent(generation)) return false;
+      final active = Completer<bool>();
+      _activeSpeech = active;
+      currentUtterance = text;
       _speaking = true;
-      final result = await engine.speak(trimmed);
-      _speaking = false;
-      currentUtterance = null;
-      return result == 1;
+      // Some native error/stop paths don't settle the plugin's speak future.
+      final success = await Future.any<bool>([
+        engine.speak(text).then((result) => result == 1),
+        active.future,
+      ]);
+      if (!_isCurrent(generation)) return false;
+      if (!success) {
+        await engine.stop();
+        if (hapticFallback) await _pulse();
+      }
+      return success;
     } catch (e) {
-      if (kDebugMode) {
-        debugPrint('VoiceAlertService: speak failed ($e)');
-      }
+      if (kDebugMode) debugPrint('VoiceAlertService: speak failed ($e)');
+      if (_isCurrent(generation) && hapticFallback) await _pulse();
+      return false;
+    } finally {
+      _activeSpeech = null;
       _speaking = false;
       currentUtterance = null;
-      if (hapticFallback) {
-        await _pulse();
-      }
-      return false;
     }
   }
 
-  /// Stops any in-flight utterance.
-  Future<void> stop() async {
-    final engine = _tts;
-    if (!ttsEnabled || engine == null) return;
-    try {
-      await engine.stop();
-    } catch (_) {}
+  /// Cancels the current utterance and all messages queued before this call.
+  Future<void> stop() {
+    _generation++;
+    final active = _activeSpeech;
+    if (active != null && !active.isCompleted) active.complete(false);
     _speaking = false;
     currentUtterance = null;
+    _stopFuture = _stopFuture.then((_) async {
+      try {
+        await _tts?.stop();
+      } catch (_) {}
+    });
+    return _stopFuture;
   }
 
   /// Emergency pattern for the highest urgency alerts: two short pulses.
@@ -133,6 +176,8 @@ class VoiceAlertService {
   }
 
   void dispose() {
+    _disposed = true;
+    _engineReady = false;
     unawaited(stop());
   }
 }

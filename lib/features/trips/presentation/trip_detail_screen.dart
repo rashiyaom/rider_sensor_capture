@@ -14,6 +14,7 @@ import '../../dashboard/presentation/live_map_widget.dart';
 import '../../events/event_recording_controller.dart';
 import '../../export/models/export_options.dart';
 import 'trip_scrubber_widget.dart';
+import '../../live_events/trip_event_review.dart';
 
 class TripDetailScreen extends ConsumerStatefulWidget {
   final Trip trip;
@@ -89,6 +90,8 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            TripEventReview(tripId: trip.id, tripEnded: trip.endTimeUtc != null),
+            const SizedBox(height: 20),
             // ── 1. Hero Journey Metric Card ──
             Container(
               padding: const EdgeInsets.all(20),

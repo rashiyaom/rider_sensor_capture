@@ -12,6 +12,7 @@ import 'tables/event_feedback_table.dart';
 import 'tables/unknown_events_table.dart';
 import 'tables/camera_captures_table.dart';
 import 'connection/connection.dart';
+import 'tables/live_event_reviews_table.dart';
 
 part 'database.g.dart';
 
@@ -28,6 +29,7 @@ part 'database.g.dart';
     EventFeedbacks,
     UnknownEvents,
     CameraCaptures,
+    LiveEventReviews,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -36,7 +38,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -193,6 +195,9 @@ class AppDatabase extends _$AppDatabase {
         await addIfMissing14(
           () => m.addColumn(unknownEvents, unknownEvents.audioFilePath),
         );
+      }
+      if (from < 15) {
+        await m.createTable(liveEventReviews);
       }
     },
     beforeOpen: (details) async {

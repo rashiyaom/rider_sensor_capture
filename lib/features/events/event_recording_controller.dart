@@ -6,7 +6,6 @@ import 'package:drift/drift.dart' as drift;
 import '../../core/services/rider_feedback_service.dart';
 import '../../data/local_db/database.dart';
 import '../../data/models/event_parameters.dart';
-import '../../prealert/pre_alert_engine.dart';
 import '../../providers/db_providers.dart';
 import '../../providers/handsfree_providers.dart';
 import '../../providers/pre_alert_providers.dart';
@@ -286,16 +285,10 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       } catch (_) {}
 
       // ── Predictive pre-alert learning loop ──
-      // Link the warning that preceded this event, then register the event as
-      // a geo-tagged hazard so the rider is warned about it next time.
+      // Link the warning that preceded this event. Location alerts are enabled
+      // only after the rider explicitly saves the location during review.
       preAlertContext = await _linkPreAlert(activeId);
-      await _registerRoadEvent(
-        eventId: activeId,
-        eventType: eventTypeStr,
-        startLat: state.startGps?.latitude,
-        startLng: state.startGps?.longitude,
-        computedParams: computedParams,
-      );
+
     }
 
     state = state.copyWith(
@@ -368,45 +361,7 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
     }
   }
 
-  /// Registers the completed event as a geo-tagged hazard so the rider gets a
-  /// predictive pre-alert the next time they approach the same spot.
-  Future<void> _registerRoadEvent({
-    required int eventId,
-    required String eventType,
-    required double? startLat,
-    required double? startLng,
-    required EventParameters computedParams,
-  }) async {
-    if (startLat == null || startLng == null) return;
 
-    // Ignore generic / user-defined labels — only real road events become
-    // hazards that the pre-alert system will warn about.
-    final kind = RoadEventKind.fromString(eventType);
-    if (kind == RoadEventKind.unknown) return;
-
-    double severity = 0.5;
-    if (computedParams.bump != null) {
-      severity = (computedParams.bump!.peakGForce / 3.0).clamp(0.2, 1.0);
-    } else if (computedParams.turn != null) {
-      severity = (computedParams.turn!.peakLateralAccel / 8.0).clamp(0.2, 1.0);
-    } else if (computedParams.speed != null) {
-      severity = computedParams.speed!.isBraking ? 0.7 : 0.4;
-    }
-
-    try {
-      final service = ref.read(preAlertServiceProvider);
-      await service.registerDetectedRoadEvent(
-        kind: kind,
-        latitude: startLat,
-        longitude: startLng,
-        severity: severity,
-        confidence: computedParams.crossConfirmed ? 0.9 : 0.7,
-        source: 'voice',
-        speedKmhAtDetection: computedParams.gpsSpeedKmh,
-        note: 'Labeled event #$eventId',
-      );
-    } catch (_) {}
-  }
 }
 
 final eventRecordingControllerProvider =

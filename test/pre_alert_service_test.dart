@@ -107,7 +107,7 @@ void main() {
     test('speaks and persists a warning for a known hazard ahead', () async {
       await service.registerDetectedRoadEvent(
         kind: RoadEventKind.bump,
-        latitude: kLat + 400 * kDegPerMeter,
+        latitude: kLat + 220 * kDegPerMeter,
         longitude: kLon,
         severity: 0.5,
         confidence: 0.95,
@@ -121,17 +121,17 @@ void main() {
 
       final alert = alerts.first;
       expect(alert.eventType, 'bump');
-      expect(alert.distanceMeters, closeTo(400.0, 10.0));
+      expect(alert.distanceMeters, closeTo(220.0, 10.0));
       expect(alert.speedKmh, closeTo(90.0, 0.1));
-      expect(alert.timeToEventSeconds, closeTo(16.0, 0.5));
+      expect(alert.timeToEventSeconds, closeTo(8.8, 0.5));
       expect(alert.spokenText, contains('Speed bump ahead'));
-      expect(alert.spokenText, contains('400'));
+      expect(alert.spokenText, contains('220'));
     });
 
     test('does not warn twice about the same hazard', () async {
       await service.registerDetectedRoadEvent(
         kind: RoadEventKind.bump,
-        latitude: kLat + 400 * kDegPerMeter,
+        latitude: kLat + 220 * kDegPerMeter,
         longitude: kLon,
         severity: 0.5,
       );
@@ -155,7 +155,7 @@ void main() {
     test('does not warn when the rider is nearly stopped', () async {
       await service.registerDetectedRoadEvent(
         kind: RoadEventKind.bump,
-        latitude: kLat + 400 * kDegPerMeter,
+        latitude: kLat + 220 * kDegPerMeter,
         longitude: kLon,
       );
 
@@ -192,7 +192,7 @@ void main() {
     test('attributes the warning to the active trip', () async {
       await service.registerDetectedRoadEvent(
         kind: RoadEventKind.bump,
-        latitude: kLat + 400 * kDegPerMeter,
+        latitude: kLat + 220 * kDegPerMeter,
         longitude: kLon,
       );
       service.setActiveTripId(42);
@@ -209,7 +209,7 @@ void main() {
     test('links the most recent warning to a completed event', () async {
       await service.registerDetectedRoadEvent(
         kind: RoadEventKind.bump,
-        latitude: kLat + 400 * kDegPerMeter,
+        latitude: kLat + 220 * kDegPerMeter,
         longitude: kLon,
       );
       service.setActiveTripId(7);

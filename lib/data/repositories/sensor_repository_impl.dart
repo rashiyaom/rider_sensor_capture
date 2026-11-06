@@ -428,6 +428,7 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Future<void> deleteTrip(int tripId) async {
+    await (_db.delete(_db.liveEventReviews)..where((t) => t.tripId.equals(tripId))).go();
     await (_db.delete(_db.sensorReadings)..where((t) => t.tripId.equals(tripId))).go();
     await (_db.delete(_db.eventRecords)..where((t) => t.tripId.equals(tripId))).go();
     await (_db.delete(_db.locationReadings)..where((t) => t.tripId.equals(tripId))).go();

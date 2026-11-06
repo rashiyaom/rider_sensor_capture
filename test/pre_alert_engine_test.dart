@@ -79,7 +79,7 @@ void main() {
         latitude: kLat,
         longitude: kLon,
         speedKmh: 90,
-        candidates: [_candidate(distanceMeters: 400)],
+        candidates: [_candidate(distanceMeters: 220)],
       );
       expect(decision!.window, PreAlertWindow.inWindow);
       expect(decision.shouldSpeak, isTrue);
@@ -97,7 +97,7 @@ void main() {
       expect(decision.shouldSpeak, isFalse);
     });
 
-    test('an imminent event is classified as too late to pre-warn', () {
+    test('an imminent event still gets a short warning', () {
       final decision = engine.evaluate(
         latitude: kLat,
         longitude: kLon,
@@ -106,7 +106,7 @@ void main() {
       );
       // 25 m / 25 m/s = 1 s < 2 s minimum
       expect(decision!.window, PreAlertWindow.tooLate);
-      expect(decision.shouldSpeak, isFalse);
+      expect(decision.shouldSpeak, isTrue);
     });
 
     test('urgency escalates as the event approaches', () {
@@ -288,8 +288,7 @@ void main() {
 
       expect(message, contains('Speed bump ahead'));
       expect(message, contains('400'));
-      expect(message, contains('16 seconds'));
-      expect(message, contains('Reduce to 40'));
+      expect(message, contains('Slow down to 30 kilometres per hour'));
     });
 
     test('uses the correct wording for a pothole', () {
@@ -313,7 +312,37 @@ void main() {
         candidates: [_candidate(distanceMeters: 430)],
       )!;
       final message = PreAlertMessageBuilder.build(decision);
-      expect(message, contains('400'));
+      expect(message, contains('430'));
+    });
+  });
+
+  group('Speed-based location warnings', () {
+    const engine = PreAlertEngine();
+    PreAlertDecision? at(double meters, double speed, {RoadEventKind kind = RoadEventKind.bump}) =>
+        engine.evaluate(latitude: kLat, longitude: kLon, speedKmh: speed,
+          headingDeg: 0, candidates: [_candidate(distanceMeters: meters, kind: kind)]);
+
+    test('80 km/h warns at about 222 metres with 30 km/h bump advice', () {
+      expect(at(250, 80)!.shouldSpeak, isFalse);
+      final warning = at(222, 80)!;
+      expect(warning.shouldSpeak, isTrue);
+      expect(warning.timeToEventSeconds, closeTo(10, .02));
+      expect(warning.recommendedSpeedKmh, 30);
+      expect(PreAlertMessageBuilder.build(warning),
+        'Slow down to 30 kilometres per hour. Speed bump ahead in 220 metres.');
+    });
+    test('lower speed uses a shorter warning distance without telling rider to accelerate', () {
+      expect(at(222, 40)!.shouldSpeak, isFalse);
+      expect(at(110, 40)!.shouldSpeak, isTrue);
+      final slow = at(50, 20)!;
+      expect(slow.recommendedSpeedKmh, 20);
+      expect(PreAlertMessageBuilder.build(slow), isNot(contains('Slow down to')));
+    });
+    test('different events have distinct advice and late detection still speaks', () {
+      expect(at(150, 80, kind: RoadEventKind.pothole)!.recommendedSpeedKmh, 20);
+      expect(at(150, 80, kind: RoadEventKind.turn)!.recommendedSpeedKmh, 35);
+      expect(PreAlertMessageBuilder.build(at(30, 80)!), contains('Slow down.'));
+      expect(at(30, 80)!.shouldSpeak, isTrue);
     });
   });
 

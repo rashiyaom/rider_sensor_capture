@@ -15,6 +15,8 @@ import '../../prealert/presentation/bulk_import_hazards_sheet.dart';
 import '../../prealert/presentation/hazard_inspect_sheet.dart';
 import '../../prealert/presentation/seed_road_hazard_sheet.dart';
 import 'event_detail_screen.dart';
+import '../../trips/trip_controller.dart';
+import '../../live_events/event_library_screen.dart';
 
 class EventsScreen extends ConsumerWidget {
   const EventsScreen({super.key});
@@ -26,6 +28,7 @@ class EventsScreen extends ConsumerWidget {
     // is scored by the LLM evaluator and feeds the pre-alert learning loop.
     ref.listen<EventRecordingSessionState>(eventRecordingControllerProvider,
         (previous, next) {
+      if (ref.read(tripControllerProvider).isJourneyActive) return;
       if (next.state != RecordingState.saved) return;
       if (previous?.state == RecordingState.saved) return;
       final eventId = next.activeEventId;
@@ -39,14 +42,20 @@ class EventsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Event Labeler'),
+        title: const Text('Events'),
+        actions: [IconButton(tooltip: 'Manage all events and map', icon: const Icon(Icons.map_outlined),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EventLibraryScreen())))],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            _TapEventHeroCard(),
+          children: [
+            FilledButton.icon(icon: const Icon(Icons.edit_location_alt),
+              label: const Text('All events · map, edit and delete'),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const EventLibraryScreen()))),
+            const SizedBox(height: 14),
+            const _TapEventHeroCard(),
             SizedBox(height: 14),
             _EventsThreeColumnBento(),
             SizedBox(height: 14),

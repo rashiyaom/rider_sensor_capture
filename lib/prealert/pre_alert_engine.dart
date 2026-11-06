@@ -107,6 +107,7 @@ enum PreAlertUrgency {
 /// The result of evaluating one hazard against the rider's current state.
 class PreAlertDecision {
   final RoadEventCandidate candidate;
+  final DateTime? evaluatedAtUtc;
   final double distanceMeters;
   final double bearingDeg;
 
@@ -129,6 +130,7 @@ class PreAlertDecision {
 
   const PreAlertDecision({
     required this.candidate,
+    this.evaluatedAtUtc,
     required this.distanceMeters,
     required this.bearingDeg,
     required this.relativeBearingDeg,
@@ -191,7 +193,7 @@ class PreAlertEngine {
 
   const PreAlertEngine({
     this.minWarningSeconds = 2.0,
-    this.maxWarningSeconds = 20.0,
+    this.maxWarningSeconds = 10.0,
     this.maxConsiderDistanceMeters = 800.0,
     this.minSpeedKmh = 8.0,
     this.maxSpeedKmh = 160.0,
@@ -217,7 +219,8 @@ class PreAlertEngine {
     Set<int> alreadyAlertedIds = const {},
     double? headingDeg,
   }) {
-    if (speedKmh < minSpeedKmh || speedKmh > maxSpeedKmh) return null;
+    if (!speedKmh.isFinite || !latitude.isFinite || !longitude.isFinite ||
+        speedKmh < minSpeedKmh || speedKmh > maxSpeedKmh) { return null; }
     if (candidates.isEmpty) return null;
 
     final speedMps = GeoMath.kmhToMps(speedKmh);
@@ -272,14 +275,18 @@ class PreAlertEngine {
         distanceMeters: distance,
         currentSpeedKmh: speedKmh,
         severity: candidate.severity,
+        kind: candidate.kind,
       );
 
-      final window = classifyWindow(timeToEvent);
+      final leadSeconds = warningLeadSeconds(speedKmh: speedKmh, candidate: candidate);
+      final window = classifyWindow(timeToEvent, leadSeconds: leadSeconds);
       final urgency = classifyUrgency(timeToEvent);
-      final shouldSpeak = window == PreAlertWindow.inWindow;
+      // An imminent hazard still deserves a brief warning if first seen late.
+      final shouldSpeak = window != PreAlertWindow.tooEarly;
 
       final decision = PreAlertDecision(
         candidate: candidate,
+        evaluatedAtUtc: DateTime.now().toUtc(),
         distanceMeters: distance,
         bearingDeg: bearing,
         relativeBearingDeg: relativeBearing,
@@ -292,7 +299,9 @@ class PreAlertEngine {
       );
 
       if (best == null ||
-          decision.timeToEventSeconds < best.timeToEventSeconds) {
+          (decision.shouldSpeak && !best.shouldSpeak) ||
+          (decision.shouldSpeak == best.shouldSpeak &&
+              decision.timeToEventSeconds < best.timeToEventSeconds)) {
         best = decision;
       }
     }
@@ -301,8 +310,8 @@ class PreAlertEngine {
   }
 
   /// Classifies a time-to-event into the warning window.
-  PreAlertWindow classifyWindow(double timeToEventSeconds) {
-    if (timeToEventSeconds > maxWarningSeconds) return PreAlertWindow.tooEarly;
+  PreAlertWindow classifyWindow(double timeToEventSeconds, {double? leadSeconds}) {
+    if (timeToEventSeconds > (leadSeconds ?? maxWarningSeconds)) return PreAlertWindow.tooEarly;
     if (timeToEventSeconds < minWarningSeconds) return PreAlertWindow.tooLate;
     return PreAlertWindow.inWindow;
   }
@@ -333,11 +342,14 @@ class PreAlertEngine {
     required double distanceMeters,
     required double currentSpeedKmh,
     required double severity,
+    RoadEventKind? kind,
   }) {
     final currentMps = GeoMath.kmhToMps(currentSpeedKmh);
     if (currentMps <= 0.01) return 0.0;
 
-    final targetMps = GeoMath.kmhToMps(passSpeedKmh(severity: severity));
+    final targetMps = GeoMath.kmhToMps(passSpeedKmh(severity: severity, kind: kind));
+    // For a known event give the target pass speed, never advice to accelerate.
+    if (kind != null) return math.min(currentSpeedKmh, GeoMath.mpsToKmh(targetMps));
 
     // Already slower than the pass speed: nothing to do.
     if (currentMps <= targetMps) return currentSpeedKmh;
@@ -361,9 +373,30 @@ class PreAlertEngine {
     return GeoMath.mpsToKmh(clampedMps);
   }
 
+  /// Default ten-second approach, extended when slowing needs more distance.
+  double warningLeadSeconds({required double speedKmh, required RoadEventCandidate candidate}) {
+    final speed = GeoMath.kmhToMps(speedKmh);
+    if (speed <= 0) return maxWarningSeconds;
+    final target = GeoMath.kmhToMps(passSpeedKmh(severity: candidate.severity, kind: candidate.kind));
+    final brakingDistance = math.max(0.0, (speed * speed - target * target) /
+        (2 * maxDecelerationMps2));
+    final neededDistance = speed * reactionTimeSeconds + brakingDistance;
+    return math.max(maxWarningSeconds, neededDistance / speed);
+  }
+
   /// The pass speed (km/h) for a hazard of the given severity.
-  double passSpeedKmh({required double severity}) {
-    final s = severity.clamp(0.0, 1.0);
+  double passSpeedKmh({required double severity, RoadEventKind? kind}) {
+    final s = severity.isFinite ? severity.clamp(0.0, 1.0) : 0.5;
+    if (kind != null) {
+      final base = switch (kind) {
+        RoadEventKind.bump => 30.0,
+        RoadEventKind.pothole => 20.0,
+        RoadEventKind.turn => 35.0,
+        RoadEventKind.braking => 30.0,
+        RoadEventKind.hazard || RoadEventKind.unknown => 25.0,
+      };
+      return base - math.max(0.0, s - 0.5) * 20.0;
+    }
     final severe = targetEventSpeedKmh;
     final mild = mildEventSpeedKmh > severe ? mildEventSpeedKmh : severe;
     return mild + (severe - mild) * s;
@@ -377,27 +410,15 @@ class PreAlertMessageBuilder {
   /// Composes a concise spoken warning.
   ///
   /// Example: *"Speed bump ahead, 400 metres, 16 seconds. Reduce to 30."*
-  static String build(PreAlertDecision decision) {
-    final kind = decision.candidate.kind;
-    final distance = _formatDistance(decision.distanceMeters);
-    final seconds = decision.timeToEventSeconds.round();
-
-    final buffer = StringBuffer();
-    buffer.write('${kind.label} ahead, $distance metres');
-    if (seconds > 0) {
-      buffer.write(', $seconds ${seconds == 1 ? 'second' : 'seconds'}');
-    }
-    buffer.write('.');
-
+  static String build(PreAlertDecision decision, {double? distanceOverride}) {
+    final meters = distanceOverride ?? decision.distanceMeters;
+    final distance = _formatDistance(meters);
+    final seconds = decision.speedKmh > 0 ? meters / (decision.speedKmh / 3.6) : 0.0;
+    if (seconds < 3) return '${decision.candidate.kind.label} ahead, $distance metres. Slow down.';
     final recommended = decision.recommendedSpeedKmh.round();
-    final current = decision.speedKmh.round();
-    if (recommended < current - 1) {
-      buffer.write(' Reduce to $recommended.');
-    } else if (decision.urgency == PreAlertUrgency.imminent) {
-      buffer.write(' Ease off now.');
-    }
-
-    return buffer.toString();
+    final prefix = recommended < decision.speedKmh - 1
+        ? 'Slow down to $recommended kilometres per hour. ' : '';
+    return '$prefix${decision.candidate.kind.label} ahead in $distance metres.';
   }
 
   /// Human-friendly distance rounding for speech.
@@ -405,8 +426,8 @@ class PreAlertMessageBuilder {
   /// Rounds **down** so the spoken distance is never larger than the real
   /// one — overstating the distance would make the rider brake too early.
   static int _formatDistance(double meters) {
-    if (meters < 100) return (meters / 10).floor() * 10;
-    if (meters < 500) return (meters / 50).floor() * 50;
+    if (meters < 10) return math.max(1, meters.floor());
+    if (meters < 500) return (meters / 10).round() * 10;
     return (meters / 100).floor() * 100;
   }
 }

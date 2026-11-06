@@ -51,6 +51,8 @@ class LiveMlInferenceService {
       StreamController<LiveMlPrediction>.broadcast();
 
   final List<RawSensorData> _forkBuffer = [];
+  String? _primaryDeviceId;
+  bool _primaryIsVehicleMounted = false;
   final List<RawSensorData> _footBuffer = [];
   final int maxBufferSize;
 
@@ -66,23 +68,33 @@ class LiveMlInferenceService {
 
   /// Ingests a new incoming sensor sample and triggers inference if throttling window allows
   void ingestReading(RawSensorData reading, {bool forceInference = false}) {
+    // HR-only packets and invalid IMU values cannot form a motion window.
+    final axes = [reading.accelX, reading.accelY, reading.accelZ];
+    if (axes.any((v) => v == null || !v.isFinite)) return;
     final loc = reading.mountLocation.toLowerCase();
-    if (loc.contains('foot') || reading.deviceId.contains('watch_2')) {
-      _footBuffer.add(reading);
-      if (_footBuffer.length > maxBufferSize) {
-        _footBuffer.removeAt(0);
-      }
-    } else {
-      _forkBuffer.add(reading);
-      if (_forkBuffer.length > maxBufferSize) {
-        _forkBuffer.removeAt(0);
-      }
+    final vehicleMounted = loc.contains('fork') || loc.contains('foot');
+    final stale = _forkBuffer.isNotEmpty &&
+        reading.timestamp.difference(_forkBuffer.last.timestamp) > const Duration(seconds: 2);
+    if (_primaryDeviceId == null || stale ||
+        (vehicleMounted && !_primaryIsVehicleMounted)) {
+      _primaryDeviceId = reading.deviceId;
+      _primaryIsVehicleMounted = vehicleMounted;
+      _forkBuffer.clear();
+      _footBuffer.clear();
+      _lastInferenceTime = null;
     }
+    final buffer = reading.deviceId == _primaryDeviceId ? _forkBuffer : _footBuffer;
+    if (buffer.isNotEmpty && !reading.timestamp.isAfter(buffer.last.timestamp)) return;
+    buffer.add(reading);
+    buffer.removeWhere((sample) => reading.timestamp.difference(sample.timestamp) >
+        const Duration(milliseconds: 1500));
+    if (buffer.length > maxBufferSize) buffer.removeAt(0);
+    if (reading.deviceId != _primaryDeviceId) return;
 
     final sampleTime = reading.timestamp;
     if (forceInference ||
         _lastInferenceTime == null ||
-        sampleTime.difference(_lastInferenceTime!).inMilliseconds.abs() >= 200) {
+        sampleTime.difference(_lastInferenceTime!).inMilliseconds >= 200) {
       if (_forkBuffer.length >= 10) {
         _lastInferenceTime = sampleTime;
         _runInference(sampleTime);
@@ -101,8 +113,10 @@ class LiveMlInferenceService {
   void _runInference(DateTime timestamp) {
     if (_forkBuffer.isEmpty) return;
 
-    // 1. Extract Fork (Watch 1) time-domain statistics
-    final zVals = _forkBuffer.map((r) => r.accelZ ?? AngularUnits.standardGravity).toList();
+    // Impact magnitude is independent of wrist/sensor orientation. Keep each
+    // device's samples separate so left/right offsets cannot create fake jerk.
+    final zVals = _forkBuffer.map((r) => math.sqrt(
+        r.accelX! * r.accelX! + r.accelY! * r.accelY! + r.accelZ! * r.accelZ!)).toList();
     final xVals = _forkBuffer.map((r) => r.accelX ?? 0.0).toList();
     final yVals = _forkBuffer.map((r) => r.accelY ?? 0.0).toList();
     final gzVals = _forkBuffer.map((r) => r.gyroZ ?? 0.0).toList();
@@ -127,8 +141,13 @@ class LiveMlInferenceService {
 
     // Jerk calculation (peak da/dt across consecutive 20ms samples)
     double peakJerk = 0.0;
-    const dt = 0.02; // 50Hz = 20ms
     for (int i = 1; i < zVals.length; i++) {
+      final previous = _forkBuffer[i - 1];
+      final current = _forkBuffer[i];
+      final dt = previous.timestampMonotonicMicros != null && current.timestampMonotonicMicros != null
+          ? (current.timestampMonotonicMicros! - previous.timestampMonotonicMicros!) / 1e6
+          : current.timestamp.difference(previous.timestamp).inMicroseconds / 1e6;
+      if (dt <= 0 || dt > 0.25) continue;
       final jerk = (zVals[i] - zVals[i - 1]).abs() / dt;
       if (jerk > peakJerk) peakJerk = jerk;
     }
@@ -206,21 +225,22 @@ class LiveMlInferenceService {
       explanation = 'Moderate surface transient (PTP ${zPtp.toStringAsFixed(1)} m/s²)';
     }
     // Rule 3: Sharp Turn / Cornering Lean
-    else if (rollDeg > 12.0 || latestGz > 22.0) {
+    else if (_primaryIsVehicleMounted ? (rollDeg > 12.0 || latestGz > 22.0) :
+        gzVals.where((v) => v.abs() > 22.0).length >= gzVals.length * 0.7) {
       detectedType = MlPredictedEventType.sharpTurn;
       detectedLabel = 'Sharp Cornering Turn';
       confidence = (0.80 + math.min(0.18, (rollDeg - 12.0) * 0.015)).clamp(0.75, 0.98);
       explanation = 'Vehicle lean angle (${rollDeg.toStringAsFixed(1)}°) & yaw rotation';
     }
     // Rule 4: Hard Braking Event
-    else if (latestAx < -3.0) {
+    else if (_primaryIsVehicleMounted && latestAx < -3.0) {
       detectedType = MlPredictedEventType.hardBraking;
       detectedLabel = 'Hard Braking';
       confidence = (0.82 + math.min(0.16, (-latestAx - 3.0) * 0.03)).clamp(0.75, 0.98);
       explanation = 'Longitudinal deceleration (${latestAx.toStringAsFixed(1)} m/s²)';
     }
     // Rule 5: Rapid Acceleration
-    else if (latestAx > 2.5) {
+    else if (_primaryIsVehicleMounted && latestAx > 2.5) {
       detectedType = MlPredictedEventType.rapidAcceleration;
       detectedLabel = 'Rapid Acceleration';
       confidence = (0.80 + math.min(0.15, (latestAx - 2.5) * 0.03)).clamp(0.70, 0.96);
@@ -243,8 +263,11 @@ class LiveMlInferenceService {
   }
 
   void reset() {
-    _forkBuffer.clearNavigator();
+    _forkBuffer.clear();
     _footBuffer.clear();
+    _primaryDeviceId = null;
+    _primaryIsVehicleMounted = false;
+    _lastInferenceTime = null;
     _latestPrediction = LiveMlPrediction.normal();
   }
 
@@ -253,8 +276,3 @@ class LiveMlInferenceService {
   }
 }
 
-extension on List<RawSensorData> {
-  void clearNavigator() {
-    clear();
-  }
-}

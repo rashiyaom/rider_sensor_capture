@@ -6,16 +6,14 @@ import 'ble_providers.dart';
 final liveMlInferenceServiceProvider = Provider<LiveMlInferenceService>((ref) {
   final service = LiveMlInferenceService();
 
-  // Pipe raw sensor data stream into the inference engine
-  final sub = ref.listen(rawSensorDataStreamProvider, (_, next) {
-    final data = next.value;
-    if (data != null) {
-      service.ingestReading(data);
-    }
+  // Subscribe directly so every BLE sample reaches inference even between UI frames.
+  final sub = ref.watch(bleConnectionManagerProvider).rawDataStream.listen((data) {
+    final mount = ref.read(deviceMountLocationMapProvider)[data.deviceId];
+    service.ingestReading(mount == null ? data : data.copyWith(mountLocation: mount));
   });
 
   ref.onDispose(() {
-    sub.close();
+    sub.cancel();
     service.dispose();
   });
 

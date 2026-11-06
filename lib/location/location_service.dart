@@ -99,10 +99,11 @@ class LocationService {
 
     await stopTracking();
 
+    // A stream-wide timeout cancels tracking after a short GPS outage.
+    // Keep listening so fixes can resume when the rider leaves a tunnel.
     final locationSettings = LocationSettings(
       accuracy: LocationAccuracy.bestForNavigation,
       distanceFilter: distanceFilterM,
-      timeLimit: const Duration(seconds: 10),
     );
 
     _positionSubscription = Geolocator.getPositionStream(
