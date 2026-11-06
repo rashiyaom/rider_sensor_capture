@@ -1,0 +1,21 @@
+Analyzing ride_sensor_capture...                                
+
+   info • Use an initializing formal to assign a parameter to a field. Try using an initialing formal ('this._storageRoot') to initialize the field • lib/camera/camera_capture_repository.dart:16:7 • prefer_initializing_formals
+warning • The value of the local variable 'sub' isn't used. Try removing the variable or using it • lib/core/services/map_offline_cache_service.dart:157:17 • unused_local_variable
+warning • The value of the local variable 'hrDelta' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:657:13 • unused_local_variable
+warning • The value of the local variable 'jMag' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:670:27 • unused_local_variable
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/data/repositories/export_repository_impl.dart:679:13 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/data/repositories/export_repository_impl.dart:681:13 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/data/repositories/export_repository_impl.dart:683:13 • curly_braces_in_flow_control_structures
+warning • The value of the local variable 'fmt' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1411:11 • unused_local_variable
+warning • The value of the local variable 'jMag' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1485:15 • unused_local_variable
+warning • The value of the local variable 'rowClassification' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1533:14 • unused_local_variable
+warning • The value of the local variable 'rowPeakMetric' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1534:15 • unused_local_variable
+warning • The value of the local variable 'rowCrossConfirmed' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1535:12 • unused_local_variable
+warning • The value of the local variable 'rowParamSummary' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1536:14 • unused_local_variable
+   info • The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive • lib/features/dashboard/presentation/live_map_widget.dart:1:8 • unnecessary_import
+   info • The private field _showRoute could be 'final'. Try making the field 'final' • lib/features/dashboard/presentation/live_map_widget.dart:43:8 • prefer_final_fields
+   info • Unnecessary use of multiple underscores. Try using '_' • lib/features/events/presentation/events_screen.dart:1101:39 • unnecessary_underscores
+   info • Use an initializing formal to assign a parameter to a field. Try using an initialing formal ('this._handsfreeService') to initialize the field • lib/prealert/pre_alert_service.dart:61:9 • prefer_initializing_formals
+
+17 issues found. (ran in 4.4s)

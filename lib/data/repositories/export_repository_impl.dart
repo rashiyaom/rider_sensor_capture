@@ -114,7 +114,8 @@ class ExportRepositoryImpl implements ExportRepository {
     DateTime? endUtc, {
     bool onlyCrossConfirmed = false,
   }) async {
-    var query = _db.select(_db.eventRecords);
+    var query = _db.select(_db.eventRecords)
+      ..where((t) => t.status.equals('completed'));
     if (startUtc != null) {
       query = query
         ..where((t) => t.startTimestamp.isBiggerOrEqualValue(startUtc));
@@ -1918,6 +1919,7 @@ class ExportRepositoryImpl implements ExportRepository {
               .get();
       events =
           await (_db.select(_db.eventRecords)
+                ..where((t) => t.status.equals('completed'))
                 ..where((t) => t.tripId.equals(tripId))
                 ..orderBy([
                   (t) => OrderingTerm(

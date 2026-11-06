@@ -1,0 +1,32 @@
+Audit validation — 2026-11-06
+Flutter 3.47.8 / Dart 3.13.7
+
+Full suite: flutter test --no-pub --reporter expanded
+00:13 +183 -1: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/smartwatch_verity_full_cycle_test.dart: Full Cycle Test: Smartwatch + Polar Verity Dual-Connection, Live Fetch & Start Journey 3. Complete Journey Cycle: Start Journey, stream dual data to SQLite, track stats, and End Journey [E]
+  Expected: contains 'forearm'
+     Which: does not contain 'forearm'
+00:16 +208 -2: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/e2e_trip_lifecycle_pipeline_test.dart: E2E Pipeline Test: Dual-watch streaming, event bounding boxes, and CSV integrity [E]
+  Expected: contains 'reading_id'
+     Which: does not contain 'reading_id'
+00:20 +258 -2: Some tests failed.
+
+Unchanged baseline: the two export test files in an isolated snapshot
+00:00 +1 -1: /private/var/folders/1t/_phbp7kx32lfyqzj3l5wm86m0000gn/T/ride_audit_baseline_bvq_i2ay/test/e2e_trip_lifecycle_pipeline_test.dart: E2E Pipeline Test: Dual-watch streaming, event bounding boxes, and CSV integrity [E]
+  Expected: contains 'reading_id'
+     Which: does not contain 'reading_id'
+00:01 +2 -2: /private/var/folders/1t/_phbp7kx32lfyqzj3l5wm86m0000gn/T/ride_audit_baseline_bvq_i2ay/test/smartwatch_verity_full_cycle_test.dart: Full Cycle Test: Smartwatch + Polar Verity Dual-Connection, Live Fetch & Start Journey 3. Complete Journey Cycle: Start Journey, stream dual data to SQLite, track stats, and End Journey [E]
+  Expected: contains 'forearm'
+     Which: does not contain 'forearm'
+00:01 +2 -2: Some tests failed.
+
+Diagnostic acceptance suite: flutter test --no-pub --reporter expanded docs/audit/reproductions_test.dart
+Six failures reproduced; see reproductions.txt. These are outside the default test/ suite.
+
+Static analysis: flutter analyze --no-pub
+17 issues found. (ran in 4.4s)
+
+Android: flutter build apk --debug --no-pub
+Failed: xcrun/libxcrun arm64 vs x86_64 host-toolchain mismatch. See android_build.txt.
+
+Physical-device, hardware, road and iOS acceptance: not executed.
+git diff --check: passed.

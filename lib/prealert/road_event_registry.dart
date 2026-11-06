@@ -5,6 +5,7 @@ import 'package:drift/drift.dart';
 import '../data/local_db/database.dart';
 import '../location/geo_math.dart';
 import 'pre_alert_engine.dart';
+import '../features/live_events/event_library_repository.dart';
 
 /// Persistence layer for the geo-tagged road-event knowledge base that powers
 /// the predictive pre-alert system.
@@ -26,7 +27,9 @@ class RoadEventRegistry {
     String? note,
     DateTime? detectedAtUtc,
   }) async {
-    return _db.into(_db.roadEvents).insert(
+    return _db
+        .into(_db.roadEvents)
+        .insert(
           RoadEventsCompanion.insert(
             tripId: Value(tripId),
             eventType: kind.name,
@@ -57,13 +60,15 @@ class RoadEventRegistry {
         ? 180.0
         : radiusMeters / (GeoMath.earthRadiusMeters * cosLat) * 180.0 / math.pi;
 
-    final rows = await (_db.select(_db.roadEvents)
-          ..where((t) =>
-              t.latitude.isBiggerOrEqualValue(latitude - latDelta) &
-              t.latitude.isSmallerOrEqualValue(latitude + latDelta) &
-              t.longitude.isBiggerOrEqualValue(longitude - lonDelta) &
-              t.longitude.isSmallerOrEqualValue(longitude + lonDelta)))
-        .get();
+    final rows =
+        await (_db.select(_db.roadEvents)..where(
+              (t) =>
+                  t.latitude.isBiggerOrEqualValue(latitude - latDelta) &
+                  t.latitude.isSmallerOrEqualValue(latitude + latDelta) &
+                  t.longitude.isBiggerOrEqualValue(longitude - lonDelta) &
+                  t.longitude.isSmallerOrEqualValue(longitude + lonDelta),
+            ))
+            .get();
 
     final candidates = <RoadEventCandidate>[];
     for (final row in rows) {
@@ -81,14 +86,18 @@ class RoadEventRegistry {
 
   /// Fetches a single hazard row.
   Future<RoadEvent?> getById(int id) async {
-    return (_db.select(_db.roadEvents)..where((t) => t.id.equals(id))).getSingleOrNull();
+    return (_db.select(
+      _db.roadEvents,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
   }
 
   /// Increments the alert counter for a hazard and stamps the alert time.
   Future<void> incrementAlertCount(int roadEventId, {DateTime? at}) async {
     final row = await getById(roadEventId);
     if (row == null) return;
-    await (_db.update(_db.roadEvents)..where((t) => t.id.equals(roadEventId))).write(
+    await (_db.update(
+      _db.roadEvents,
+    )..where((t) => t.id.equals(roadEventId))).write(
       RoadEventsCompanion(
         alertCount: Value(row.alertCount + 1),
         lastAlertedAtUtc: Value(at ?? DateTime.now().toUtc()),
@@ -100,20 +109,35 @@ class RoadEventRegistry {
   Future<void> incrementFeedbackCount(int roadEventId) async {
     final row = await getById(roadEventId);
     if (row == null) return;
-    await (_db.update(_db.roadEvents)..where((t) => t.id.equals(roadEventId))).write(
+    await (_db.update(
+      _db.roadEvents,
+    )..where((t) => t.id.equals(roadEventId))).write(
       RoadEventsCompanion(feedbackCount: Value(row.feedbackCount + 1)),
     );
   }
 
   /// Removes a hazard from the knowledge base.
   Future<void> delete(int id) async {
-    await (_db.delete(_db.roadEvents)..where((t) => t.id.equals(id))).go();
+    final row = await getById(id);
+    if (row == null) return;
+    await EventLibraryRepository(_db).delete(
+      ManagedEvent(
+        key: 'road_$id',
+        type: row.eventType,
+        source: row.source,
+        status: 'saved',
+        at: row.detectedAtUtc,
+        roadId: id,
+      ),
+    );
   }
 
   /// Counts the registered hazards.
   Future<int> countAll() async {
     final count = _db.roadEvents.id.count();
-    final row = await (_db.selectOnly(_db.roadEvents)..addColumns([count])).getSingle();
+    final row = await (_db.selectOnly(
+      _db.roadEvents,
+    )..addColumns([count])).getSingle();
     return row.read(count) ?? 0;
   }
 

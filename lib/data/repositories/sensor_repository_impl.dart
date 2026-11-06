@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:drift/drift.dart';
+
 import '../local_db/database.dart';
 import '../../ble/models/raw_sensor_data.dart';
 import '../../location/geo_math.dart';
 import '../../providers/db_providers.dart';
 import 'sensor_repository.dart';
+import '../../features/live_events/event_library_repository.dart';
 
 class SensorRepositoryImpl implements SensorRepository {
   final AppDatabase _db;
@@ -45,7 +48,9 @@ class SensorRepositoryImpl implements SensorRepository {
     try {
       final countExp = _db.sensorReadings.id.count();
       final query = _db.selectOnly(_db.sensorReadings)..addColumns([countExp]);
-      final result = await query.map((row) => row.read(countExp)).getSingleOrNull();
+      final result = await query
+          .map((row) => row.read(countExp))
+          .getSingleOrNull();
       _totalRowCount = result ?? 0;
 
       final deviceCol = _db.sensorReadings.deviceId;
@@ -149,7 +154,7 @@ class SensorRepositoryImpl implements SensorRepository {
           sensorType: sType,
           mountLocation: Value(data.mountLocation),
           eventId: Value(_activeEventId), // Tag with current active event
-          tripId: Value(_activeTripId),   // Tag with current active journey/trip
+          tripId: Value(_activeTripId), // Tag with current active journey/trip
           heartRate: Value(data.heartRate),
           accelX: Value(data.accelX),
           accelY: Value(data.accelY),
@@ -199,18 +204,22 @@ class SensorRepositoryImpl implements SensorRepository {
   Stream<List<SensorReading>> watchRecentReadings({int limit = 50}) {
     return (_db.select(_db.sensorReadings)
           ..orderBy([
-            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
+            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
           ])
           ..limit(limit))
         .watch();
   }
 
   @override
-  Stream<List<SensorReading>> watchReadingsForDevice(String deviceId, {int limit = 50}) {
+  Stream<List<SensorReading>> watchReadingsForDevice(
+    String deviceId, {
+    int limit = 50,
+  }) {
     return (_db.select(_db.sensorReadings)
           ..where((t) => t.deviceId.equals(deviceId))
           ..orderBy([
-            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.desc)
+            (t) =>
+                OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.desc),
           ])
           ..limit(limit))
         .watch();
@@ -221,8 +230,12 @@ class SensorRepositoryImpl implements SensorRepository {
     return (_db.select(_db.sensorReadings)
           ..where((t) => t.eventId.equals(eventId))
           ..orderBy([
-            (t) => OrderingTerm(expression: t.timestampUtc, mode: OrderingMode.asc),
-            (t) => OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc)
+            (t) => OrderingTerm(
+              expression: t.timestampUtc,
+              mode: OrderingMode.asc,
+            ),
+            (t) =>
+                OrderingTerm(expression: t.sequenceNo, mode: OrderingMode.asc),
           ]))
         .watch();
   }
@@ -241,7 +254,9 @@ class SensorRepositoryImpl implements SensorRepository {
   Future<int> getTotalCount() async {
     final countExp = _db.sensorReadings.id.count();
     final query = _db.selectOnly(_db.sensorReadings)..addColumns([countExp]);
-    final result = await query.map((row) => row.read(countExp)).getSingleOrNull();
+    final result = await query
+        .map((row) => row.read(countExp))
+        .getSingleOrNull();
     _totalRowCount = result ?? 0;
     return _totalRowCount;
   }
@@ -283,10 +298,9 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Stream<List<EventRecord>> watchAllEvents() {
-    return (_db.select(_db.eventRecords)
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
-          ]))
+    return (_db.select(_db.eventRecords)..orderBy([
+          (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+        ]))
         .watch();
   }
 
@@ -309,13 +323,15 @@ class SensorRepositoryImpl implements SensorRepository {
         ? 180.0
         : radiusMeters / (6371008.8 * cosLat) * 180.0 / math.pi;
 
-    final rows = await (_db.select(_db.roadEvents)
-          ..where((t) =>
-              t.latitude.isBiggerOrEqualValue(latitude - latDelta) &
-              t.latitude.isSmallerOrEqualValue(latitude + latDelta) &
-              t.longitude.isBiggerOrEqualValue(longitude - lonDelta) &
-              t.longitude.isSmallerOrEqualValue(longitude + lonDelta)))
-        .get();
+    final rows =
+        await (_db.select(_db.roadEvents)..where(
+              (t) =>
+                  t.latitude.isBiggerOrEqualValue(latitude - latDelta) &
+                  t.latitude.isSmallerOrEqualValue(latitude + latDelta) &
+                  t.longitude.isBiggerOrEqualValue(longitude - lonDelta) &
+                  t.longitude.isSmallerOrEqualValue(longitude + lonDelta),
+            ))
+            .get();
 
     return rows.where((row) {
       final distance = GeoMath.distanceMeters(
@@ -330,10 +346,9 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Stream<List<RoadEvent>> watchRoadEvents() {
-    return (_db.select(_db.roadEvents)
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
-          ]))
+    return (_db.select(_db.roadEvents)..orderBy([
+          (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+        ]))
         .watch();
   }
 
@@ -344,10 +359,9 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Stream<List<PreAlert>> watchPreAlerts() {
-    return (_db.select(_db.preAlerts)
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
-          ]))
+    return (_db.select(_db.preAlerts)..orderBy([
+          (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+        ]))
         .watch();
   }
 
@@ -355,7 +369,8 @@ class SensorRepositoryImpl implements SensorRepository {
   Future<PreAlert?> getMostRecentPreAlert({int? tripId}) async {
     var query = _db.select(_db.preAlerts)
       ..orderBy([
-        (t) => OrderingTerm(expression: t.alertedAtUtc, mode: OrderingMode.desc)
+        (t) =>
+            OrderingTerm(expression: t.alertedAtUtc, mode: OrderingMode.desc),
       ])
       ..limit(1);
     if (tripId != null) {
@@ -376,10 +391,9 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Stream<List<EventFeedback>> watchEventFeedbacks() {
-    return (_db.select(_db.eventFeedbacks)
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
-          ]))
+    return (_db.select(_db.eventFeedbacks)..orderBy([
+          (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+        ]))
         .watch();
   }
 
@@ -394,10 +408,11 @@ class SensorRepositoryImpl implements SensorRepository {
   @override
   Future<int> getFeedbackCountForEvent(int eventId) async {
     final count = _db.eventFeedbacks.id.count();
-    final row = await (_db.selectOnly(_db.eventFeedbacks)
-          ..where(_db.eventFeedbacks.eventId.equals(eventId))
-          ..addColumns([count]))
-        .getSingle();
+    final row =
+        await (_db.selectOnly(_db.eventFeedbacks)
+              ..where(_db.eventFeedbacks.eventId.equals(eventId))
+              ..addColumns([count]))
+            .getSingle();
     return row.read(count) ?? 0;
   }
 
@@ -414,25 +429,36 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Future<Trip?> getTrip(int tripId) async {
-    return await (_db.select(_db.trips)..where((t) => t.id.equals(tripId))).getSingleOrNull();
+    return await (_db.select(
+      _db.trips,
+    )..where((t) => t.id.equals(tripId))).getSingleOrNull();
   }
 
   @override
   Stream<List<Trip>> watchAllTrips() {
-    return (_db.select(_db.trips)
-          ..orderBy([
-            (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc)
-          ]))
+    return (_db.select(_db.trips)..orderBy([
+          (t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+        ]))
         .watch();
   }
 
   @override
   Future<void> deleteTrip(int tripId) async {
-    await (_db.delete(_db.liveEventReviews)..where((t) => t.tripId.equals(tripId))).go();
-    await (_db.delete(_db.sensorReadings)..where((t) => t.tripId.equals(tripId))).go();
-    await (_db.delete(_db.eventRecords)..where((t) => t.tripId.equals(tripId))).go();
-    await (_db.delete(_db.locationReadings)..where((t) => t.tripId.equals(tripId))).go();
-    await (_db.delete(_db.tripCalibrations)..where((t) => t.tripId.equals(tripId))).go();
+    await (_db.delete(
+      _db.liveEventReviews,
+    )..where((t) => t.tripId.equals(tripId))).go();
+    await (_db.delete(
+      _db.sensorReadings,
+    )..where((t) => t.tripId.equals(tripId))).go();
+    await (_db.delete(
+      _db.eventRecords,
+    )..where((t) => t.tripId.equals(tripId))).go();
+    await (_db.delete(
+      _db.locationReadings,
+    )..where((t) => t.tripId.equals(tripId))).go();
+    await (_db.delete(
+      _db.tripCalibrations,
+    )..where((t) => t.tripId.equals(tripId))).go();
     await (_db.delete(_db.trips)..where((t) => t.id.equals(tripId))).go();
     await _initCountersFromDb();
   }
@@ -506,12 +532,16 @@ class SensorRepositoryImpl implements SensorRepository {
       }
 
       final totalExpected = totalPackets + droppedPackets;
-      final pct = totalExpected > 0 ? (totalPackets / totalExpected) * 100.0 : 100.0;
+      final pct = totalExpected > 0
+          ? (totalPackets / totalExpected) * 100.0
+          : 100.0;
 
       return BleQualityStats(
         totalPackets: totalPackets,
         droppedPackets: droppedPackets,
-        receptionPercentage: double.parse(pct.clamp(0.0, 100.0).toStringAsFixed(1)),
+        receptionPercentage: double.parse(
+          pct.clamp(0.0, 100.0).toStringAsFixed(1),
+        ),
         gapCount: gapCount,
       );
     } catch (_) {
@@ -526,9 +556,9 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Future<int> deleteUntaggedReadingsForTrip(int tripId) async {
-    final deleted = await (_db.delete(_db.sensorReadings)
-          ..where((t) => t.tripId.equals(tripId) & t.eventId.isNull()))
-        .go();
+    final deleted = await (_db.delete(
+      _db.sensorReadings,
+    )..where((t) => t.tripId.equals(tripId) & t.eventId.isNull())).go();
     await _initCountersFromDb();
     return deleted;
   }
@@ -545,13 +575,25 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Future<void> deleteEvent(int eventId) async {
-    await (_db.delete(_db.sensorReadings)
-          ..where((t) => t.eventId.equals(eventId)))
-        .go();
-    await (_db.delete(_db.eventRecords)
-          ..where((t) => t.id.equals(eventId)))
-        .go();
-    // Recount totals from DB after deletion
+    final row = await (_db.select(
+      _db.eventRecords,
+    )..where((t) => t.id.equals(eventId))).getSingleOrNull();
+    if (row == null) return;
+    final reviews = await (_db.select(
+      _db.liveEventReviews,
+    )..where((t) => t.eventId.equals(eventId))).get();
+    await EventLibraryRepository(_db).delete(
+      ManagedEvent(
+        key: 'event_$eventId',
+        type: row.eventType,
+        source: 'Recorded event',
+        status: row.status,
+        at: row.startTimestamp,
+        eventId: eventId,
+        reviewId: reviews.firstOrNull?.id,
+        roadId: reviews.firstOrNull?.roadEventId,
+      ),
+    );
     await _initCountersFromDb();
   }
 

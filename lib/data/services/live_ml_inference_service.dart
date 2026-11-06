@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+
 import '../../ble/models/raw_sensor_data.dart';
 import '../../core/utils/angular_units.dart';
 
@@ -37,7 +38,11 @@ class LiveMlPrediction {
       label: 'Normal Riding',
       confidence: 0.98,
       timestampUtc: timestamp ?? DateTime.now().toUtc(),
-      topFeatures: const {'accel_z_rms': AngularUnits.standardGravity, 'roll_deg': 0.0, 'jerk_mps3': 0.0},
+      topFeatures: const {
+        'accel_z_rms': AngularUnits.standardGravity,
+        'roll_deg': 0.0,
+        'jerk_mps3': 0.0,
+      },
       explanation: 'Stable telemetry floor',
     );
   }
@@ -73,9 +78,12 @@ class LiveMlInferenceService {
     if (axes.any((v) => v == null || !v.isFinite)) return;
     final loc = reading.mountLocation.toLowerCase();
     final vehicleMounted = loc.contains('fork') || loc.contains('foot');
-    final stale = _forkBuffer.isNotEmpty &&
-        reading.timestamp.difference(_forkBuffer.last.timestamp) > const Duration(seconds: 2);
-    if (_primaryDeviceId == null || stale ||
+    final stale =
+        _forkBuffer.isNotEmpty &&
+        reading.timestamp.difference(_forkBuffer.last.timestamp) >
+            const Duration(seconds: 2);
+    if (_primaryDeviceId == null ||
+        stale ||
         (vehicleMounted && !_primaryIsVehicleMounted)) {
       _primaryDeviceId = reading.deviceId;
       _primaryIsVehicleMounted = vehicleMounted;
@@ -83,11 +91,18 @@ class LiveMlInferenceService {
       _footBuffer.clear();
       _lastInferenceTime = null;
     }
-    final buffer = reading.deviceId == _primaryDeviceId ? _forkBuffer : _footBuffer;
-    if (buffer.isNotEmpty && !reading.timestamp.isAfter(buffer.last.timestamp)) return;
+    final buffer = reading.deviceId == _primaryDeviceId
+        ? _forkBuffer
+        : _footBuffer;
+    if (buffer.isNotEmpty && !reading.timestamp.isAfter(buffer.last.timestamp)) {
+      return;
+    }
     buffer.add(reading);
-    buffer.removeWhere((sample) => reading.timestamp.difference(sample.timestamp) >
-        const Duration(milliseconds: 1500));
+    buffer.removeWhere(
+      (sample) =>
+          reading.timestamp.difference(sample.timestamp) >
+          const Duration(milliseconds: 1500),
+    );
     if (buffer.length > maxBufferSize) buffer.removeAt(0);
     if (reading.deviceId != _primaryDeviceId) return;
 
@@ -115,8 +130,15 @@ class LiveMlInferenceService {
 
     // Impact magnitude is independent of wrist/sensor orientation. Keep each
     // device's samples separate so left/right offsets cannot create fake jerk.
-    final zVals = _forkBuffer.map((r) => math.sqrt(
-        r.accelX! * r.accelX! + r.accelY! * r.accelY! + r.accelZ! * r.accelZ!)).toList();
+    final zVals = _forkBuffer
+        .map(
+          (r) => math.sqrt(
+            r.accelX! * r.accelX! +
+                r.accelY! * r.accelY! +
+                r.accelZ! * r.accelZ!,
+          ),
+        )
+        .toList();
     final xVals = _forkBuffer.map((r) => r.accelX ?? 0.0).toList();
     final yVals = _forkBuffer.map((r) => r.accelY ?? 0.0).toList();
     final gzVals = _forkBuffer.map((r) => r.gyroZ ?? 0.0).toList();
@@ -144,9 +166,14 @@ class LiveMlInferenceService {
     for (int i = 1; i < zVals.length; i++) {
       final previous = _forkBuffer[i - 1];
       final current = _forkBuffer[i];
-      final dt = previous.timestampMonotonicMicros != null && current.timestampMonotonicMicros != null
-          ? (current.timestampMonotonicMicros! - previous.timestampMonotonicMicros!) / 1e6
-          : current.timestamp.difference(previous.timestamp).inMicroseconds / 1e6;
+      final dt =
+          previous.timestampMonotonicMicros != null &&
+              current.timestampMonotonicMicros != null
+          ? (current.timestampMonotonicMicros! -
+                    previous.timestampMonotonicMicros!) /
+                1e6
+          : current.timestamp.difference(previous.timestamp).inMicroseconds /
+                1e6;
       if (dt <= 0 || dt > 0.25) continue;
       final jerk = (zVals[i] - zVals[i - 1]).abs() / dt;
       if (jerk > peakJerk) peakJerk = jerk;
@@ -166,7 +193,9 @@ class LiveMlInferenceService {
     // 2. Fork vs Footboard Cross-Correlation
     double forkFootCorr = 0.0;
     if (_footBuffer.length >= 10 && _forkBuffer.length >= 10) {
-      final footZ = _footBuffer.map((r) => r.accelZ ?? AngularUnits.standardGravity).toList();
+      final footZ = _footBuffer
+          .map((r) => r.accelZ ?? AngularUnits.standardGravity)
+          .toList();
       final len = math.min(zVals.length, footZ.length);
       double fSum = 0.0;
       double bSum = 0.0;
@@ -194,6 +223,11 @@ class LiveMlInferenceService {
     }
 
     final topFeatures = <String, double>{
+      'window_start_epoch_ms': _forkBuffer
+          .first
+          .timestamp
+          .millisecondsSinceEpoch
+          .toDouble(),
       'z_peak_mps2': zMax,
       'z_ptp': zPtp,
       'z_std': zStd,
@@ -214,37 +248,58 @@ class LiveMlInferenceService {
     if ((zMax > 18.0 || zPtp > 16.0) && peakJerk > 120.0) {
       detectedType = MlPredictedEventType.severeBump;
       detectedLabel = 'Severe Bump / Pothole';
-      confidence = (0.85 + math.min(0.14, (zMax - 18.0) * 0.01)).clamp(0.80, 0.99);
-      explanation = 'High vertical impulse (Peak ${zMax.toStringAsFixed(1)} m/s², Jerk ${peakJerk.toStringAsFixed(0)} m/s³)';
+      confidence = (0.85 + math.min(0.14, (zMax - 18.0) * 0.01)).clamp(
+        0.80,
+        0.99,
+      );
+      explanation =
+          'High vertical impulse (Peak ${zMax.toStringAsFixed(1)} m/s², Jerk ${peakJerk.toStringAsFixed(0)} m/s³)';
     }
     // Rule 2: Mild Bump / Surface Texture
     else if ((zMax > 13.5 || zPtp > 7.5) && peakJerk > 50.0) {
       detectedType = MlPredictedEventType.mildBump;
       detectedLabel = 'Mild Road Bump';
-      confidence = (0.75 + math.min(0.20, (zPtp - 7.5) * 0.02)).clamp(0.70, 0.95);
-      explanation = 'Moderate surface transient (PTP ${zPtp.toStringAsFixed(1)} m/s²)';
+      confidence = (0.75 + math.min(0.20, (zPtp - 7.5) * 0.02)).clamp(
+        0.70,
+        0.95,
+      );
+      explanation =
+          'Moderate surface transient (PTP ${zPtp.toStringAsFixed(1)} m/s²)';
     }
     // Rule 3: Sharp Turn / Cornering Lean
-    else if (_primaryIsVehicleMounted ? (rollDeg > 12.0 || latestGz > 22.0) :
-        gzVals.where((v) => v.abs() > 22.0).length >= gzVals.length * 0.7) {
+    else if (_primaryIsVehicleMounted
+        ? (rollDeg > 12.0 || latestGz > 22.0)
+        : gzVals.where((v) => v.abs() > 22.0).length >= gzVals.length * 0.7) {
       detectedType = MlPredictedEventType.sharpTurn;
       detectedLabel = 'Sharp Cornering Turn';
-      confidence = (0.80 + math.min(0.18, (rollDeg - 12.0) * 0.015)).clamp(0.75, 0.98);
-      explanation = 'Vehicle lean angle (${rollDeg.toStringAsFixed(1)}°) & yaw rotation';
+      confidence = (0.80 + math.min(0.18, (rollDeg - 12.0) * 0.015)).clamp(
+        0.75,
+        0.98,
+      );
+      explanation =
+          'Vehicle lean angle (${rollDeg.toStringAsFixed(1)}°) & yaw rotation';
     }
     // Rule 4: Hard Braking Event
     else if (_primaryIsVehicleMounted && latestAx < -3.0) {
       detectedType = MlPredictedEventType.hardBraking;
       detectedLabel = 'Hard Braking';
-      confidence = (0.82 + math.min(0.16, (-latestAx - 3.0) * 0.03)).clamp(0.75, 0.98);
-      explanation = 'Longitudinal deceleration (${latestAx.toStringAsFixed(1)} m/s²)';
+      confidence = (0.82 + math.min(0.16, (-latestAx - 3.0) * 0.03)).clamp(
+        0.75,
+        0.98,
+      );
+      explanation =
+          'Longitudinal deceleration (${latestAx.toStringAsFixed(1)} m/s²)';
     }
     // Rule 5: Rapid Acceleration
     else if (_primaryIsVehicleMounted && latestAx > 2.5) {
       detectedType = MlPredictedEventType.rapidAcceleration;
       detectedLabel = 'Rapid Acceleration';
-      confidence = (0.80 + math.min(0.15, (latestAx - 2.5) * 0.03)).clamp(0.70, 0.96);
-      explanation = 'Forward surge acceleration (+${latestAx.toStringAsFixed(1)} m/s²)';
+      confidence = (0.80 + math.min(0.15, (latestAx - 2.5) * 0.03)).clamp(
+        0.70,
+        0.96,
+      );
+      explanation =
+          'Forward surge acceleration (+${latestAx.toStringAsFixed(1)} m/s²)';
     }
 
     final prediction = LiveMlPrediction(
@@ -275,4 +330,3 @@ class LiveMlInferenceService {
     _predictionController.close();
   }
 }
-
