@@ -8,7 +8,9 @@ class MlStarterScriptGenerator {
 
   /// Returns the complete Python 3 script source code
   static String generateTrainBaselineScript({String? defaultCsvFilename}) {
-    final csvHint = defaultCsvFilename != null ? "'$defaultCsvFilename'" : "None";
+    final csvHint = defaultCsvFilename != null
+        ? "'$defaultCsvFilename'"
+        : "None";
 
     return '''# ==============================================================================
 # 🚴 Ride Sensor ML Pipeline — Baseline Classifier & Feature Extractor
@@ -29,7 +31,6 @@ import argparse
 import numpy as np
 import pandas as pd
 from scipy import signal, stats
-from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, f1_score
 from sklearn.preprocessing import StandardScaler
@@ -184,22 +185,20 @@ def build_windowed_dataset(df, label_col, window_sec=1.5, stride_sec=0.5, sample
     print(f"    Class distribution across windows:\\n{pd.Series(labels).value_counts()}\\n")
     return feature_df, pd.Series(labels)
 
-def train_and_evaluate(X, y):
+def train_and_evaluate(X, y, purge_windows):
     print("==============================================================================")
     print("🚀 Training Machine Learning Classifiers (Random Forest & Gradient Boosting)")
     print("==============================================================================")
 
-    # Filter out classes with < 2 instances for stratified splitting
-    counts = y.value_counts()
-    valid_classes = counts[counts >= 2].index
-    if len(valid_classes) < len(counts):
-        mask = y.isin(valid_classes)
-        X = X[mask]
-        y = y[mask]
-
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.25, random_state=42, stratify=y if len(np.unique(y)) > 1 else None
-    )
+    # Windows overlap. Preserve chronological order and purge every window
+    # that could share a raw sample with the test partition.
+    cutoff = int(len(X) * 0.75)
+    train_stop = cutoff - purge_windows
+    if train_stop < 2 or len(X) - cutoff < 1:
+        raise ValueError("Not enough disjoint windows for evaluation; collect a longer ride.")
+    X_train, y_train = X.iloc[:train_stop], y.iloc[:train_stop]
+    X_test, y_test = X.iloc[cutoff:], y.iloc[cutoff:]
+    print("[*] Chronological evaluation with purged overlap; this is not held-out-rider validation.")
 
     print(f"[*] Training Set: {len(X_train)} windows | Test Set: {len(X_test)} windows")
 
@@ -255,7 +254,7 @@ def main():
         csv_file = find_dataset_csv(args.csv)
         df, label_col = load_and_preprocess(csv_file)
         X, y = build_windowed_dataset(df, label_col, window_sec=args.window, stride_sec=args.stride)
-        train_and_evaluate(X, y)
+        train_and_evaluate(X, y, purge_windows=int(np.ceil(args.window / args.stride)))
     except Exception as e:
         print(f"[!] Error executing ML pipeline: {e}")
         sys.exit(1)

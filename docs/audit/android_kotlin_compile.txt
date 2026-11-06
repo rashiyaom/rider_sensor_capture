@@ -1,0 +1,379 @@
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+
+> Configure project :app
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':app' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :battery_plus
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':battery_plus' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :flutter_blue_plus_android
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':flutter_blue_plus_android' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :flutter_tts
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':flutter_tts' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :geolocator_android
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':geolocator_android' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :jni
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':jni' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :jni_flutter
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':jni_flutter' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :network_info_plus
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':network_info_plus' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :permission_handler_android
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':permission_handler_android' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :record_android
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':record_android' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :share_plus
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':share_plus' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :skio_uvc_camera
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':skio_uvc_camera' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :speech_to_text
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':speech_to_text' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :sqlite3_flutter_libs
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':sqlite3_flutter_libs' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :url_launcher_android
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':url_launcher_android' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+WARNING: Your app uses the following plugins that apply Kotlin Gradle Plugin (KGP): battery_plus, flutter_tts, network_info_plus, share_plus, speech_to_text
+Future versions of Flutter will fail to build if your app uses plugins that apply KGP.
+
+Please check the changelogs of these plugins and upgrade to a version that supports Built-in Kotlin.
+If no such version exists, report the issue to the plugin. If necessary, here is a guide on filing
+an issue against a plugin: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers#report-incompatible-kotlin-gradle-plugin-usage-to-plugin-authors
+
+If you are a plugin author, please migrate your plugin to Built-in Kotlin using this guide: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-plugin-authors
+
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :app:cleanMergeDebugAssets UP-TO-DATE
+> Task :app:generateDebugAssets UP-TO-DATE
+> Task :app:validateCompileSdkVersion
+> Task :app:preBuild
+> Task :app:preDebugBuild
+> Task :battery_plus:generateDebugAssets UP-TO-DATE
+> Task :battery_plus:preBuild UP-TO-DATE
+> Task :battery_plus:preDebugBuild UP-TO-DATE
+> Task :battery_plus:mergeDebugAssets
+> Task :flutter_blue_plus_android:generateDebugAssets UP-TO-DATE
+> Task :flutter_blue_plus_android:preBuild UP-TO-DATE
+> Task :flutter_blue_plus_android:preDebugBuild UP-TO-DATE
+> Task :flutter_blue_plus_android:mergeDebugAssets
+> Task :flutter_tts:generateDebugAssets UP-TO-DATE
+> Task :flutter_tts:preBuild UP-TO-DATE
+> Task :flutter_tts:preDebugBuild UP-TO-DATE
+> Task :flutter_tts:mergeDebugAssets
+> Task :geolocator_android:generateDebugAssets UP-TO-DATE
+> Task :geolocator_android:preBuild UP-TO-DATE
+> Task :geolocator_android:preDebugBuild UP-TO-DATE
+> Task :geolocator_android:mergeDebugAssets
+> Task :jni:generateDebugAssets UP-TO-DATE
+> Task :jni:preBuild UP-TO-DATE
+> Task :jni:preDebugBuild UP-TO-DATE
+> Task :jni:mergeDebugAssets
+> Task :jni_flutter:generateDebugAssets UP-TO-DATE
+> Task :jni_flutter:preBuild UP-TO-DATE
+> Task :jni_flutter:preDebugBuild UP-TO-DATE
+> Task :jni_flutter:mergeDebugAssets
+> Task :network_info_plus:generateDebugAssets UP-TO-DATE
+> Task :network_info_plus:preBuild UP-TO-DATE
+> Task :network_info_plus:preDebugBuild UP-TO-DATE
+> Task :network_info_plus:mergeDebugAssets
+> Task :permission_handler_android:generateDebugAssets UP-TO-DATE
+> Task :permission_handler_android:preBuild UP-TO-DATE
+> Task :permission_handler_android:preDebugBuild UP-TO-DATE
+> Task :permission_handler_android:mergeDebugAssets
+> Task :record_android:generateDebugAssets UP-TO-DATE
+> Task :record_android:preBuild UP-TO-DATE
+> Task :record_android:preDebugBuild UP-TO-DATE
+> Task :record_android:mergeDebugAssets
+> Task :share_plus:generateDebugAssets UP-TO-DATE
+> Task :share_plus:preBuild UP-TO-DATE
+> Task :share_plus:preDebugBuild UP-TO-DATE
+> Task :share_plus:mergeDebugAssets
+> Task :skio_uvc_camera:generateDebugAssets UP-TO-DATE
+> Task :skio_uvc_camera:preBuild UP-TO-DATE
+> Task :skio_uvc_camera:preDebugBuild UP-TO-DATE
+> Task :skio_uvc_camera:mergeDebugAssets
+> Task :speech_to_text:generateDebugAssets UP-TO-DATE
+> Task :speech_to_text:preBuild UP-TO-DATE
+> Task :speech_to_text:preDebugBuild UP-TO-DATE
+> Task :speech_to_text:mergeDebugAssets
+> Task :sqlite3_flutter_libs:generateDebugAssets UP-TO-DATE
+> Task :sqlite3_flutter_libs:preBuild UP-TO-DATE
+> Task :sqlite3_flutter_libs:preDebugBuild UP-TO-DATE
+> Task :sqlite3_flutter_libs:mergeDebugAssets
+> Task :url_launcher_android:generateDebugAssets UP-TO-DATE
+> Task :url_launcher_android:preBuild UP-TO-DATE
+> Task :url_launcher_android:preDebugBuild UP-TO-DATE
+> Task :url_launcher_android:mergeDebugAssets
+> Task :app:mergeDebugAssets
+> Task :app:copyFlutterAssetsDebug NO-SOURCE
+> Task :app:generateDebugResources
+> Task :app:packageDebugResources
+> Task :battery_plus:processDebugNavigationResources
+> Task :flutter_blue_plus_android:processDebugNavigationResources
+> Task :flutter_tts:processDebugNavigationResources
+> Task :geolocator_android:processDebugNavigationResources
+> Task :jni:processDebugNavigationResources
+> Task :jni_flutter:processDebugNavigationResources
+> Task :network_info_plus:processDebugNavigationResources
+> Task :permission_handler_android:processDebugNavigationResources
+> Task :record_android:processDebugNavigationResources
+> Task :share_plus:processDebugNavigationResources
+> Task :skio_uvc_camera:processDebugNavigationResources
+> Task :speech_to_text:processDebugNavigationResources
+> Task :sqlite3_flutter_libs:processDebugNavigationResources
+> Task :url_launcher_android:processDebugNavigationResources
+> Task :app:processDebugNavigationResources
+> Task :battery_plus:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :battery_plus:generateDebugResources
+> Task :battery_plus:packageDebugResources
+> Task :flutter_blue_plus_android:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :battery_plus:parseDebugLocalResources
+> Task :battery_plus:javaPreCompileDebug
+> Task :flutter_blue_plus_android:generateDebugResources
+> Task :app:parseDebugLocalResources
+> Task :flutter_blue_plus_android:packageDebugResources
+> Task :flutter_tts:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :flutter_blue_plus_android:javaPreCompileDebug
+> Task :app:generateDebugRFile
+> Task :battery_plus:generateDebugRFile
+> Task :flutter_tts:generateDebugResources
+> Task :flutter_blue_plus_android:parseDebugLocalResources
+> Task :flutter_blue_plus_android:generateDebugRFile
+> Task :flutter_tts:packageDebugResources
+> Task :flutter_blue_plus_android:compileDebugKotlin NO-SOURCE
+> Task :flutter_blue_plus_android:compileDebugJavaWithJavac
+> Task :flutter_blue_plus_android:bundleLibCompileToJarDebug
+> Task :geolocator_android:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :flutter_tts:javaPreCompileDebug
+> Task :flutter_tts:parseDebugLocalResources
+> Task :geolocator_android:generateDebugResources
+> Task :flutter_tts:generateDebugRFile
+> Task :geolocator_android:packageDebugResources
+> Task :jni:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :geolocator_android:javaPreCompileDebug
+> Task :geolocator_android:parseDebugLocalResources
+> Task :jni:generateDebugResources
+> Task :geolocator_android:generateDebugRFile
+> Task :jni:packageDebugResources
+> Task :geolocator_android:compileDebugKotlin NO-SOURCE
+> Task :battery_plus:compileDebugKotlin
+> Task :geolocator_android:compileDebugJavaWithJavac
+> Task :battery_plus:compileDebugJavaWithJavac NO-SOURCE
+> Task :battery_plus:bundleLibCompileToJarDebug
+> Task :geolocator_android:bundleLibCompileToJarDebug
+> Task :jni_flutter:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :jni:javaPreCompileDebug
+> Task :jni:parseDebugLocalResources
+> Task :jni_flutter:generateDebugResources
+> Task :jni:generateDebugRFile
+> Task :jni_flutter:packageDebugResources
+> Task :jni:compileDebugKotlin NO-SOURCE
+> Task :jni:compileDebugJavaWithJavac
+> Task :jni:bundleLibCompileToJarDebug
+> Task :network_info_plus:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :jni_flutter:javaPreCompileDebug
+> Task :jni_flutter:parseDebugLocalResources
+> Task :network_info_plus:generateDebugResources
+> Task :jni_flutter:generateDebugRFile
+> Task :network_info_plus:packageDebugResources
+> Task :jni_flutter:compileDebugKotlin NO-SOURCE
+> Task :jni_flutter:compileDebugJavaWithJavac
+> Task :jni_flutter:bundleLibCompileToJarDebug
+> Task :permission_handler_android:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :network_info_plus:javaPreCompileDebug
+> Task :network_info_plus:parseDebugLocalResources
+> Task :permission_handler_android:generateDebugResources
+> Task :network_info_plus:generateDebugRFile
+> Task :permission_handler_android:packageDebugResources
+> Task :record_android:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :permission_handler_android:javaPreCompileDebug
+> Task :permission_handler_android:parseDebugLocalResources
+> Task :record_android:generateDebugResources
+> Task :permission_handler_android:generateDebugRFile
+> Task :record_android:packageDebugResources
+> Task :permission_handler_android:compileDebugKotlin NO-SOURCE
+> Task :permission_handler_android:compileDebugJavaWithJavac
+> Task :permission_handler_android:bundleLibCompileToJarDebug
+> Task :share_plus:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :record_android:javaPreCompileDebug
+> Task :share_plus:generateDebugResources
+> Task :record_android:parseDebugLocalResources
+> Task :share_plus:packageDebugResources
+> Task :record_android:generateDebugRFile
+> Task :share_plus:parseDebugLocalResources
+> Task :skio_uvc_camera:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :share_plus:javaPreCompileDebug
+> Task :skio_uvc_camera:generateDebugResources
+> Task :share_plus:generateDebugRFile
+> Task :skio_uvc_camera:packageDebugResources
+> Task :speech_to_text:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :skio_uvc_camera:javaPreCompileDebug
+> Task :skio_uvc_camera:parseDebugLocalResources
+> Task :speech_to_text:generateDebugResources
+> Task :skio_uvc_camera:generateDebugRFile
+> Task :speech_to_text:packageDebugResources
+> Task :skio_uvc_camera:compileDebugKotlin NO-SOURCE
+> Task :skio_uvc_camera:compileDebugJavaWithJavac
+> Task :skio_uvc_camera:bundleLibCompileToJarDebug
+> Task :sqlite3_flutter_libs:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :speech_to_text:javaPreCompileDebug
+> Task :speech_to_text:parseDebugLocalResources
+> Task :sqlite3_flutter_libs:generateDebugResources
+> Task :speech_to_text:generateDebugRFile
+> Task :sqlite3_flutter_libs:packageDebugResources
+> Task :url_launcher_android:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :sqlite3_flutter_libs:javaPreCompileDebug
+> Task :sqlite3_flutter_libs:parseDebugLocalResources
+> Task :url_launcher_android:generateDebugBuildConfig
+> Task :url_launcher_android:generateDebugResources
+> Task :sqlite3_flutter_libs:generateDebugRFile
+> Task :sqlite3_flutter_libs:compileDebugKotlin NO-SOURCE
+
+> Task :flutter_tts:compileDebugKotlin
+w: file:///Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/android/src/main/kotlin/com/eyedeadevelopment/fluttertts/FlutterTtsPlugin.kt:721:60 Unnecessary non-null assertion (!!) on a non-null receiver of type 'File'.
+w: file:///Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/android/src/main/kotlin/com/eyedeadevelopment/fluttertts/FlutterTtsPlugin.kt:739:60 Unnecessary non-null assertion (!!) on a non-null receiver of type 'File'.
+w: file:///Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/android/src/main/kotlin/com/eyedeadevelopment/fluttertts/FlutterTtsPlugin.kt:804:27 'fun requestAudioFocus(p0: AudioManager.OnAudioFocusChangeListener!, p1: Int, p2: Int): Int' is deprecated. Deprecated in Java.
+w: file:///Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/android/src/main/kotlin/com/eyedeadevelopment/fluttertts/FlutterTtsPlugin.kt:812:27 'fun abandonAudioFocus(p0: AudioManager.OnAudioFocusChangeListener!): Int' is deprecated. Deprecated in Java.
+
+> Task :sqlite3_flutter_libs:compileDebugJavaWithJavac
+> Task :sqlite3_flutter_libs:bundleLibCompileToJarDebug
+> Task :url_launcher_android:packageDebugResources
+> Task :url_launcher_android:javaPreCompileDebug
+> Task :url_launcher_android:parseDebugLocalResources
+> Task :url_launcher_android:generateDebugRFile
+> Task :flutter_tts:compileDebugJavaWithJavac NO-SOURCE
+> Task :flutter_tts:bundleLibCompileToJarDebug
+> Task :network_info_plus:compileDebugKotlin
+> Task :network_info_plus:compileDebugJavaWithJavac NO-SOURCE
+> Task :network_info_plus:bundleLibCompileToJarDebug
+> Task :record_android:compileDebugKotlin
+> Task :url_launcher_android:compileDebugKotlin
+> Task :share_plus:compileDebugKotlin
+> Task :speech_to_text:compileDebugKotlin
+> Task :url_launcher_android:compileDebugJavaWithJavac
+> Task :share_plus:compileDebugJavaWithJavac NO-SOURCE
+> Task :share_plus:bundleLibCompileToJarDebug
+> Task :url_launcher_android:bundleLibCompileToJarDebug
+
+> Task :speech_to_text:compileDebugKotlin
+w: file:///Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/speech_to_text-7.4.0/android/src/main/kotlin/com/csdcorp/speech_to_text/SpeechToTextPlugin.kt:381:23 Unnecessary safe call on a non-null receiver of type 'SpeechRecognizer'.
+w: file:///Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/speech_to_text-7.4.0/android/src/main/kotlin/com/csdcorp/speech_to_text/SpeechToTextPlugin.kt:386:35 Unnecessary safe call on a non-null receiver of type 'SpeechRecognizer'.
+w: file:///Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/speech_to_text-7.4.0/android/src/main/kotlin/com/csdcorp/speech_to_text/SpeechToTextPlugin.kt:390:35 Unnecessary safe call on a non-null receiver of type 'SpeechRecognizer'.
+w: file:///Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/speech_to_text-7.4.0/android/src/main/kotlin/com/csdcorp/speech_to_text/SpeechToTextPlugin.kt:575:45 'static fun getDefaultAdapter(): BluetoothAdapter!' is deprecated. Deprecated in Java.
+
+> Task :speech_to_text:compileDebugJavaWithJavac NO-SOURCE
+> Task :speech_to_text:bundleLibCompileToJarDebug
+> Task :record_android:compileDebugJavaWithJavac NO-SOURCE
+> Task :record_android:bundleLibCompileToJarDebug
+> Task :app:compileDebugKotlin
+
+[Incubating] Problems report is available at: file:///Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML%20app/ride_sensor_capture/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 1m 40s
+141 actionable tasks: 136 executed, 5 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.0/userguide/configuration_cache_enabling.html

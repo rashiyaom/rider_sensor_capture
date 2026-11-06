@@ -1,5 +1,7 @@
 # Mobile app audit — 6 November 2026
 
+> Repair update: the first repair batch addresses AUD-01–08. All six original reproduction tests now pass, and the full app suite passes 273 tests. See [repair progress and remaining limits](audit/REPAIR_PROGRESS.md). The findings and results below remain the original audit snapshot.
+
 ## Result
 
 The requested ride conversation and review flow is now present, but the app is **not yet validated for dependable riding or trustworthy training data**. The most urgent remaining problems are timestamp precision, buffered-write integrity, warning delivery accounting, and background operation. A successful screen demonstration would not establish that these work correctly.

@@ -334,6 +334,9 @@ class ExportRepositoryImpl implements ExportRepository {
           'recommended_speed_kmh': alert.recommendedSpeedKmh,
           'urgency': alert.urgency,
           'spoken_text': alert.spokenText,
+          'delivery_status': alert.deliveryStatus,
+          'delivered_at_utc': alert.deliveredAtUtc?.toIso8601String(),
+          'delivery_failure': alert.deliveryFailure,
         };
       }
     }
@@ -778,7 +781,7 @@ class ExportRepositoryImpl implements ExportRepository {
       final voiceCmd = matchingEvt?.triggerPhrase ?? '';
       final riderFb = fb?.responseText ?? '';
 
-      // Streamlined 22-column ML telemetry row
+      // Version 2 telemetry row: original columns followed by stable identity metadata
       final row = [
         r.timestampUtc.toIso8601String(),
         r.timestampUtc.millisecondsSinceEpoch,
@@ -804,6 +807,12 @@ class ExportRepositoryImpl implements ExportRepository {
         _csvEscape(voiceCmd),
         _csvEscape(riderFb),
         _csvEscape(bboxMarker),
+        2,
+        r.id,
+        _csvEscape(r.deviceId),
+        _csvEscape(r.mountLocation),
+        r.tripId ?? '',
+        matchingEvt?.id ?? r.eventId ?? '',
       ];
 
       buffer.writeln(row.join(','));
@@ -818,7 +827,8 @@ class ExportRepositoryImpl implements ExportRepository {
         'gyro_x,gyro_y,gyro_z,roll_deg,pitch_deg,'
         'heart_rate_bpm,ppi_ms,'
         'gps_speed_kmh,latitude,longitude,'
-        'event_type,voice_command,rider_feedback,bbox_marker\n';
+        'event_type,voice_command,rider_feedback,bbox_marker,'
+        'schema_version,reading_id,device_id,mount_location,trip_id,event_id\n';
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -887,7 +897,9 @@ class ExportRepositoryImpl implements ExportRepository {
 
       final peakG =
           params?.bump?.peakGForce ??
-          (e.peakMetric != null ? AngularUnits.accelToG(e.peakMetric!) : null);
+          ((e.eventType == 'bump' || e.eventType == 'pothole')
+              ? e.peakMetric
+              : null);
       final jerk =
           e.jerkPeakMagnitude ??
           params?.bump?.jerkPeakMagnitude ??
@@ -1031,7 +1043,7 @@ class ExportRepositoryImpl implements ExportRepository {
       'pre_alert_id,road_event_id,trip_id,event_id,event_type,'
       'alerted_at_utc,latitude,longitude,'
       'distance_meters,speed_kmh,time_to_event_seconds,recommended_speed_kmh,'
-      'urgency,spoken_text,acknowledged',
+      'urgency,spoken_text,acknowledged,delivery_status,delivered_at_utc,delivery_failure',
     );
 
     for (final a in alerts) {
@@ -1051,6 +1063,9 @@ class ExportRepositoryImpl implements ExportRepository {
         _csvEscape(a.urgency),
         _csvEscape(a.spokenText),
         a.acknowledged,
+        _csvEscape(a.deliveryStatus),
+        a.deliveredAtUtc?.toIso8601String() ?? '',
+        _csvEscape(a.deliveryFailure ?? ''),
       ];
       buffer.writeln(row.join(','));
     }
@@ -1411,14 +1426,7 @@ class ExportRepositoryImpl implements ExportRepository {
     final fmt = DateFormat('yyyy-MM-dd HH:mm:ss.SSS');
 
     // ── Header (22 standardized ML dataset fields) ──
-    buffer.writeln(
-      'timestamp_iso8601,timestamp_epoch_ms,sequence_no,wrist_side,'
-      'accel_x,accel_y,accel_z,accel_magnitude,'
-      'gyro_x,gyro_y,gyro_z,roll_deg,pitch_deg,'
-      'heart_rate_bpm,ppi_ms,'
-      'gps_speed_kmh,latitude,longitude,'
-      'event_type,voice_command,rider_feedback,bbox_marker',
-    );
+    buffer.write(_buildTimeseriesCsvHeader());
 
     if (readings.isEmpty) return buffer.toString();
 
@@ -1431,7 +1439,7 @@ class ExportRepositoryImpl implements ExportRepository {
     // Set of eventIds whose EVENT_END sentinel has been written
     final endWritten = <int>{};
 
-    // ── Helper: write a zero-data sentinel row (22 fields) ──
+    // ── Helper: write a zero-data sentinel row (28 fields) ──
     void writeSentinel(String markerType, EventRecord evt) {
       final ts = (markerType == 'EVENT_START' || markerType == 'CONTEXT_PRE')
           ? evt.startTimestamp
@@ -1454,6 +1462,7 @@ class ExportRepositoryImpl implements ExportRepository {
           _csvEscape(voiceCmd), // 20. voice_command
           _csvEscape(riderFb), // 21. rider_feedback
           _csvEscape(markerType), // 22. bbox_marker
+          2, '', '', '', evt.tripId ?? '', evt.id,
         ].join(','),
       );
     }
@@ -1584,7 +1593,7 @@ class ExportRepositoryImpl implements ExportRepository {
             : '';
       }
 
-      // 5. Write sensor data row (22 fields)
+      // 5. Write sensor data row (28 fields)
       String wristSide = r.mountLocation.toLowerCase();
       if (wristSide == 'fork') wristSide = 'left_hand';
       if (wristSide == 'footboard') wristSide = 'right_hand';
@@ -1641,6 +1650,12 @@ class ExportRepositoryImpl implements ExportRepository {
           _csvEscape(voiceCmd),
           _csvEscape(riderFb),
           _csvEscape(bboxMarker),
+          2,
+          r.id,
+          _csvEscape(r.deviceId),
+          _csvEscape(r.mountLocation),
+          r.tripId ?? '',
+          effectiveEvt?.id ?? r.eventId ?? '',
         ].join(','),
       );
 

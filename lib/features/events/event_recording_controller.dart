@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:drift/drift.dart' as drift;
@@ -13,13 +14,7 @@ import '../../voice/voice_command_config.dart';
 import '../trips/trip_controller.dart';
 import 'parameter_engine.dart';
 
-enum RecordingState {
-  idle,
-  listening,
-  recording,
-  halted,
-  saved,
-}
+enum RecordingState { idle, listening, recording, halted, saved }
 
 /// Telemetry of the predictive pre-alert that preceded a completed event.
 ///
@@ -44,6 +39,8 @@ class PreAlertContext {
 
   static const PreAlertContext empty = PreAlertContext();
 }
+
+const _unchangedEventValue = Object();
 
 class EventRecordingSessionState {
   final RecordingState state;
@@ -80,38 +77,56 @@ class EventRecordingSessionState {
 
   EventRecordingSessionState copyWith({
     RecordingState? state,
-    EventType? currentEventType,
-    String? triggerPhrase,
-    int? activeEventId,
-    int? tripId,
-    DateTime? startTime,
+    Object? currentEventType = _unchangedEventValue,
+    Object? triggerPhrase = _unchangedEventValue,
+    Object? activeEventId = _unchangedEventValue,
+    Object? tripId = _unchangedEventValue,
+    Object? startTime = _unchangedEventValue,
     Duration? elapsed,
-    Position? startGps,
-    Position? endGps,
+    Object? startGps = _unchangedEventValue,
+    Object? endGps = _unchangedEventValue,
     String? lastRecognizedWords,
     String? statusMessage,
-    EventParameters? lastComputedParameters,
+    Object? lastComputedParameters = _unchangedEventValue,
     PreAlertContext? lastPreAlertContext,
   }) {
     return EventRecordingSessionState(
       state: state ?? this.state,
-      currentEventType: currentEventType ?? this.currentEventType,
-      triggerPhrase: triggerPhrase ?? this.triggerPhrase,
-      activeEventId: activeEventId ?? this.activeEventId,
-      tripId: tripId ?? this.tripId,
-      startTime: startTime ?? this.startTime,
+      currentEventType: identical(currentEventType, _unchangedEventValue)
+          ? this.currentEventType
+          : currentEventType as EventType?,
+      triggerPhrase: identical(triggerPhrase, _unchangedEventValue)
+          ? this.triggerPhrase
+          : triggerPhrase as String?,
+      activeEventId: identical(activeEventId, _unchangedEventValue)
+          ? this.activeEventId
+          : activeEventId as int?,
+      tripId: identical(tripId, _unchangedEventValue)
+          ? this.tripId
+          : tripId as int?,
+      startTime: identical(startTime, _unchangedEventValue)
+          ? this.startTime
+          : startTime as DateTime?,
       elapsed: elapsed ?? this.elapsed,
-      startGps: startGps ?? this.startGps,
-      endGps: endGps ?? this.endGps,
+      startGps: identical(startGps, _unchangedEventValue)
+          ? this.startGps
+          : startGps as Position?,
+      endGps: identical(endGps, _unchangedEventValue)
+          ? this.endGps
+          : endGps as Position?,
       lastRecognizedWords: lastRecognizedWords ?? this.lastRecognizedWords,
       statusMessage: statusMessage ?? this.statusMessage,
-      lastComputedParameters: lastComputedParameters ?? this.lastComputedParameters,
+      lastComputedParameters:
+          identical(lastComputedParameters, _unchangedEventValue)
+          ? this.lastComputedParameters
+          : lastComputedParameters as EventParameters?,
       lastPreAlertContext: lastPreAlertContext ?? this.lastPreAlertContext,
     );
   }
 }
 
-class EventRecordingController extends StateNotifier<EventRecordingSessionState> {
+class EventRecordingController
+    extends StateNotifier<EventRecordingSessionState> {
   final Ref ref;
 
   Timer? _elapsedTimer;
@@ -129,7 +144,10 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
 
   static const Duration maxRecordingDuration = Duration(seconds: 60);
 
-  EventRecordingController(this.ref) : super(const EventRecordingSessionState(statusMessage: 'Ready to mark event'));
+  EventRecordingController(this.ref)
+    : super(
+        const EventRecordingSessionState(statusMessage: 'Ready to mark event'),
+      );
 
   Future<void> startEvent(EventType type, {String? triggerPhrase}) =>
       _serialize(() async {
@@ -176,6 +194,9 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       startTime: now,
       elapsed: Duration.zero,
       startGps: startPos,
+      endGps: null,
+      lastComputedParameters: null,
+      lastPreAlertContext: PreAlertContext.empty,
       statusMessage: 'RECORDING ${type.name.toUpperCase()}...',
     );
 
@@ -274,7 +295,9 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
         forkFootLagMs: computedParams.forkFootLagMs,
         hrSpikeConfirmed: computedParams.hrSpikeConfirmed,
         hrDeltaAtEvent: computedParams.hrDeltaAtEvent,
-        jerkPeakMagnitude: computedParams.bump?.jerkPeakMagnitude ?? computedParams.speed?.jerkPeakMagnitude,
+        jerkPeakMagnitude:
+            computedParams.bump?.jerkPeakMagnitude ??
+            computedParams.speed?.jerkPeakMagnitude,
         gpsSpeedAtEventKmh: computedParams.gpsSpeedKmh,
         gpsHeadingChangeDeg: computedParams.turn?.gpsHeadingDeltaDeg,
       );
@@ -288,7 +311,6 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       // Link the warning that preceded this event. Location alerts are enabled
       // only after the rider explicitly saves the location during review.
       preAlertContext = await _linkPreAlert(activeId);
-
     }
 
     state = state.copyWith(
@@ -305,21 +327,25 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
     if (activeId != null) {
       try {
         final hf = ref.read(handsfreeSessionServiceProvider);
-        unawaited(hf.promptAndRecordEventFeedback(
-          eventId: activeId,
-          eventType: eventTypeStr,
-          tripId: state.tripId,
-          latitude: state.startGps?.latitude,
-          longitude: state.startGps?.longitude,
-          preAlertId: preAlertContext.preAlertId,
-          roadEventId: preAlertContext.roadEventId,
-        ));
+        unawaited(
+          hf.promptAndRecordEventFeedback(
+            eventId: activeId,
+            eventType: eventTypeStr,
+            tripId: state.tripId,
+            latitude: state.startGps?.latitude,
+            longitude: state.startGps?.longitude,
+            preAlertId: preAlertContext.preAlertId,
+            roadEventId: preAlertContext.roadEventId,
+          ),
+        );
       } catch (_) {}
     }
 
     _savedResetTimer?.cancel();
     _savedResetTimer = Timer(const Duration(seconds: 2), () {
-      if (mounted && state.state == RecordingState.saved && state.activeEventId == activeId) {
+      if (mounted &&
+          state.state == RecordingState.saved &&
+          state.activeEventId == activeId) {
         state = state.copyWith(
           state: RecordingState.idle,
           statusMessage: 'Ready to mark event',
@@ -360,14 +386,14 @@ class EventRecordingController extends StateNotifier<EventRecordingSessionState>
       return PreAlertContext.empty;
     }
   }
-
-
 }
 
 final eventRecordingControllerProvider =
-    StateNotifierProvider<EventRecordingController, EventRecordingSessionState>((ref) {
-  return EventRecordingController(ref);
-});
+    StateNotifierProvider<EventRecordingController, EventRecordingSessionState>(
+      (ref) {
+        return EventRecordingController(ref);
+      },
+    );
 
 final allEventRecordsStreamProvider = StreamProvider<List<EventRecord>>((ref) {
   final repo = ref.watch(sensorRepositoryProvider);

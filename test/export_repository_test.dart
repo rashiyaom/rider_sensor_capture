@@ -30,7 +30,9 @@ void main() {
     );
     final eventParams = EventParameters(bump: bumpParams);
 
-    final eventId = await db.into(db.eventRecords).insert(
+    final eventId = await db
+        .into(db.eventRecords)
+        .insert(
           EventRecordsCompanion.insert(
             eventType: 'bump',
             startTimestamp: now.subtract(const Duration(seconds: 5)),
@@ -48,7 +50,9 @@ void main() {
         );
 
     // 2. Insert SensorReadings for this event (out of order sequence to test sorting)
-    await db.into(db.sensorReadings).insert(
+    await db
+        .into(db.sensorReadings)
+        .insert(
           SensorReadingsCompanion.insert(
             deviceId: 'dev-watch-1',
             deviceType: 'watch',
@@ -62,7 +66,9 @@ void main() {
           ),
         );
 
-    await db.into(db.sensorReadings).insert(
+    await db
+        .into(db.sensorReadings)
+        .insert(
           SensorReadingsCompanion.insert(
             deviceId: 'dev-watch-1',
             deviceType: 'watch',
@@ -77,7 +83,9 @@ void main() {
         );
 
     // 3. Insert Unlinked Background Sensor Reading (for raw session testing)
-    await db.into(db.sensorReadings).insert(
+    await db
+        .into(db.sensorReadings)
+        .insert(
           SensorReadingsCompanion.insert(
             deviceId: 'dev-watch-1',
             deviceType: 'watch',
@@ -92,7 +100,9 @@ void main() {
         );
 
     // 4. Insert CameraDetection linked to the event
-    await db.into(db.cameraDetections).insert(
+    await db
+        .into(db.cameraDetections)
+        .insert(
           CameraDetectionsCompanion.insert(
             deviceId: 'esp32-cam-01',
             eventClass: 'pothole',
@@ -106,51 +116,57 @@ void main() {
 
   tearDown(() => db.close());
 
-  test('getExportSummary calculates correct counts for events-only vs raw mode', () async {
-    final summaryEventsOnly = await repo.getExportSummary(
-      mode: ExportMode.eventsOnly,
-    );
-    expect(summaryEventsOnly.eventCount, 1);
-    expect(summaryEventsOnly.sensorReadingCount, 2);
-    expect(summaryEventsOnly.cameraDetectionCount, 1);
+  test(
+    'getExportSummary calculates correct counts for events-only vs raw mode',
+    () async {
+      final summaryEventsOnly = await repo.getExportSummary(
+        mode: ExportMode.eventsOnly,
+      );
+      expect(summaryEventsOnly.eventCount, 1);
+      expect(summaryEventsOnly.sensorReadingCount, 2);
+      expect(summaryEventsOnly.cameraDetectionCount, 1);
 
-    final summaryRaw = await repo.getExportSummary(
-      mode: ExportMode.fullRawSession,
-    );
-    expect(summaryRaw.eventCount, 1);
-    expect(summaryRaw.sensorReadingCount, 3);
-    expect(summaryRaw.cameraDetectionCount, 1);
-  });
+      final summaryRaw = await repo.getExportSummary(
+        mode: ExportMode.fullRawSession,
+      );
+      expect(summaryRaw.eventCount, 1);
+      expect(summaryRaw.sensorReadingCount, 3);
+      expect(summaryRaw.cameraDetectionCount, 1);
+    },
+  );
 
-  test('buildJsonExport produces correctly structured and sorted hierarchy', () async {
-    final jsonExport = await repo.buildJsonExport(
-      mode: ExportMode.eventsOnly,
-    );
+  test(
+    'buildJsonExport produces correctly structured and sorted hierarchy',
+    () async {
+      final jsonExport = await repo.buildJsonExport(
+        mode: ExportMode.eventsOnly,
+      );
 
-    expect(jsonExport['total_events'], 1);
-    expect(jsonExport['export_mode'], 'events_only');
+      expect(jsonExport['total_events'], 1);
+      expect(jsonExport['export_mode'], 'events_only');
 
-    final events = jsonExport['events'] as List<dynamic>;
-    expect(events.length, 1);
+      final events = jsonExport['events'] as List<dynamic>;
+      expect(events.length, 1);
 
-    final eventObj = events.first as Map<String, dynamic>;
-    expect(eventObj['event_type'], 'bump');
-    expect(eventObj['classification'], 'severe');
-    expect(eventObj['peak_metric'], 2.5);
-    expect(eventObj['parameters']['bump']['peakGForce'], 2.5);
+      final eventObj = events.first as Map<String, dynamic>;
+      expect(eventObj['event_type'], 'bump');
+      expect(eventObj['classification'], 'severe');
+      expect(eventObj['peak_metric'], 2.5);
+      expect(eventObj['parameters']['bump']['peakGForce'], 2.5);
 
-    // Verify sensor readings are sorted by sequenceNo ascending (1 then 2)
-    final readings = eventObj['sensor_readings'] as List<dynamic>;
-    expect(readings.length, 2);
-    expect(readings[0]['sequence_no'], 1);
-    expect(readings[1]['sequence_no'], 2);
+      // Verify sensor readings are sorted by sequenceNo ascending (1 then 2)
+      final readings = eventObj['sensor_readings'] as List<dynamic>;
+      expect(readings.length, 2);
+      expect(readings[0]['sequence_no'], 1);
+      expect(readings[1]['sequence_no'], 2);
 
-    // Verify linked camera detections
-    final detections = eventObj['camera_detections'] as List<dynamic>;
-    expect(detections.length, 1);
-    expect(detections[0]['event_class'], 'pothole');
-    expect(detections[0]['confidence'], closeTo(0.88, 0.001));
-  });
+      // Verify linked camera detections
+      final detections = eventObj['camera_detections'] as List<dynamic>;
+      expect(detections.length, 1);
+      expect(detections[0]['event_class'], 'pothole');
+      expect(detections[0]['confidence'], closeTo(0.88, 0.001));
+    },
+  );
 
   test('buildJsonExport in fullRawSession mode includes unlinked background telemetry', () async {
     final jsonExport = await repo.buildJsonExport(
@@ -160,37 +176,43 @@ void main() {
     expect(jsonExport['export_mode'], 'full_raw_session');
     expect(jsonExport.containsKey('raw_unlabeled_sensor_readings'), isTrue);
 
-    final unlinked = jsonExport['raw_unlabeled_sensor_readings'] as List<dynamic>;
+    final unlinked =
+        jsonExport['raw_unlabeled_sensor_readings'] as List<dynamic>;
     expect(unlinked.length, 1);
     expect(unlinked[0]['sequence_no'], 3);
   });
 
-  test('buildSensorCsvExport generates valid CSV headers and data rows', () async {
-    final csv = await repo.buildSensorCsvExport(
-      mode: ExportMode.eventsOnly,
-    );
+  test(
+    'buildSensorCsvExport generates valid CSV headers and data rows',
+    () async {
+      final csv = await repo.buildSensorCsvExport(mode: ExportMode.eventsOnly);
 
-    final lines = csv.trim().split('\n');
-    expect(lines.length, 3); // 1 header line + 2 reading rows
+      final lines = csv.trim().split('\n');
+      expect(lines.length, 3); // 1 header line + 2 reading rows
 
-    expect(lines[0], contains('reading_id,timestamp_iso8601,timestamp_local'));
-    expect(lines[0], contains('event_type,event_classification'));
-    expect(lines[1], contains('dev-watch-1'));
-    expect(lines[1], contains('bump'));
-    expect(lines[1], contains('severe'));
-  });
+      expect(
+        lines[0],
+        contains('reading_id,timestamp_iso8601,timestamp_local'),
+      );
+      expect(lines[0], contains('event_type,event_classification'));
+      expect(lines[1], contains('dev-watch-1'));
+      expect(lines[1], contains('bump'));
+      expect(lines[1], contains('severe'));
+    },
+  );
 
-  test('buildCameraCsvExport generates valid CSV format for camera detections', () async {
-    final csv = await repo.buildCameraCsvExport(
-      mode: ExportMode.eventsOnly,
-    );
+  test(
+    'buildCameraCsvExport generates valid CSV format for camera detections',
+    () async {
+      final csv = await repo.buildCameraCsvExport(mode: ExportMode.eventsOnly);
 
-    final lines = csv.trim().split('\n');
-    expect(lines.length, 2); // 1 header line + 1 detection row
-    expect(lines[0], contains('detection_id,camera_timestamp_utc'));
-    expect(lines[1], contains('esp32-cam-01'));
-    expect(lines[1], contains('pothole'));
-  });
+      final lines = csv.trim().split('\n');
+      expect(lines.length, 2); // 1 header line + 1 detection row
+      expect(lines[0], contains('detection_id,camera_timestamp_utc'));
+      expect(lines[1], contains('esp32-cam-01'));
+      expect(lines[1], contains('pothole'));
+    },
+  );
 
   test('buildPerSensorCsvExports generates separate CSV data sheets per distinct device', () async {
     final perSensorMap = await repo.buildPerSensorCsvExports(
@@ -207,42 +229,51 @@ void main() {
 
   test('exportTripCsv and exportTripJson produce complete journey datasets with GPS route points', () async {
     final now = DateTime.now().toUtc();
-    final tripId = await db.into(db.trips).insert(
-      TripsCompanion.insert(
-        riderName: const Value('Om'),
-        startTimeUtc: now.subtract(const Duration(minutes: 10)),
-        endTimeUtc: Value(now),
-        durationSeconds: const Value(600),
-        distanceMeters: const Value(3500.0),
-        avgSpeedKmh: const Value(21.0),
-        peakSpeedKmh: const Value(34.2),
-        startLat: const Value(19.0760),
-        startLng: const Value(72.8777),
-        endLat: const Value(19.0800),
-        endLng: const Value(72.8850),
-        routeCoordinatesJson: const Value('[{"lat":19.0760,"lng":72.8777},{"lat":19.0800,"lng":72.8850}]'),
-      ),
-    );
+    final tripId = await db
+        .into(db.trips)
+        .insert(
+          TripsCompanion.insert(
+            riderName: const Value('Om'),
+            startTimeUtc: now.subtract(const Duration(minutes: 10)),
+            endTimeUtc: Value(now),
+            durationSeconds: const Value(600),
+            distanceMeters: const Value(3500.0),
+            avgSpeedKmh: const Value(21.0),
+            peakSpeedKmh: const Value(34.2),
+            startLat: const Value(19.0760),
+            startLng: const Value(72.8777),
+            endLat: const Value(19.0800),
+            endLng: const Value(72.8850),
+            routeCoordinatesJson: const Value(
+              '[{"lat":19.0760,"lng":72.8777},{"lat":19.0800,"lng":72.8850}]',
+            ),
+          ),
+        );
 
     // Tag sensor reading with tripId
-    await db.into(db.sensorReadings).insert(
-      SensorReadingsCompanion.insert(
-        deviceId: 'dev-watch-1',
-        deviceType: 'watch',
-        sequenceNo: 10,
-        timestampUtc: now.subtract(const Duration(minutes: 5)),
-        sensorType: 'imu',
-        tripId: Value(tripId),
-        accelX: const Value(0.3),
-        accelY: const Value(-0.1),
-        accelZ: const Value(9.8),
-      ),
-    );
+    await db
+        .into(db.sensorReadings)
+        .insert(
+          SensorReadingsCompanion.insert(
+            deviceId: 'dev-watch-1',
+            deviceType: 'watch',
+            sequenceNo: 10,
+            timestampUtc: now.subtract(const Duration(minutes: 5)),
+            sensorType: 'imu',
+            tripId: Value(tripId),
+            accelX: const Value(0.3),
+            accelY: const Value(-0.1),
+            accelZ: const Value(9.8),
+          ),
+        );
 
     final tripCsv = await repo.exportTripCsv(tripId);
     final csvLines = tripCsv.trim().split('\n');
     expect(csvLines.length, 2); // Header + 1 reading
-    expect(csvLines[0], contains('timestamp_iso8601,timestamp_epoch_ms,sequence_no,wrist_side'));
+    expect(
+      csvLines[0],
+      contains('timestamp_iso8601,timestamp_epoch_ms,sequence_no,wrist_side'),
+    );
     expect(csvLines[1], contains('left_hand'));
 
     final tripJson = await repo.exportTripJson(tripId);
@@ -258,124 +289,153 @@ void main() {
 
   test('All CSV export formats have strictly uniform column counts on every row (header, sentinels, data)', () async {
     final now = DateTime.now().toUtc();
-    final tripId = await db.into(db.trips).insert(
-      TripsCompanion.insert(
-        riderName: const Value('Om'),
-        wristSide: const Value('left_hand'),
-        startTimeUtc: now.subtract(const Duration(minutes: 5)),
-        endTimeUtc: Value(now),
-        startTimestampUtc: Value(now.subtract(const Duration(minutes: 5))),
-        endTimestampUtc: Value(now),
-        totalDistanceKm: const Value(2.5),
-        totalDurationMin: const Value(5.0),
-        avgSpeedKmh: const Value(30.0),
-        maxSpeedKmh: const Value(45.0),
-        bumpCount: const Value(2),
-        harshTurnCount: const Value(1),
-        harshBrakeCount: const Value(1),
-        harshAccelCount: const Value(0),
-        confirmedEventCount: const Value(3),
-        eventsPerKm: const Value(1.2),
-        avgHr: const Value(78.5),
-        maxHr: const Value(110),
-        driverScore: const Value(92.0),
-      ),
-    );
+    final tripId = await db
+        .into(db.trips)
+        .insert(
+          TripsCompanion.insert(
+            riderName: const Value('Om'),
+            wristSide: const Value('left_hand'),
+            startTimeUtc: now.subtract(const Duration(minutes: 5)),
+            endTimeUtc: Value(now),
+            startTimestampUtc: Value(now.subtract(const Duration(minutes: 5))),
+            endTimestampUtc: Value(now),
+            totalDistanceKm: const Value(2.5),
+            totalDurationMin: const Value(5.0),
+            avgSpeedKmh: const Value(30.0),
+            maxSpeedKmh: const Value(45.0),
+            bumpCount: const Value(2),
+            harshTurnCount: const Value(1),
+            harshBrakeCount: const Value(1),
+            harshAccelCount: const Value(0),
+            confirmedEventCount: const Value(3),
+            eventsPerKm: const Value(1.2),
+            avgHr: const Value(78.5),
+            maxHr: const Value(110),
+            driverScore: const Value(92.0),
+          ),
+        );
 
     // Event with context window
-    final eventId = await db.into(db.eventRecords).insert(
-      EventRecordsCompanion.insert(
-        tripId: Value(tripId),
-        eventType: 'bump',
-        status: 'completed',
-        startTimestamp: now.subtract(const Duration(seconds: 10)),
-        endTimestamp: Value(now.subtract(const Duration(seconds: 8))),
-        peakMetric: const Value(2.8),
-        classification: const Value('severe'),
-        crossConfirmed: const Value(true),
-      ),
-    );
+    final eventId = await db
+        .into(db.eventRecords)
+        .insert(
+          EventRecordsCompanion.insert(
+            tripId: Value(tripId),
+            eventType: 'bump',
+            status: 'completed',
+            startTimestamp: now.subtract(const Duration(seconds: 10)),
+            endTimestamp: Value(now.subtract(const Duration(seconds: 8))),
+            peakMetric: const Value(2.8),
+            classification: const Value('severe'),
+            crossConfirmed: const Value(true),
+          ),
+        );
 
     // Readings: one before event (context pre), one during event (event data), one after (context post)
-    await db.into(db.sensorReadings).insert(
-      SensorReadingsCompanion.insert(
-        deviceId: 'ESP32-LEFT',
-        deviceType: 'watch',
-        mountLocation: const Value('left_hand'),
-        sequenceNo: 100,
-        timestampUtc: now.subtract(const Duration(seconds: 12)),
-        sensorType: 'imu',
-        tripId: Value(tripId),
-        accelX: const Value(0.1),
-        accelY: const Value(0.2),
-        accelZ: const Value(9.8),
-      ),
-    );
+    await db
+        .into(db.sensorReadings)
+        .insert(
+          SensorReadingsCompanion.insert(
+            deviceId: 'ESP32-LEFT',
+            deviceType: 'watch',
+            mountLocation: const Value('left_hand'),
+            sequenceNo: 100,
+            timestampUtc: now.subtract(const Duration(seconds: 12)),
+            sensorType: 'imu',
+            tripId: Value(tripId),
+            accelX: const Value(0.1),
+            accelY: const Value(0.2),
+            accelZ: const Value(9.8),
+          ),
+        );
 
-    await db.into(db.sensorReadings).insert(
-      SensorReadingsCompanion.insert(
-        deviceId: 'ESP32-LEFT',
-        deviceType: 'watch',
-        mountLocation: const Value('left_hand'),
-        sequenceNo: 101,
-        timestampUtc: now.subtract(const Duration(seconds: 9)),
-        sensorType: 'imu',
-        tripId: Value(tripId),
-        eventId: Value(eventId),
-        accelX: const Value(0.5),
-        accelY: const Value(0.8),
-        accelZ: const Value(22.4),
-      ),
-    );
+    await db
+        .into(db.sensorReadings)
+        .insert(
+          SensorReadingsCompanion.insert(
+            deviceId: 'ESP32-LEFT',
+            deviceType: 'watch',
+            mountLocation: const Value('left_hand'),
+            sequenceNo: 101,
+            timestampUtc: now.subtract(const Duration(seconds: 9)),
+            sensorType: 'imu',
+            tripId: Value(tripId),
+            eventId: Value(eventId),
+            accelX: const Value(0.5),
+            accelY: const Value(0.8),
+            accelZ: const Value(22.4),
+          ),
+        );
 
-    await db.into(db.sensorReadings).insert(
-      SensorReadingsCompanion.insert(
-        deviceId: 'ESP32-RIGHT',
-        deviceType: 'watch',
-        mountLocation: const Value('right_hand'),
-        sequenceNo: 102,
-        timestampUtc: now.subtract(const Duration(seconds: 7)),
-        sensorType: 'imu',
-        tripId: Value(tripId),
-        accelX: const Value(0.2),
-        accelY: const Value(0.3),
-        accelZ: const Value(9.7),
-      ),
-    );
+    await db
+        .into(db.sensorReadings)
+        .insert(
+          SensorReadingsCompanion.insert(
+            deviceId: 'ESP32-RIGHT',
+            deviceType: 'watch',
+            mountLocation: const Value('right_hand'),
+            sequenceNo: 102,
+            timestampUtc: now.subtract(const Duration(seconds: 7)),
+            sensorType: 'imu',
+            tripId: Value(tripId),
+            accelX: const Value(0.2),
+            accelY: const Value(0.3),
+            accelZ: const Value(9.7),
+          ),
+        );
 
     // Location reading
-    await db.into(db.locationReadings).insert(
-      LocationReadingsCompanion.insert(
-        tripId: tripId,
-        timestampUtc: now.subtract(const Duration(seconds: 9)),
-        latitude: 19.0760,
-        longitude: 72.8777,
-        gpsSpeedMps: const Value(8.5),
-        gpsHeadingDeg: const Value(90.0),
-        gpsAccuracyM: const Value(2.0),
-      ),
-    );
+    await db
+        .into(db.locationReadings)
+        .insert(
+          LocationReadingsCompanion.insert(
+            tripId: tripId,
+            timestampUtc: now.subtract(const Duration(seconds: 9)),
+            latitude: 19.0760,
+            longitude: 72.8777,
+            gpsSpeedMps: const Value(8.5),
+            gpsHeadingDeg: const Value(90.0),
+            gpsAccuracyM: const Value(2.0),
+          ),
+        );
 
     // 1. Validate exportTripCsv (32 columns per row)
     final tripCsv = await repo.exportTripCsv(tripId);
     final tripCsvLines = tripCsv.trim().split('\n');
-    expect(tripCsvLines.length, greaterThanOrEqualTo(5)); // Header, EVENT_START, 3 readings, EVENT_END
+    expect(
+      tripCsvLines.length,
+      greaterThanOrEqualTo(5),
+    ); // Header, EVENT_START, 3 readings, EVENT_END
     final expectedTripCols = tripCsvLines[0].split(',').length;
-    expect(expectedTripCols, 22, reason: 'Header must have 22 columns');
+    expect(expectedTripCols, 28, reason: 'Header must have 28 columns');
     for (int i = 0; i < tripCsvLines.length; i++) {
       final cols = tripCsvLines[i].split(',').length;
-      expect(cols, 22, reason: 'Line $i ($tripCsvLines[i]) must have exactly 22 columns');
+      expect(
+        cols,
+        28,
+        reason: 'Line $i ($tripCsvLines[i]) must have exactly 28 columns',
+      );
     }
 
-    // 2. Validate buildSensorTimeseriesCsvExport (22 columns per row)
-    final timeseriesCsv = await repo.buildSensorTimeseriesCsvExport(mode: ExportMode.fullRawSession);
+    // 2. Validate buildSensorTimeseriesCsvExport (28 columns per row)
+    final timeseriesCsv = await repo.buildSensorTimeseriesCsvExport(
+      mode: ExportMode.fullRawSession,
+    );
     final tsLines = timeseriesCsv.trim().split('\n');
     expect(tsLines.length, greaterThanOrEqualTo(2));
     final expectedTsCols = tsLines[0].split(',').length;
-    expect(expectedTsCols, 22, reason: 'Timeseries header must have 22 columns');
+    expect(
+      expectedTsCols,
+      28,
+      reason: 'Timeseries header must have 28 columns',
+    );
     for (int i = 0; i < tsLines.length; i++) {
       final cols = tsLines[i].split(',').length;
-      expect(cols, 22, reason: 'Timeseries line $i must have exactly 22 columns');
+      expect(
+        cols,
+        28,
+        reason: 'Timeseries line $i must have exactly 28 columns',
+      );
     }
 
     // 3. Validate buildEventRecordsCsvExport (23 columns per row - fork_foot_lag removed)
@@ -383,7 +443,11 @@ void main() {
     final evLines = eventCsv.trim().split('\n');
     expect(evLines.length, greaterThanOrEqualTo(2));
     final expectedEvCols = evLines[0].split(',').length;
-    expect(expectedEvCols, 23, reason: 'Event records header must have 23 columns');
+    expect(
+      expectedEvCols,
+      23,
+      reason: 'Event records header must have 23 columns',
+    );
     for (int i = 0; i < evLines.length; i++) {
       final cols = evLines[i].split(',').length;
       expect(cols, 23, reason: 'Event line $i must have exactly 23 columns');
@@ -394,11 +458,46 @@ void main() {
     final sumLines = summaryCsv.trim().split('\n');
     expect(sumLines.length, greaterThanOrEqualTo(2));
     final expectedSumCols = sumLines[0].split(',').length;
-    expect(expectedSumCols, 22, reason: 'Trip summary header must have 22 columns');
+    expect(
+      expectedSumCols,
+      22,
+      reason: 'Trip summary header must have 22 columns',
+    );
     for (int i = 0; i < sumLines.length; i++) {
       final cols = sumLines[i].split(',').length;
       expect(cols, 22, reason: 'Summary line $i must have exactly 22 columns');
     }
   });
+  test('bump fallback preserves g units and does not export turn acceleration as g', () async {
+    await db
+        .into(db.eventRecords)
+        .insert(
+          EventRecordsCompanion.insert(
+            eventType: 'bump',
+            startTimestamp: DateTime.utc(2026),
+            status: 'completed',
+            peakMetric: const Value(2.5),
+          ),
+        );
+    await db
+        .into(db.eventRecords)
+        .insert(
+          EventRecordsCompanion.insert(
+            eventType: 'turn',
+            startTimestamp: DateTime.utc(2026),
+            status: 'completed',
+            peakMetric: const Value(5.0),
+          ),
+        );
+    final csv = await repo.buildEventRecordsCsvExport();
+    final lines = csv
+        .trim()
+        .split('\n')
+        .map((line) => line.split(','))
+        .toList();
+    final peak = lines.first.indexOf('peak_g_force');
+    final type = lines.first.indexOf('event_type');
+    expect(lines.skip(1).firstWhere((r) => r[type] == 'bump')[peak], '2.50');
+    expect(lines.skip(1).firstWhere((r) => r[type] == 'turn')[peak], '');
+  });
 }
-

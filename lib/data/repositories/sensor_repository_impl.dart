@@ -10,11 +10,21 @@ import '../../providers/db_providers.dart';
 import 'sensor_repository.dart';
 import '../../features/live_events/event_library_repository.dart';
 
+class _PendingReading {
+  final RawSensorData data;
+  final int? eventId;
+  final int? tripId;
+  const _PendingReading(this.data, this.eventId, this.tripId);
+}
+
 class SensorRepositoryImpl implements SensorRepository {
   final AppDatabase _db;
   final Map<String, int> _sequenceCounters = {};
-  final List<RawSensorData> _buffer = [];
+  final List<_PendingReading> _buffer = [];
   Timer? _flushTimer;
+  late final Future<void> _initialized;
+  Future<void> _writeQueue = Future.value();
+  String? _writeError;
   DateTime? _lastWriteTime;
 
   int _totalRowCount = 0;
@@ -26,9 +36,9 @@ class SensorRepositoryImpl implements SensorRepository {
       StreamController<DbWriteStats>.broadcast();
 
   SensorRepositoryImpl(this._db) {
-    _initCountersFromDb();
+    _initialized = _initCountersFromDb();
     _flushTimer = Timer.periodic(const Duration(milliseconds: 250), (_) {
-      _flushBuffer();
+      unawaited(_flushBuffer().catchError((Object _) {}));
     });
   }
 
@@ -39,6 +49,8 @@ class SensorRepositoryImpl implements SensorRepository {
           totalRows: _totalRowCount,
           deviceCounts: Map.unmodifiable(_deviceCounts),
           lastWriteTime: _lastWriteTime,
+          writeError: _writeError,
+          pendingRows: _buffer.length,
         ),
       );
     }
@@ -77,6 +89,8 @@ class SensorRepositoryImpl implements SensorRepository {
       totalRows: _totalRowCount,
       deviceCounts: Map.unmodifiable(_deviceCounts),
       lastWriteTime: _lastWriteTime,
+      writeError: _writeError,
+      pendingRows: _buffer.length,
     );
     yield* _statsController.stream;
   }
@@ -99,7 +113,7 @@ class SensorRepositoryImpl implements SensorRepository {
 
   @override
   Future<void> insertReading(RawSensorData data) async {
-    _buffer.add(data);
+    _buffer.add(_PendingReading(data, _activeEventId, _activeTripId));
     if (_buffer.length >= 25) {
       await _flushBuffer();
     }
@@ -121,18 +135,29 @@ class SensorRepositoryImpl implements SensorRepository {
   }
 
   @override
-  Future<void> insertReadingsBatch(List<RawSensorData> dataList) async {
+  Future<void> insertReadingsBatch(List<RawSensorData> dataList) {
+    _buffer.addAll([
+      for (final data in dataList)
+        _PendingReading(data, _activeEventId, _activeTripId),
+    ]);
+    return _flushBuffer();
+  }
+
+  Future<void> _insertCapturedBatch(List<_PendingReading> dataList) async {
     if (dataList.isEmpty) return;
 
     final companions = <SensorReadingsCompanion>[];
+    final nextSequences = Map<String, int>.of(_sequenceCounters);
 
-    for (final data in dataList) {
-      if (!_sequenceCounters.containsKey(data.deviceId)) {
-        await getLastSequenceNoForDevice(data.deviceId);
+    for (final pending in dataList) {
+      final data = pending.data;
+      if (!nextSequences.containsKey(data.deviceId)) {
+        nextSequences[data.deviceId] = await getLastSequenceNoForDevice(
+          data.deviceId,
+        );
       }
-
-      final currentSeq = (_sequenceCounters[data.deviceId] ?? 0) + 1;
-      _sequenceCounters[data.deviceId] = currentSeq;
+      final currentSeq = nextSequences[data.deviceId]! + 1;
+      nextSequences[data.deviceId] = currentSeq;
 
       String sType = 'unknown';
       if (data.heartRate != null && data.accelX != null) {
@@ -153,8 +178,8 @@ class SensorRepositoryImpl implements SensorRepository {
           timestampUtc: data.timestamp.toUtc(),
           sensorType: sType,
           mountLocation: Value(data.mountLocation),
-          eventId: Value(_activeEventId), // Tag with current active event
-          tripId: Value(_activeTripId), // Tag with current active journey/trip
+          eventId: Value(pending.eventId),
+          tripId: Value(pending.tripId),
           heartRate: Value(data.heartRate),
           accelX: Value(data.accelX),
           accelY: Value(data.accelY),
@@ -175,26 +200,44 @@ class SensorRepositoryImpl implements SensorRepository {
           rawPayload: Value(data.rawBytes.toString()),
         ),
       );
-
-      _deviceCounts[data.deviceId] = (_deviceCounts[data.deviceId] ?? 0) + 1;
     }
 
+    // A batch is atomic; do not advance counters before it commits.
+    await _db.transaction(() async {
+      await _db.batch(
+        (batch) => batch.insertAll(_db.sensorReadings, companions),
+      );
+    });
+    _sequenceCounters.addAll(nextSequences);
+    for (final pending in dataList) {
+      final id = pending.data.deviceId;
+      _deviceCounts[id] = (_deviceCounts[id] ?? 0) + 1;
+    }
     _totalRowCount += dataList.length;
     _lastWriteTime = DateTime.now();
-
-    await _db.batch((batch) {
-      batch.insertAll(_db.sensorReadings, companions);
-    });
-
-    _emitStats();
   }
 
-  Future<void> _flushBuffer() async {
-    if (_buffer.isEmpty) return;
-
-    final batchToInsert = List<RawSensorData>.from(_buffer);
-    _buffer.clear();
-    await insertReadingsBatch(batchToInsert);
+  Future<void> _flushBuffer() {
+    final operation = _writeQueue.then((_) async {
+      await _initialized;
+      try {
+        while (_buffer.isNotEmpty) {
+          final batch = List<_PendingReading>.of(_buffer);
+          await _insertCapturedBatch(batch);
+          // Drain arrivals during the write too, so trip-end is a real barrier.
+          _buffer.removeRange(0, batch.length);
+          _writeError = null;
+          _emitStats();
+        }
+      } catch (_) {
+        _writeError = 'Sensor data could not be saved. Pending samples are retained in memory for retry.';
+        _emitStats();
+        rethrow;
+      }
+    });
+    // Each caller sees its failure, while later attempts can retry the buffer.
+    _writeQueue = operation.catchError((Object _) {});
+    return operation;
   }
 
   @override
@@ -600,7 +643,7 @@ class SensorRepositoryImpl implements SensorRepository {
   @override
   void dispose() {
     _flushTimer?.cancel();
-    _flushBuffer();
+    unawaited(_flushBuffer().catchError((Object _) {}));
     _statsController.close();
   }
 }

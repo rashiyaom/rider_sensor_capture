@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-/// Audit log of every predictive pre-alert that was spoken to the rider.
+/// Audit log of every predictive pre-alert attempt and its playback result.
 ///
 /// Each row captures the exact kinematics that were used to compute the
 /// warning (distance, speed, time-to-event, recommended speed) so that the
@@ -41,6 +41,12 @@ class PreAlerts extends Table {
   TextColumn get spokenText => text()();
 
   DateTimeColumn get alertedAtUtc => dateTime()();
+
+  /// Delivery state is distinct from a queued/scheduled warning.
+  TextColumn get deliveryStatus =>
+      text().withDefault(const Constant('queued'))();
+  DateTimeColumn get deliveredAtUtc => dateTime().nullable()();
+  TextColumn get deliveryFailure => text().nullable()();
 
   /// Set once the rider passed the hazard (used for timing evaluation).
   BoolColumn get acknowledged => boolean().withDefault(const Constant(false))();

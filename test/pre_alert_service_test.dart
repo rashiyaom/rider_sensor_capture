@@ -1,5 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 import 'package:ride_sensor_capture/data/local_db/database.dart';
 import 'package:ride_sensor_capture/location/location_service.dart';
@@ -7,6 +9,8 @@ import 'package:ride_sensor_capture/prealert/pre_alert_engine.dart';
 import 'package:ride_sensor_capture/prealert/pre_alert_service.dart';
 import 'package:ride_sensor_capture/prealert/road_event_registry.dart';
 import 'package:ride_sensor_capture/voice/voice_alert_service.dart';
+
+const _ttsChannel = MethodChannel('flutter_tts');
 
 const double kLat = 12.9716;
 const double kLon = 77.5946;
@@ -30,6 +34,7 @@ LocationFix _fix({
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late AppDatabase db;
   late PreAlertService service;
 
@@ -38,12 +43,15 @@ void main() {
     // TTS disabled so no platform channel is touched in unit tests.
     service = PreAlertService(
       db: db,
+      clock: () => DateTime.utc(2026, 10, 20, 10),
       voiceService: VoiceAlertService(ttsEnabled: false),
     );
   });
 
   tearDown(() async {
     await service.stop();
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_ttsChannel, null);
     await db.close();
   });
 
@@ -166,28 +174,106 @@ void main() {
       expect(alerts, isEmpty);
     });
 
-    test('surfaces the decision on the alert stream', () async {
-      await service.registerDetectedRoadEvent(
-        kind: RoadEventKind.pothole,
-        latitude: kLat + 120 * kDegPerMeter,
-        longitude: kLon,
-        severity: 0.9,
+    test('expired warning is logged without invoking speech', () async {
+      final clock = DateTime.utc(2026, 10, 20, 10);
+      service = PreAlertService(
+        db: db,
+        clock: () => clock,
+        voiceService: VoiceAlertService(ttsEnabled: false),
       );
-
-      final received = <PreAlertDecision>[];
-      final sub = service.alertStream.listen(received.add);
-
-      await service.start();
-      await service.handleLocationFix(_fix(speedKmh: 60));
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      await sub.cancel();
-
-      expect(received, hasLength(1));
-      expect(received.first.candidate.kind, RoadEventKind.pothole);
-      // 120 m at 60 km/h -> ~7.2 s to the event -> "warning" urgency.
-      expect(received.first.urgency, PreAlertUrgency.warning);
-      expect(service.activeAlert, isNotNull);
+      final decision = PreAlertDecision(
+        candidate: RoadEventCandidate(
+          kind: RoadEventKind.bump,
+          latitude: kLat,
+          longitude: kLon,
+          detectedAtUtc: clock,
+        ),
+        evaluatedAtUtc: clock.subtract(const Duration(seconds: 30)),
+        distanceMeters: 100,
+        bearingDeg: 0,
+        relativeBearingDeg: 0,
+        speedKmh: 80,
+        timeToEventSeconds: 4.5,
+        recommendedSpeedKmh: 30,
+        urgency: PreAlertUrgency.warning,
+        window: PreAlertWindow.inWindow,
+        shouldSpeak: true,
+      );
+      final id = await service.issueAlert(decision);
+      final row = await (db.select(
+        db.preAlerts,
+      )..where((t) => t.id.equals(id!))).getSingle();
+      expect(row.deliveryStatus, 'expired');
+      expect(row.deliveredAtUtc, isNull);
+      expect(row.deliveryFailure, contains('expired'));
+      expect(service.activeAlert, isNull);
     });
+
+    test(
+      'failed playback is recorded as failed and does not count as delivered',
+      () async {
+        await service.registerDetectedRoadEvent(
+          kind: RoadEventKind.pothole,
+          latitude: kLat + 120 * kDegPerMeter,
+          longitude: kLon,
+          severity: .9,
+        );
+        final received = <PreAlertDecision>[];
+        final sub = service.alertStream.listen(received.add);
+        await service.start();
+        await service.handleLocationFix(_fix(speedKmh: 60));
+        final row = (await db.select(db.preAlerts).getSingle());
+        expect(row.deliveryStatus, 'failed');
+        expect(row.deliveredAtUtc, isNull);
+        expect(row.deliveryFailure, contains('did not complete'));
+        expect(row.roadEventId, isNotNull);
+        expect(
+          (await RoadEventRegistry(db).getById(row.roadEventId!))!.alertCount,
+          0,
+        );
+        expect(received, isEmpty);
+        expect(service.activeAlert, isNull);
+        await sub.cancel();
+      },
+    );
+
+    test(
+      'completed playback is the only state counted and streamed as delivered',
+      () async {
+        await service.stop();
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(_ttsChannel, (call) async => 1);
+        service = PreAlertService(
+          db: db,
+          clock: () => DateTime.utc(2026, 10, 20, 10),
+          voiceService: VoiceAlertService(tts: FlutterTts()),
+        );
+        await service.registerDetectedRoadEvent(
+          kind: RoadEventKind.pothole,
+          latitude: kLat + 120 * kDegPerMeter,
+          longitude: kLon,
+          severity: .9,
+        );
+        final received = <PreAlertDecision>[];
+        final sub = service.alertStream.listen(received.add);
+        await service.start();
+        await service.handleLocationFix(_fix(speedKmh: 60));
+        final row = await db.select(db.preAlerts).getSingle();
+        expect(row.deliveryStatus, 'delivered');
+        expect(row.deliveredAtUtc, isNotNull);
+        expect(row.deliveryFailure, isNull);
+        expect(
+          (await RoadEventRegistry(db).getById(row.roadEventId!))!.alertCount,
+          1,
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        expect(received, hasLength(1));
+        expect(service.activeAlert, isNotNull);
+        await sub.cancel();
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(_ttsChannel, null);
+      },
+    );
 
     test('attributes the warning to the active trip', () async {
       await service.registerDetectedRoadEvent(
@@ -206,29 +292,47 @@ void main() {
   });
 
   group('PreAlertService — event linking', () {
-    test('links the most recent warning to a completed event', () async {
-      await service.registerDetectedRoadEvent(
-        kind: RoadEventKind.bump,
-        latitude: kLat + 220 * kDegPerMeter,
-        longitude: kLon,
-      );
-      service.setActiveTripId(7);
+    test(
+      'links the most recent delivered warning to a completed event',
+      () async {
+        await service.stop();
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(_ttsChannel, (call) async => 1);
+        service = PreAlertService(
+          db: db,
+          clock: () => DateTime.utc(2026, 10, 20, 10),
+          voiceService: VoiceAlertService(tts: FlutterTts()),
+        );
+        await service.registerDetectedRoadEvent(
+          kind: RoadEventKind.bump,
+          latitude: kLat + 220 * kDegPerMeter,
+          longitude: kLon,
+        );
+        service.setActiveTripId(7);
 
-      await service.start();
-      await service.handleLocationFix(_fix(speedKmh: 90));
+        await service.start();
+        await service.handleLocationFix(_fix(speedKmh: 90));
 
-      final alert = await service.findMostRecentPreAlert(within: const Duration(minutes: 5));
-      expect(alert, isNotNull);
+        final alert = await service.findMostRecentPreAlert(
+          within: const Duration(minutes: 5),
+        );
+        expect(alert, isNotNull);
 
-      await service.linkEventToPreAlert(123);
+        await service.linkEventToPreAlert(123);
 
-      final updated = await db.select(db.preAlerts).getSingle();
-      expect(updated.eventId, 123);
-    });
+        final updated = await db.select(db.preAlerts).getSingle();
+        expect(updated.eventId, 123);
+      },
+    );
 
-    test('findMostRecentPreAlert returns null when nothing was spoken', () async {
-      final alert = await service.findMostRecentPreAlert(within: const Duration(minutes: 5));
-      expect(alert, isNull);
-    });
+    test(
+      'findMostRecentPreAlert returns null when nothing was spoken',
+      () async {
+        final alert = await service.findMostRecentPreAlert(
+          within: const Duration(minutes: 5),
+        );
+        expect(alert, isNull);
+      },
+    );
   });
 }

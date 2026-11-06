@@ -41,7 +41,9 @@ void main() {
   });
 
   Future<int> seedEvent() async {
-    return db.into(db.eventRecords).insert(
+    return db
+        .into(db.eventRecords)
+        .insert(
           EventRecordsCompanion.insert(
             eventType: 'bump',
             startTimestamp: DateTime.utc(2026, 10, 20, 10, 0, 0),
@@ -55,7 +57,9 @@ void main() {
   }
 
   Future<int> seedPreAlert({int? eventId}) {
-    return db.into(db.preAlerts).insert(
+    return db
+        .into(db.preAlerts)
+        .insert(
           PreAlertsCompanion.insert(
             roadEventId: const drift.Value(1),
             tripId: const drift.Value(1),
@@ -68,14 +72,18 @@ void main() {
             timeToEventSeconds: 16,
             recommendedSpeedKmh: 40,
             urgency: 'warning',
-            spokenText: 'Speed bump ahead, 400 metres, 16 seconds. Reduce to 40.',
+            spokenText:
+                'Speed bump ahead, 400 metres, 16 seconds. Reduce to 40.',
             alertedAtUtc: DateTime.utc(2026, 10, 20, 10, 0, 0),
+            deliveryStatus: const drift.Value('delivered'),
           ),
         );
   }
 
   Future<int> seedFeedback({required int eventId, required int preAlertId}) {
-    return db.into(db.eventFeedbacks).insert(
+    return db
+        .into(db.eventFeedbacks)
+        .insert(
           EventFeedbacksCompanion.insert(
             eventId: drift.Value(eventId),
             tripId: const drift.Value(1),
@@ -88,8 +96,9 @@ void main() {
             alertTimingAdequacy: const drift.Value('adequate'),
             difficultyLevel: const drift.Value('mild'),
             riderSummary: const drift.Value('Rider slowed down comfortably.'),
-            improvementSuggestion:
-                const drift.Value('Keep the current warning window.'),
+            improvementSuggestion: const drift.Value(
+              'Keep the current warning window.',
+            ),
             analysisConfidence: const drift.Value(0.91),
             analyzedByLlm: const drift.Value(true),
             createdAtUtc: DateTime.utc(2026, 10, 20, 10, 0, 5),
@@ -112,7 +121,11 @@ void main() {
       );
       expect(lines.first, contains('distance_meters'));
       expect(lines.first, contains('time_to_event_seconds'));
+      expect(lines.first, contains('delivery_status'));
+      expect(lines.first, contains('delivered_at_utc'));
+      expect(lines.first, contains('delivery_failure'));
       expect(lines.last, contains('bump'));
+      expect(lines.last, contains('delivered'));
       expect(lines.last, contains('400.0'));
       expect(lines.last, contains('16.00'));
     });
@@ -136,7 +149,10 @@ void main() {
     test('quotes the spoken text so the row stays parseable', () async {
       await seedPreAlert();
       final lines = (await repo.buildPreAlertsCsvExport()).trim().split('\n');
-      expect(lines.last, contains('"Speed bump ahead, 400 metres, 16 seconds. Reduce to 40."'));
+      expect(
+        lines.last,
+        contains('"Speed bump ahead, 400 metres, 16 seconds. Reduce to 40."'),
+      );
     });
   });
 
@@ -173,8 +189,10 @@ void main() {
       final report = await repo.buildAlertEffectivenessReport();
       expect(report.totalAlerts, 1);
       expect(report.averageEffectiveness, closeTo(0.88, 0.001));
-      expect(report.entries.single.riderSummary,
-          'Rider slowed down comfortably.');
+      expect(
+        report.entries.single.riderSummary,
+        'Rider slowed down comfortably.',
+      );
     });
   });
 

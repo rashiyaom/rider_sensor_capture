@@ -218,6 +218,7 @@ class PreAlertEngine {
     required List<RoadEventCandidate> candidates,
     Set<int> alreadyAlertedIds = const {},
     double? headingDeg,
+    DateTime? evaluatedAtUtc,
   }) {
     if (!speedKmh.isFinite || !latitude.isFinite || !longitude.isFinite ||
         speedKmh < minSpeedKmh || speedKmh > maxSpeedKmh) { return null; }
@@ -286,7 +287,7 @@ class PreAlertEngine {
 
       final decision = PreAlertDecision(
         candidate: candidate,
-        evaluatedAtUtc: DateTime.now().toUtc(),
+        evaluatedAtUtc: evaluatedAtUtc ?? DateTime.now().toUtc(),
         distanceMeters: distance,
         bearingDeg: bearing,
         relativeBearingDeg: relativeBearing,

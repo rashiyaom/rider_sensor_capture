@@ -1,0 +1,7 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Preserve fractional seconds across all sensor/event/GPS joins.
+          store_date_time_values_as_text: true

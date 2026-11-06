@@ -1,0 +1,109 @@
+00:00 +0: loading /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/location_quality_test.dart
+00:00 +0: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/location_quality_test.dart: rejects stale, future, inaccurate and nonfinite live fixes
+00:00 +1: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/location_quality_test.dart: rejects jumps and reversed timestamps but permits recovery after an outage
+00:00 +2: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/location_quality_test.dart: invalid update cannot replace accepted location and freshness expires
+00:00 +3: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/pre_alert_service_test.dart: RoadEventRegistry registers and retrieves a hazard within the search radius
+00:00 +4: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/pre_alert_service_test.dart: RoadEventRegistry registers and retrieves a hazard within the search radius
+00:00 +5: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +6: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +7: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +7: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/pre_alert_service_test.dart: PreAlertService — issuing a warning speaks and persists a warning for a known hazard ahead
+PreAlertService: warning failed (Speech playback did not complete successfully.)
+00:00 +8: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +8: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/pre_alert_service_test.dart: PreAlertService — issuing a warning does not warn twice about the same hazard
+PreAlertService: warning failed (Speech playback did not complete successfully.)
+00:00 +9: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +10: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +11: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +11: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/pre_alert_service_test.dart: PreAlertService — issuing a warning expired warning is logged without invoking speech
+PreAlertService: warning expired (Warning expired before playback.)
+00:00 +12: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +12: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/pre_alert_service_test.dart: PreAlertService — issuing a warning failed playback is recorded as failed and does not count as delivered
+PreAlertService: warning failed (Speech playback did not complete successfully.)
+00:00 +13: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +14: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +15: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +15: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/pre_alert_service_test.dart: PreAlertService — issuing a warning attributes the warning to the active trip
+PreAlertService: warning failed (Speech playback did not complete successfully.)
+00:00 +16: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: mic stays paused through long speech and restart timers
+00:00 +17: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/pre_alert_service_test.dart: PreAlertService — event linking links the most recent delivered warning to a completed event
+00:00 +18: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: manual recording asks for confirmation after preceding speech
+00:00 +19: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: manual recording asks for confirmation after preceding speech
+00:00 +20: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: stop cancels queued prompts
+00:00 +21: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: disposing handsfree does not dispose the shared speech service
+00:00 +22: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: live bump asks confirmation, captures feedback, and waits for trip-end saving
+00:00 +23: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: live bump asks confirmation, captures feedback, and waits for trip-end saving
+00:00 +24: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: live bump asks confirmation, captures feedback, and waits for trip-end saving
+00:00 +25: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: live bump asks confirmation, captures feedback, and waits for trip-end saving
+00:00 +26: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: live bump asks confirmation, captures feedback, and waits for trip-end saving
+00:00 +27: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: live bump asks confirmation, captures feedback, and waits for trip-end saving
+00:00 +27: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/voice_alert_service_test.dart: native errors release the queue even without a completion callback
+VoiceAlertService: engine error
+00:00 +28: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/voice_alert_service_test.dart: native errors release the queue even without a completion callback
+00:00 +29: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: negative confirmation skips feedback and never enables future alerts
+00:00 +30: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: negative confirmation skips feedback and never enables future alerts
+00:00 +31: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: negative confirmation skips feedback and never enables future alerts
+00:00 +32: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: negative confirmation skips feedback and never enables future alerts
+00:00 +33: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/voice_alert_service_test.dart: queued warning is skipped when it becomes irrelevant before playback
+00:00 +34: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/handsfree_speech_test.dart: upcoming warning takes priority over an answer without cutting speech
+00:00 +35: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: stores event coordinates, confirmation and feedback without creating a hazard
+00:00 +36: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: stores event coordinates, confirmation and feedback without creating a hazard
+00:00 +37: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/alert_effectiveness_report_test.dart: AlertEffectivenessReportBuilder produces an empty report when nothing happened
+00:00 +37: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: saving after trip creates exactly one future alert and persists review choice
+PreAlertService: warning failed (Speech playback did not complete successfully.)
+00:00 +38: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/alert_effectiveness_report_test.dart: AlertEffectivenessReportBuilder produces an empty report when nothing happened
+00:00 +39: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/alert_effectiveness_report_test.dart: AlertEffectivenessReportBuilder produces an empty report when nothing happened
+00:01 +40: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: missing GPS remains visible for review but cannot become an alert
+00:01 +41: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/alert_effectiveness_report_test.dart: AlertEffectivenessReportBuilder aggregates alerts and their rider feedback
+00:01 +41: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: v16 upgrade preserves trips and event reviews while adding delivery state
+WARNING (drift): It looks like you've created the database class AppDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new _$AppDatabase (package:ride_sensor_capture/data/local_db/database.g.dart:12087:36)
+#4      new AppDatabase.forTesting (package:ride_sensor_capture/data/local_db/database.dart)
+#5      main.<anonymous closure> (file:///Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML%20app/ride_sensor_capture/test/live_event_review_test.dart:134:37)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:01 +42: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: v16 upgrade preserves trips and event reviews while adding delivery state
+WARNING (drift): It looks like you've created the database class AppDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new _$AppDatabase (package:ride_sensor_capture/data/local_db/database.g.dart:12087:36)
+#4      new AppDatabase.forTesting (package:ride_sensor_capture/data/local_db/database.dart)
+#5      main.<anonymous closure> (file:///Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML%20app/ride_sensor_capture/test/live_event_review_test.dart:150:35)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:01 +43: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: v16 upgrade preserves trips and event reviews while adding delivery state
+00:01 +44: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/alert_effectiveness_report_test.dart: AlertEffectivenessReportBuilder compiles insights that mention the timing breakdown
+00:01 +45: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/alert_effectiveness_report_test.dart: AlertEffectivenessReportBuilder filters by trip
+00:01 +46: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/alert_effectiveness_report_test.dart: AlertEffectivenessReport rendering renders a Markdown report with the key metrics
+00:01 +47: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/alert_effectiveness_report_test.dart: AlertEffectivenessReport rendering serialises to JSON for the dataset export
+00:01 +48: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/export_prealert_test.dart: buildPreAlertsCsvExport writes a header and one row per spoken warning
+00:01 +49: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/export_prealert_test.dart: buildPreAlertsCsvExport produces a header-only file when there are no warnings
+00:01 +50: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/export_prealert_test.dart: buildPreAlertsCsvExport every row has the same number of columns as the header
+00:01 +51: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/export_prealert_test.dart: buildPreAlertsCsvExport quotes the spoken text so the row stays parseable
+00:01 +52: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/export_prealert_test.dart: buildAlertEffectivenessCsvExport joins the warning with the scored rider feedback
+00:01 +53: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/export_prealert_test.dart: buildAlertEffectivenessCsvExport emits a header-only file when nothing was recorded
+00:01 +54: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/export_prealert_test.dart: buildAlertEffectivenessReport returns the compiled report
+00:01 +55: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/export_prealert_test.dart: buildJsonExport — learning loop integration embeds the pre-alert and the rider feedback in each event
+00:01 +56: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/export_prealert_test.dart: buildJsonExport — learning loop integration includes the top-level pre_alert_effectiveness report
+00:01 +57: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/export_prealert_test.dart: buildJsonExport — learning loop integration bumped the export version to 2.1
+00:01 +58: All tests passed!

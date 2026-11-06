@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'db_providers.dart';
 
 class RideRecordingState {
@@ -65,15 +67,12 @@ class RideRecordingNotifier extends StateNotifier<RideRecordingState> {
   }
 
   Future<void> stopRecording() async {
-    if (!state.isRecording) return;
     _ticker?.cancel();
     state = state.copyWith(isRecording: false);
 
     // Flush any remaining buffered readings to SQLite database
-    try {
-      final repo = ref.read(sensorRepositoryProvider);
-      await repo.flushPendingBuffer();
-    } catch (_) {}
+    final repo = ref.read(sensorRepositoryProvider);
+    await repo.flushPendingBuffer();
   }
 
   void incrementRowCount(int count) {
@@ -96,8 +95,8 @@ class RideRecordingNotifier extends StateNotifier<RideRecordingState> {
 
 final rideRecordingProvider =
     StateNotifierProvider<RideRecordingNotifier, RideRecordingState>((ref) {
-  return RideRecordingNotifier(ref);
-});
+      return RideRecordingNotifier(ref);
+    });
 
 /// Boolean convenience provider indicating whether ride recording is active
 final isRideRecordingActiveProvider = Provider<bool>((ref) {

@@ -7192,6 +7192,41 @@ class $PreAlertsTable extends PreAlerts
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _deliveryStatusMeta = const VerificationMeta(
+    'deliveryStatus',
+  );
+  @override
+  late final GeneratedColumn<String> deliveryStatus = GeneratedColumn<String>(
+    'delivery_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('queued'),
+  );
+  static const VerificationMeta _deliveredAtUtcMeta = const VerificationMeta(
+    'deliveredAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> deliveredAtUtc =
+      GeneratedColumn<DateTime>(
+        'delivered_at_utc',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _deliveryFailureMeta = const VerificationMeta(
+    'deliveryFailure',
+  );
+  @override
+  late final GeneratedColumn<String> deliveryFailure = GeneratedColumn<String>(
+    'delivery_failure',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _acknowledgedMeta = const VerificationMeta(
     'acknowledged',
   );
@@ -7223,6 +7258,9 @@ class $PreAlertsTable extends PreAlerts
     urgency,
     spokenText,
     alertedAtUtc,
+    deliveryStatus,
+    deliveredAtUtc,
+    deliveryFailure,
     acknowledged,
   ];
   @override
@@ -7353,6 +7391,33 @@ class $PreAlertsTable extends PreAlerts
     } else if (isInserting) {
       context.missing(_alertedAtUtcMeta);
     }
+    if (data.containsKey('delivery_status')) {
+      context.handle(
+        _deliveryStatusMeta,
+        deliveryStatus.isAcceptableOrUnknown(
+          data['delivery_status']!,
+          _deliveryStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('delivered_at_utc')) {
+      context.handle(
+        _deliveredAtUtcMeta,
+        deliveredAtUtc.isAcceptableOrUnknown(
+          data['delivered_at_utc']!,
+          _deliveredAtUtcMeta,
+        ),
+      );
+    }
+    if (data.containsKey('delivery_failure')) {
+      context.handle(
+        _deliveryFailureMeta,
+        deliveryFailure.isAcceptableOrUnknown(
+          data['delivery_failure']!,
+          _deliveryFailureMeta,
+        ),
+      );
+    }
     if (data.containsKey('acknowledged')) {
       context.handle(
         _acknowledgedMeta,
@@ -7427,6 +7492,18 @@ class $PreAlertsTable extends PreAlerts
         DriftSqlType.dateTime,
         data['${effectivePrefix}alerted_at_utc'],
       )!,
+      deliveryStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}delivery_status'],
+      )!,
+      deliveredAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}delivered_at_utc'],
+      ),
+      deliveryFailure: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}delivery_failure'],
+      ),
       acknowledged: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}acknowledged'],
@@ -7472,6 +7549,11 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
   final String spokenText;
   final DateTime alertedAtUtc;
 
+  /// Delivery state is distinct from a queued/scheduled warning.
+  final String deliveryStatus;
+  final DateTime? deliveredAtUtc;
+  final String? deliveryFailure;
+
   /// Set once the rider passed the hazard (used for timing evaluation).
   final bool acknowledged;
   const PreAlert({
@@ -7489,6 +7571,9 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
     required this.urgency,
     required this.spokenText,
     required this.alertedAtUtc,
+    required this.deliveryStatus,
+    this.deliveredAtUtc,
+    this.deliveryFailure,
     required this.acknowledged,
   });
   @override
@@ -7514,6 +7599,13 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
     map['urgency'] = Variable<String>(urgency);
     map['spoken_text'] = Variable<String>(spokenText);
     map['alerted_at_utc'] = Variable<DateTime>(alertedAtUtc);
+    map['delivery_status'] = Variable<String>(deliveryStatus);
+    if (!nullToAbsent || deliveredAtUtc != null) {
+      map['delivered_at_utc'] = Variable<DateTime>(deliveredAtUtc);
+    }
+    if (!nullToAbsent || deliveryFailure != null) {
+      map['delivery_failure'] = Variable<String>(deliveryFailure);
+    }
     map['acknowledged'] = Variable<bool>(acknowledged);
     return map;
   }
@@ -7540,6 +7632,13 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
       urgency: Value(urgency),
       spokenText: Value(spokenText),
       alertedAtUtc: Value(alertedAtUtc),
+      deliveryStatus: Value(deliveryStatus),
+      deliveredAtUtc: deliveredAtUtc == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deliveredAtUtc),
+      deliveryFailure: deliveryFailure == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deliveryFailure),
       acknowledged: Value(acknowledged),
     );
   }
@@ -7568,6 +7667,9 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
       urgency: serializer.fromJson<String>(json['urgency']),
       spokenText: serializer.fromJson<String>(json['spokenText']),
       alertedAtUtc: serializer.fromJson<DateTime>(json['alertedAtUtc']),
+      deliveryStatus: serializer.fromJson<String>(json['deliveryStatus']),
+      deliveredAtUtc: serializer.fromJson<DateTime?>(json['deliveredAtUtc']),
+      deliveryFailure: serializer.fromJson<String?>(json['deliveryFailure']),
       acknowledged: serializer.fromJson<bool>(json['acknowledged']),
     );
   }
@@ -7589,6 +7691,9 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
       'urgency': serializer.toJson<String>(urgency),
       'spokenText': serializer.toJson<String>(spokenText),
       'alertedAtUtc': serializer.toJson<DateTime>(alertedAtUtc),
+      'deliveryStatus': serializer.toJson<String>(deliveryStatus),
+      'deliveredAtUtc': serializer.toJson<DateTime?>(deliveredAtUtc),
+      'deliveryFailure': serializer.toJson<String?>(deliveryFailure),
       'acknowledged': serializer.toJson<bool>(acknowledged),
     };
   }
@@ -7608,6 +7713,9 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
     String? urgency,
     String? spokenText,
     DateTime? alertedAtUtc,
+    String? deliveryStatus,
+    Value<DateTime?> deliveredAtUtc = const Value.absent(),
+    Value<String?> deliveryFailure = const Value.absent(),
     bool? acknowledged,
   }) => PreAlert(
     id: id ?? this.id,
@@ -7624,6 +7732,13 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
     urgency: urgency ?? this.urgency,
     spokenText: spokenText ?? this.spokenText,
     alertedAtUtc: alertedAtUtc ?? this.alertedAtUtc,
+    deliveryStatus: deliveryStatus ?? this.deliveryStatus,
+    deliveredAtUtc: deliveredAtUtc.present
+        ? deliveredAtUtc.value
+        : this.deliveredAtUtc,
+    deliveryFailure: deliveryFailure.present
+        ? deliveryFailure.value
+        : this.deliveryFailure,
     acknowledged: acknowledged ?? this.acknowledged,
   );
   PreAlert copyWithCompanion(PreAlertsCompanion data) {
@@ -7654,6 +7769,15 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
       alertedAtUtc: data.alertedAtUtc.present
           ? data.alertedAtUtc.value
           : this.alertedAtUtc,
+      deliveryStatus: data.deliveryStatus.present
+          ? data.deliveryStatus.value
+          : this.deliveryStatus,
+      deliveredAtUtc: data.deliveredAtUtc.present
+          ? data.deliveredAtUtc.value
+          : this.deliveredAtUtc,
+      deliveryFailure: data.deliveryFailure.present
+          ? data.deliveryFailure.value
+          : this.deliveryFailure,
       acknowledged: data.acknowledged.present
           ? data.acknowledged.value
           : this.acknowledged,
@@ -7677,6 +7801,9 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
           ..write('urgency: $urgency, ')
           ..write('spokenText: $spokenText, ')
           ..write('alertedAtUtc: $alertedAtUtc, ')
+          ..write('deliveryStatus: $deliveryStatus, ')
+          ..write('deliveredAtUtc: $deliveredAtUtc, ')
+          ..write('deliveryFailure: $deliveryFailure, ')
           ..write('acknowledged: $acknowledged')
           ..write(')'))
         .toString();
@@ -7698,6 +7825,9 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
     urgency,
     spokenText,
     alertedAtUtc,
+    deliveryStatus,
+    deliveredAtUtc,
+    deliveryFailure,
     acknowledged,
   );
   @override
@@ -7718,6 +7848,9 @@ class PreAlert extends DataClass implements Insertable<PreAlert> {
           other.urgency == this.urgency &&
           other.spokenText == this.spokenText &&
           other.alertedAtUtc == this.alertedAtUtc &&
+          other.deliveryStatus == this.deliveryStatus &&
+          other.deliveredAtUtc == this.deliveredAtUtc &&
+          other.deliveryFailure == this.deliveryFailure &&
           other.acknowledged == this.acknowledged);
 }
 
@@ -7736,6 +7869,9 @@ class PreAlertsCompanion extends UpdateCompanion<PreAlert> {
   final Value<String> urgency;
   final Value<String> spokenText;
   final Value<DateTime> alertedAtUtc;
+  final Value<String> deliveryStatus;
+  final Value<DateTime?> deliveredAtUtc;
+  final Value<String?> deliveryFailure;
   final Value<bool> acknowledged;
   const PreAlertsCompanion({
     this.id = const Value.absent(),
@@ -7752,6 +7888,9 @@ class PreAlertsCompanion extends UpdateCompanion<PreAlert> {
     this.urgency = const Value.absent(),
     this.spokenText = const Value.absent(),
     this.alertedAtUtc = const Value.absent(),
+    this.deliveryStatus = const Value.absent(),
+    this.deliveredAtUtc = const Value.absent(),
+    this.deliveryFailure = const Value.absent(),
     this.acknowledged = const Value.absent(),
   });
   PreAlertsCompanion.insert({
@@ -7769,6 +7908,9 @@ class PreAlertsCompanion extends UpdateCompanion<PreAlert> {
     required String urgency,
     required String spokenText,
     required DateTime alertedAtUtc,
+    this.deliveryStatus = const Value.absent(),
+    this.deliveredAtUtc = const Value.absent(),
+    this.deliveryFailure = const Value.absent(),
     this.acknowledged = const Value.absent(),
   }) : eventType = Value(eventType),
        latitude = Value(latitude),
@@ -7795,6 +7937,9 @@ class PreAlertsCompanion extends UpdateCompanion<PreAlert> {
     Expression<String>? urgency,
     Expression<String>? spokenText,
     Expression<DateTime>? alertedAtUtc,
+    Expression<String>? deliveryStatus,
+    Expression<DateTime>? deliveredAtUtc,
+    Expression<String>? deliveryFailure,
     Expression<bool>? acknowledged,
   }) {
     return RawValuesInsertable({
@@ -7814,6 +7959,9 @@ class PreAlertsCompanion extends UpdateCompanion<PreAlert> {
       if (urgency != null) 'urgency': urgency,
       if (spokenText != null) 'spoken_text': spokenText,
       if (alertedAtUtc != null) 'alerted_at_utc': alertedAtUtc,
+      if (deliveryStatus != null) 'delivery_status': deliveryStatus,
+      if (deliveredAtUtc != null) 'delivered_at_utc': deliveredAtUtc,
+      if (deliveryFailure != null) 'delivery_failure': deliveryFailure,
       if (acknowledged != null) 'acknowledged': acknowledged,
     });
   }
@@ -7833,6 +7981,9 @@ class PreAlertsCompanion extends UpdateCompanion<PreAlert> {
     Value<String>? urgency,
     Value<String>? spokenText,
     Value<DateTime>? alertedAtUtc,
+    Value<String>? deliveryStatus,
+    Value<DateTime?>? deliveredAtUtc,
+    Value<String?>? deliveryFailure,
     Value<bool>? acknowledged,
   }) {
     return PreAlertsCompanion(
@@ -7850,6 +8001,9 @@ class PreAlertsCompanion extends UpdateCompanion<PreAlert> {
       urgency: urgency ?? this.urgency,
       spokenText: spokenText ?? this.spokenText,
       alertedAtUtc: alertedAtUtc ?? this.alertedAtUtc,
+      deliveryStatus: deliveryStatus ?? this.deliveryStatus,
+      deliveredAtUtc: deliveredAtUtc ?? this.deliveredAtUtc,
+      deliveryFailure: deliveryFailure ?? this.deliveryFailure,
       acknowledged: acknowledged ?? this.acknowledged,
     );
   }
@@ -7901,6 +8055,15 @@ class PreAlertsCompanion extends UpdateCompanion<PreAlert> {
     if (alertedAtUtc.present) {
       map['alerted_at_utc'] = Variable<DateTime>(alertedAtUtc.value);
     }
+    if (deliveryStatus.present) {
+      map['delivery_status'] = Variable<String>(deliveryStatus.value);
+    }
+    if (deliveredAtUtc.present) {
+      map['delivered_at_utc'] = Variable<DateTime>(deliveredAtUtc.value);
+    }
+    if (deliveryFailure.present) {
+      map['delivery_failure'] = Variable<String>(deliveryFailure.value);
+    }
     if (acknowledged.present) {
       map['acknowledged'] = Variable<bool>(acknowledged.value);
     }
@@ -7924,6 +8087,9 @@ class PreAlertsCompanion extends UpdateCompanion<PreAlert> {
           ..write('urgency: $urgency, ')
           ..write('spokenText: $spokenText, ')
           ..write('alertedAtUtc: $alertedAtUtc, ')
+          ..write('deliveryStatus: $deliveryStatus, ')
+          ..write('deliveredAtUtc: $deliveredAtUtc, ')
+          ..write('deliveryFailure: $deliveryFailure, ')
           ..write('acknowledged: $acknowledged')
           ..write(')'))
         .toString();
@@ -11958,6 +12124,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cameraCaptures,
     liveEventReviews,
   ];
+  @override
+  DriftDatabaseOptions get options =>
+      const DriftDatabaseOptions(storeDateTimeAsText: true);
 }
 
 typedef $$SensorReadingsTableCreateCompanionBuilder =
@@ -15099,6 +15268,9 @@ typedef $$PreAlertsTableCreateCompanionBuilder =
       required String urgency,
       required String spokenText,
       required DateTime alertedAtUtc,
+      Value<String> deliveryStatus,
+      Value<DateTime?> deliveredAtUtc,
+      Value<String?> deliveryFailure,
       Value<bool> acknowledged,
     });
 typedef $$PreAlertsTableUpdateCompanionBuilder =
@@ -15117,6 +15289,9 @@ typedef $$PreAlertsTableUpdateCompanionBuilder =
       Value<String> urgency,
       Value<String> spokenText,
       Value<DateTime> alertedAtUtc,
+      Value<String> deliveryStatus,
+      Value<DateTime?> deliveredAtUtc,
+      Value<String?> deliveryFailure,
       Value<bool> acknowledged,
     });
 
@@ -15196,6 +15371,21 @@ class $$PreAlertsTableFilterComposer
 
   ColumnFilters<DateTime> get alertedAtUtc => $composableBuilder(
     column: $table.alertedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deliveryStatus => $composableBuilder(
+    column: $table.deliveryStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get deliveredAtUtc => $composableBuilder(
+    column: $table.deliveredAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deliveryFailure => $composableBuilder(
+    column: $table.deliveryFailure,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -15284,6 +15474,21 @@ class $$PreAlertsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get deliveryStatus => $composableBuilder(
+    column: $table.deliveryStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get deliveredAtUtc => $composableBuilder(
+    column: $table.deliveredAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deliveryFailure => $composableBuilder(
+    column: $table.deliveryFailure,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get acknowledged => $composableBuilder(
     column: $table.acknowledged,
     builder: (column) => ColumnOrderings(column),
@@ -15353,6 +15558,21 @@ class $$PreAlertsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get deliveryStatus => $composableBuilder(
+    column: $table.deliveryStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get deliveredAtUtc => $composableBuilder(
+    column: $table.deliveredAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get deliveryFailure => $composableBuilder(
+    column: $table.deliveryFailure,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get acknowledged => $composableBuilder(
     column: $table.acknowledged,
     builder: (column) => column,
@@ -15401,6 +15621,9 @@ class $$PreAlertsTableTableManager
                 Value<String> urgency = const Value.absent(),
                 Value<String> spokenText = const Value.absent(),
                 Value<DateTime> alertedAtUtc = const Value.absent(),
+                Value<String> deliveryStatus = const Value.absent(),
+                Value<DateTime?> deliveredAtUtc = const Value.absent(),
+                Value<String?> deliveryFailure = const Value.absent(),
                 Value<bool> acknowledged = const Value.absent(),
               }) => PreAlertsCompanion(
                 id: id,
@@ -15417,6 +15640,9 @@ class $$PreAlertsTableTableManager
                 urgency: urgency,
                 spokenText: spokenText,
                 alertedAtUtc: alertedAtUtc,
+                deliveryStatus: deliveryStatus,
+                deliveredAtUtc: deliveredAtUtc,
+                deliveryFailure: deliveryFailure,
                 acknowledged: acknowledged,
               ),
           createCompanionCallback:
@@ -15435,6 +15661,9 @@ class $$PreAlertsTableTableManager
                 required String urgency,
                 required String spokenText,
                 required DateTime alertedAtUtc,
+                Value<String> deliveryStatus = const Value.absent(),
+                Value<DateTime?> deliveredAtUtc = const Value.absent(),
+                Value<String?> deliveryFailure = const Value.absent(),
                 Value<bool> acknowledged = const Value.absent(),
               }) => PreAlertsCompanion.insert(
                 id: id,
@@ -15451,6 +15680,9 @@ class $$PreAlertsTableTableManager
                 urgency: urgency,
                 spokenText: spokenText,
                 alertedAtUtc: alertedAtUtc,
+                deliveryStatus: deliveryStatus,
+                deliveredAtUtc: deliveredAtUtc,
+                deliveryFailure: deliveryFailure,
                 acknowledged: acknowledged,
               ),
           withReferenceMapper: (p0) => p0

@@ -83,6 +83,7 @@ class HandsfreeSessionService {
   int _voiceGeneration = 0;
   bool _liveConversationBusy = false;
   Completer<String?>? _answer;
+  final Set<Completer<String>> _pendingAlertResults = {};
   String? _latestAnswer;
   Future<void>? _starting;
   LiveEventRepository get _reviews => LiveEventRepository(db);
@@ -96,14 +97,12 @@ class HandsfreeSessionService {
   bool _shouldKeepListening = false;
   bool _isDisposed = false;
 
-
   // Stream exposed to the UI layer
   final _stateController = StreamController<HandsfreeSessionState>.broadcast();
   Stream<HandsfreeSessionState> get stateStream => _stateController.stream;
 
   HandsfreeSessionState _state = const HandsfreeSessionState();
   HandsfreeSessionState get state => _state;
-
 
   // Keep-alive ping timer for the STT session
   Timer? _keepAliveTimer;
@@ -199,6 +198,7 @@ class HandsfreeSessionService {
   /// Call when the ride ends.
   Future<void> stop() async {
     _voiceGeneration++;
+    _completePendingAlertResults('cancelled');
     _finishAnswer();
     _setState(_state.copyWith(mode: HandsfreeMode.off));
     _shouldKeepListening = false;
@@ -212,6 +212,7 @@ class HandsfreeSessionService {
 
   void dispose() {
     _voiceGeneration++;
+    _completePendingAlertResults('cancelled');
     _finishAnswer();
     _isDisposed = true;
     _shouldKeepListening = false;
@@ -230,32 +231,71 @@ class HandsfreeSessionService {
   /// Speak a predictive pre-alert (bump/pothole/turn etc.).
   ///
   /// The mic is paused while speaking and automatically restarted afterward.
-  Future<void> announcePreAlert(PreAlertDecision decision) {
-    // A location warning takes priority over questions about a past event.
-    // Finish the current sentence, but release any pending answer immediately.
+  Future<String> announcePreAlert(PreAlertDecision decision) {
+    // A new location warning cancels older queued warnings and any stale answer.
     _voiceGeneration++;
+    _completePendingAlertResults('cancelled');
     _finishAnswer();
-    return _enqueueVoiceAction((generation) async {
-      // Refresh distance after waiting for the current sentence to finish.
-      final age = DateTime.now().toUtc().difference(decision.evaluatedAtUtc ??
-          DateTime.now().toUtc()).inMilliseconds / 1000.0;
-      final remaining = decision.distanceMeters - decision.speedKmh / 3.6 * age;
-      if (remaining <= 0) return;
-      await _speakOnly(PreAlertMessageBuilder.build(decision, distanceOverride: remaining));
-      if (_isCurrentVoiceAction(generation)) _resumeListening();
+    final result = Completer<String>();
+    _pendingAlertResults.add(result);
+    _enqueueVoiceAction((generation) async {
+      try {
+        final age =
+            DateTime.now()
+                .toUtc()
+                .difference(decision.evaluatedAtUtc ?? DateTime.now().toUtc())
+                .inMilliseconds /
+            1000.0;
+        final remaining =
+            decision.distanceMeters - decision.speedKmh / 3.6 * age;
+        if (remaining <= 0) {
+          if (!result.isCompleted) result.complete('expired');
+          return;
+        }
+        final spoken = await _speakOnly(
+          PreAlertMessageBuilder.build(decision, distanceOverride: remaining),
+        );
+        if (!result.isCompleted)
+          result.complete(spoken ? 'delivered' : 'failed');
+        if (_isCurrentVoiceAction(generation)) _resumeListening();
+      } catch (_) {
+        if (!result.isCompleted) result.complete('failed');
+      } finally {
+        _pendingAlertResults.remove(result);
+      }
+    }).catchError((Object _) {
+      if (!result.isCompleted) result.complete('failed');
     });
+    return result.future;
+  }
+
+  void _completePendingAlertResults(String status) {
+    for (final result in _pendingAlertResults.toList()) {
+      if (!result.isCompleted) result.complete(status);
+    }
+    _pendingAlertResults.clear();
   }
 
   /// Persist immediately; questions never delay detection of subsequent events.
-  Future<void> reviewLiveDetection({required int tripId,
-    required LiveMlPrediction prediction, LocationFix? fix}) async {
+  Future<void> reviewLiveDetection({
+    required int tripId,
+    required LiveMlPrediction prediction,
+    LocationFix? fix,
+  }) async {
     final generation = _voiceGeneration;
-    final canAsk = !_liveConversationBusy && _state.mode == HandsfreeMode.listening;
+    final canAsk =
+        !_liveConversationBusy && _state.mode == HandsfreeMode.listening;
     if (canAsk) _liveConversationBusy = true;
     try {
-      final id = await _reviews.capture(tripId: tripId, prediction: prediction, fix: fix);
+      final id = await _reviews.capture(
+        tripId: tripId,
+        prediction: prediction,
+        fix: fix,
+      );
       if (!canAsk || !_isCurrentVoiceAction(generation)) return;
-      await _enqueueVoiceAction((generation) => _confirmLiveEvent(id, generation));
+      await _enqueueVoiceAction(
+        (generation) => _confirmLiveEvent(id, generation),
+      );
     } finally {
       if (canAsk) _liveConversationBusy = false;
     }
@@ -264,7 +304,8 @@ class HandsfreeSessionService {
   static bool? confirmationFrom(String? reply) {
     if (reply == null) return null;
     final words = reply.toLowerCase().replaceAll(RegExp(r"[^a-z\s]"), ' ');
-    if (RegExp(r'\b(no|nope|nah|not|incorrect)\b').hasMatch(words)) return false;
+    if (RegExp(r'\b(no|nope|nah|not|incorrect)\b').hasMatch(words))
+      return false;
     if (RegExp(r'\b(yes|yeah|yep|correct|sure)\b').hasMatch(words)) return true;
     return null;
   }
@@ -298,16 +339,23 @@ class HandsfreeSessionService {
       if (confirmed == true) {
         await _speakOnly('How was it?');
         if (!_isCurrentVoiceAction(generation)) return;
-        final feedback = await _listenForAnswer(generation, timeout: const Duration(seconds: 12));
+        final feedback = await _listenForAnswer(
+          generation,
+          timeout: const Duration(seconds: 12),
+        );
         await _reviews.recordFeedback(id, feedback);
         if (!_isCurrentVoiceAction(generation)) return;
-        await _speakOnly(feedback == null
-            ? 'No feedback captured. You can review this event after the trip.'
-            : 'Got it. Your feedback is saved for review after the trip.');
+        await _speakOnly(
+          feedback == null
+              ? 'No feedback captured. You can review this event after the trip.'
+              : 'Got it. Your feedback is saved for review after the trip.',
+        );
       } else {
-        await _speakOnly(confirmed == false
-            ? 'Okay, marked as not an event.'
-            : 'You can review this detection after the trip.');
+        await _speakOnly(
+          confirmed == false
+              ? 'Okay, marked as not an event.'
+              : 'You can review this detection after the trip.',
+        );
       }
     } finally {
       if (_isCurrentVoiceAction(generation)) _resumeListening();
@@ -319,7 +367,8 @@ class HandsfreeSessionService {
     if (answer != null && !answer.isCompleted) answer.complete(_latestAnswer);
   }
 
-  Future<String?> _listenForAnswer(int generation, {
+  Future<String?> _listenForAnswer(
+    int generation, {
     Duration timeout = const Duration(seconds: 7),
   }) async {
     if (!_sttReady || !_isCurrentVoiceAction(generation)) return null;
@@ -340,8 +389,11 @@ class HandsfreeSessionService {
           if (result.finalResult) _finishAnswer();
         },
         listenOptions: SpeechListenOptions(
-          partialResults: true, cancelOnError: true, listenMode: ListenMode.dictation,
-          listenFor: timeout, pauseFor: const Duration(seconds: 2),
+          partialResults: true,
+          cancelOnError: true,
+          listenMode: ListenMode.dictation,
+          listenFor: timeout,
+          pauseFor: const Duration(seconds: 2),
         ),
       );
       return await answer.future;
@@ -351,7 +403,9 @@ class HandsfreeSessionService {
     } finally {
       timer.cancel();
       _answer = null;
-      try { await _stt.stop(); } catch (_) {}
+      try {
+        await _stt.stop();
+      } catch (_) {}
     }
   }
 
@@ -396,20 +450,34 @@ class HandsfreeSessionService {
 
   /// Manual recordings use the same yes/no and feedback flow as live events.
   Future<void> promptAndRecordEventFeedback({
-    required int eventId, required String eventType, int? tripId,
-    double? latitude, double? longitude, int? roadEventId, int? preAlertId,
+    required int eventId,
+    required String eventType,
+    int? tripId,
+    double? latitude,
+    double? longitude,
+    int? roadEventId,
+    int? preAlertId,
   }) => _enqueueVoiceAction((generation) async {
     if (!_isCurrentVoiceAction(generation)) return;
-    final record = await (db.select(db.eventRecords)..where((t) => t.id.equals(eventId))).getSingleOrNull();
+    final record = await (db.select(
+      db.eventRecords,
+    )..where((t) => t.id.equals(eventId))).getSingleOrNull();
     final effectiveTrip = tripId ?? record?.tripId;
     if (effectiveTrip == null || record == null) return;
-    final id = await db.into(db.liveEventReviews).insert(LiveEventReviewsCompanion.insert(
-      tripId: effectiveTrip, eventId: drift.Value(eventId), eventType: eventType,
-      detectedAtUtc: record.startTimestamp, confidence: 1.0,
-      sensorFeaturesJson: record.computedParameters ?? '{}',
-      latitude: drift.Value(record.startGpsLat ?? latitude),
-      longitude: drift.Value(record.startGpsLng ?? longitude),
-    ));
+    final id = await db
+        .into(db.liveEventReviews)
+        .insert(
+          LiveEventReviewsCompanion.insert(
+            tripId: effectiveTrip,
+            eventId: drift.Value(eventId),
+            eventType: eventType,
+            detectedAtUtc: record.startTimestamp,
+            confidence: 1.0,
+            sensorFeaturesJson: record.computedParameters ?? '{}',
+            latitude: drift.Value(record.startGpsLat ?? latitude),
+            longitude: drift.Value(record.startGpsLng ?? longitude),
+          ),
+        );
     await _confirmLiveEvent(id, generation);
   });
 
@@ -498,8 +566,8 @@ class HandsfreeSessionService {
       });
 
   /// Speaks without resuming the ambient mic (used in answer-capture flow).
-  Future<void> _speakOnly(String text) async {
-    if (_isDisposed) return;
+  Future<bool> _speakOnly(String text) async {
+    if (_isDisposed) return false;
     _setState(
       _state.copyWith(mode: HandsfreeMode.speaking, lastSpokenText: text),
     );
@@ -507,8 +575,8 @@ class HandsfreeSessionService {
     try {
       await _stt.stop();
     } catch (_) {}
-    if (_isDisposed || _state.mode != HandsfreeMode.speaking) return;
-    await _tts.speak(text);
+    if (_isDisposed || _state.mode != HandsfreeMode.speaking) return false;
+    return _tts.speak(text);
   }
 
   // ---------------------------------------------------------------------------
@@ -548,5 +616,4 @@ class HandsfreeSessionService {
         return raw.replaceAll('_', ' ');
     }
   }
-
 }

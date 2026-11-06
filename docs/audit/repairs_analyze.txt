@@ -1,0 +1,38 @@
+Analyzing ride_sensor_capture...                                
+
+   info • Use an initializing formal to assign a parameter to a field. Try using an initialing formal ('this._storageRoot') to initialize the field • lib/camera/camera_capture_repository.dart:16:7 • prefer_initializing_formals
+warning • The value of the local variable 'sub' isn't used. Try removing the variable or using it • lib/core/services/map_offline_cache_service.dart:157:17 • unused_local_variable
+warning • The value of the local variable 'hrDelta' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:660:13 • unused_local_variable
+warning • The value of the local variable 'jMag' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:673:27 • unused_local_variable
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/data/repositories/export_repository_impl.dart:682:13 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/data/repositories/export_repository_impl.dart:684:13 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/data/repositories/export_repository_impl.dart:686:13 • curly_braces_in_flow_control_structures
+warning • The value of the local variable 'fmt' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1426:11 • unused_local_variable
+warning • The value of the local variable 'jMag' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1494:15 • unused_local_variable
+warning • The value of the local variable 'rowClassification' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1542:14 • unused_local_variable
+warning • The value of the local variable 'rowPeakMetric' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1543:15 • unused_local_variable
+warning • The value of the local variable 'rowCrossConfirmed' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1544:12 • unused_local_variable
+warning • The value of the local variable 'rowParamSummary' isn't used. Try removing the variable or using it • lib/data/repositories/export_repository_impl.dart:1545:14 • unused_local_variable
+   info • The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart'. Try removing the import directive • lib/features/dashboard/presentation/live_map_widget.dart:1:8 • unnecessary_import
+   info • The private field _showRoute could be 'final'. Try making the field 'final' • lib/features/dashboard/presentation/live_map_widget.dart:43:8 • prefer_final_fields
+   info • Unnecessary use of multiple underscores. Try using '_' • lib/features/events/presentation/events_screen.dart:1101:39 • unnecessary_underscores
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/features/trips/trip_controller.dart:359:17 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/location/location_quality.dart:21:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/location/location_quality.dart:24:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/location/location_quality.dart:27:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/location/location_quality.dart:30:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/location/location_quality.dart:45:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/location/location_service.dart:175:7 • curly_braces_in_flow_control_structures
+   info • Use an initializing formal to assign a parameter to a field. Try using an initialing formal ('this._handsfreeService') to initialize the field • lib/prealert/pre_alert_service.dart:69:8 • prefer_initializing_formals
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/prealert/pre_alert_service.dart:146:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/prealert/pre_alert_service.dart:209:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/prealert/pre_alert_service.dart:214:11 • curly_braces_in_flow_control_structures
+   info • Use a function declaration rather than a variable assignment to bind a function to a name. Try rewriting the closure assignment as a function declaration • lib/prealert/pre_alert_service.dart:239:11 • prefer_function_declarations_over_variables
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/prealert/pre_alert_service.dart:265:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/prealert/pre_alert_service.dart:344:9 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/voice/handsfree_session_service.dart:259:11 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/voice/handsfree_session_service.dart:308:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/voice/voice_alert_service.dart:126:7 • curly_braces_in_flow_control_structures
+   info • Statements in an if should be enclosed in a block. Try wrapping the statement in a block • lib/voice/voice_alert_service.dart:129:7 • curly_braces_in_flow_control_structures
+
+34 issues found. (ran in 5.9s)

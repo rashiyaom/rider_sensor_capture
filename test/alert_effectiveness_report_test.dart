@@ -19,7 +19,9 @@ Future<int> _insertAlert(
   required String urgency,
   DateTime? at,
 }) {
-  return db.into(db.preAlerts).insert(
+  return db
+      .into(db.preAlerts)
+      .insert(
         PreAlertsCompanion.insert(
           roadEventId: drift.Value(roadEventId),
           tripId: const drift.Value(1),
@@ -34,6 +36,7 @@ Future<int> _insertAlert(
           urgency: urgency,
           spokenText: 'Speed bump ahead, 400 metres, 16 seconds.',
           alertedAtUtc: at ?? DateTime.utc(2026, 10, 20, 10, 0, 0),
+          deliveryStatus: const drift.Value('delivered'),
         ),
       );
 }
@@ -49,7 +52,9 @@ Future<int> _insertFeedback(
   required String difficulty,
   bool analyzedByLlm = true,
 }) {
-  return db.into(db.eventFeedbacks).insert(
+  return db
+      .into(db.eventFeedbacks)
+      .insert(
         EventFeedbacksCompanion.insert(
           eventId: drift.Value(eventId),
           tripId: const drift.Value(1),
@@ -62,8 +67,9 @@ Future<int> _insertFeedback(
           alertTimingAdequacy: drift.Value(timing),
           difficultyLevel: drift.Value(difficulty),
           riderSummary: const drift.Value('Rider handled it well.'),
-          improvementSuggestion:
-              const drift.Value('Keep the current warning window.'),
+          improvementSuggestion: const drift.Value(
+            'Keep the current warning window.',
+          ),
           analysisConfidence: const drift.Value(0.9),
           analyzedByLlm: drift.Value(analyzedByLlm),
           createdAtUtc: DateTime.utc(2026, 10, 20, 10, 0, 5),

@@ -181,4 +181,40 @@ void main() {
     expect(await service.speak('Too late.'), isFalse);
     expect(service.isAvailable, isFalse);
   });
+  test(
+    'a native engine that never completes speech times out and is stopped',
+    () async {
+      service.dispose();
+      await pumpEventQueue();
+      service = VoiceAlertService(
+        tts: engine,
+        speechTimeout: const Duration(milliseconds: 20),
+      );
+      expect(
+        await service.speak('Hung speech.', hapticFallback: false),
+        isFalse,
+      );
+      expect(stops, greaterThan(0));
+      expect(service.isSpeaking, isFalse);
+    },
+  );
+
+  test(
+    'queued warning is skipped when it becomes irrelevant before playback',
+    () async {
+      final first = service.speak('Long sentence.');
+      await pumpEventQueue();
+      var relevant = true;
+      final second = service.speak(
+        'Old road warning.',
+        shouldSpeak: () => relevant,
+      );
+      await pumpEventQueue();
+      relevant = false;
+      playback.first.complete(1);
+      expect(await first, isTrue);
+      expect(await second, isFalse);
+      expect(spoken, ['Long sentence.']);
+    },
+  );
 }

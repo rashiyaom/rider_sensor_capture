@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../ble/models/ble_device_model.dart';
 import '../data/local_db/database.dart';
 import '../data/repositories/sensor_repository.dart';
@@ -89,7 +90,11 @@ final bleToDbBridgeProvider = Provider<void>((ref) {
       mountLoc = _autoAssignedWatchHands[data.deviceId]!;
     }
 
-    repo.insertReading(data.copyWith(mountLocation: mountLoc));
+    repo.insertReading(data.copyWith(mountLocation: mountLoc)).catchError((
+      Object _,
+    ) {
+      // The repository retains the sample and publishes the storage error.
+    });
     ref.read(rideRecordingProvider.notifier).incrementRowCount(1);
     ref.read(tripControllerProvider.notifier).incrementSensorRows(1);
   });
@@ -100,22 +105,31 @@ class DbWriteStats {
   final int totalRows;
   final Map<String, int> deviceCounts;
   final DateTime? lastWriteTime;
+  final String? writeError;
+  final int pendingRows;
 
   const DbWriteStats({
     this.totalRows = 0,
     this.deviceCounts = const {},
     this.lastWriteTime,
+    this.writeError,
+    this.pendingRows = 0,
   });
 }
 
 /// Real-time SQLite statistics stream updating instantly on every batch insert
-final dbWriteStatsStreamProvider = StreamProvider.autoDispose<DbWriteStats>((ref) {
+final dbWriteStatsStreamProvider = StreamProvider.autoDispose<DbWriteStats>((
+  ref,
+) {
   final repo = ref.watch(sensorRepositoryProvider);
   return repo.watchStats();
 });
 
 /// BLE sequence number continuity & quality stats provider for a given trip
-final tripBleQualityProvider = FutureProvider.family<BleQualityStats, int>((ref, tripId) async {
+final tripBleQualityProvider = FutureProvider.family<BleQualityStats, int>((
+  ref,
+  tripId,
+) async {
   final repo = ref.watch(sensorRepositoryProvider);
   return repo.getTripBleQuality(tripId);
 });

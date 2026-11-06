@@ -1,6 +1,6 @@
-// Diagnostic acceptance tests for open audit findings. Run explicitly:
+// Original audit regression cases. Run explicitly:
 // flutter test --no-pub docs/audit/reproductions_test.dart
-// These intentionally fail until the reported defects are fixed.
+// All six now pass after the sequential repairs; retain them as regression evidence.
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ride_sensor_capture/ble/models/ble_device_model.dart';

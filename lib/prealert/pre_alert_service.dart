@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../data/local_db/database.dart';
 import '../location/location_service.dart';
+import '../location/location_quality.dart';
 import '../location/geo_math.dart';
 import '../voice/handsfree_session_service.dart';
 import '../voice/voice_alert_service.dart';
@@ -25,6 +26,8 @@ class PreAlertService {
   final VoiceAlertService voiceService;
   final PreAlertEngine engine;
   final LocationService? locationService;
+  final DateTime Function() now;
+  String? startupError;
 
   final StreamController<PreAlertDecision> _alertController =
       StreamController<PreAlertDecision>.broadcast();
@@ -33,6 +36,9 @@ class PreAlertService {
 
   /// Road-event ids that have already been warned about during this session.
   final Set<int> _alertedEventIds = <int>{};
+  final Set<int> _inFlightEventIds = <int>{};
+  final Map<int, DateTime> _lastAttemptAt = {};
+  String? lastDeliveryError;
 
   /// Last time each road-event id was warned about (for re-alert cooldowns).
   final Map<int, DateTime> _lastAlertAt = <int, DateTime>{};
@@ -53,12 +59,14 @@ class PreAlertService {
     VoiceAlertService? voiceService,
     PreAlertEngine? engine,
     this.locationService,
+    DateTime Function()? clock,
     this.reAlertCooldown = const Duration(minutes: 2),
     HandsfreeSessionService? handsfreeService,
-  })  : registry = RoadEventRegistry(db),
-        voiceService = voiceService ?? VoiceAlertService(),
-        engine = engine ?? const PreAlertEngine(),
-        _handsfreeService = handsfreeService;
+  }) : now = clock ?? DateTime.now,
+       registry = RoadEventRegistry(db),
+       voiceService = voiceService ?? VoiceAlertService(),
+       engine = engine ?? const PreAlertEngine(),
+       _handsfreeService = handsfreeService;
 
   /// Optional hands-free orchestrator — when set, spoken alerts are routed
   /// through it (which pauses the mic, speaks, then resumes listening).
@@ -77,12 +85,32 @@ class PreAlertService {
   /// Starts GPS tracking and begins evaluating hazards.
   Future<void> start() async {
     if (_running) return;
-    _running = true;
-
+    startupError = null;
     final service = locationService;
     if (service != null) {
       _fixSubscription = service.fixStream.listen(_onFix);
-      unawaited(service.startTracking(intervalMs: 1000));
+      final session = _session;
+      try {
+        final ready = await service.startTracking(intervalMs: 1000);
+        if (session != _session) return;
+        if (!ready) {
+          _running = false;
+          startupError = service.lastError ?? 'GPS tracking could not start.';
+          await _fixSubscription?.cancel();
+          _fixSubscription = null;
+        } else {
+          startupError = null;
+          _running = true;
+        }
+      } catch (_) {
+        if (session != _session) return;
+        _running = false;
+        startupError = 'GPS tracking could not start.';
+        await _fixSubscription?.cancel();
+        _fixSubscription = null;
+      }
+    } else {
+      _running = true; // Explicit fix injection (replay/tests).
     }
   }
 
@@ -95,6 +123,8 @@ class PreAlertService {
     _fixSubscription = null;
     await locationService?.stopTracking();
     _alertedEventIds.clear();
+    _inFlightEventIds.clear();
+    _lastAttemptAt.clear();
     _lastAlertAt.clear();
     _activeAlert = null;
   }
@@ -105,6 +135,15 @@ class PreAlertService {
   Future<void> _onFix(LocationFix fix) async {
     if (!_running || _evaluating) return;
 
+    if (!LocationQuality.accepts(
+      latitude: fix.latitude,
+      longitude: fix.longitude,
+      timestamp: fix.timestampUtc,
+      now: now().toUtc(),
+      accuracy: fix.gpsAccuracyM,
+      speedMps: fix.gpsSpeedMps,
+    ))
+      return;
     final speedKmh = fix.speedKmh ?? 0.0;
     if (!speedKmh.isFinite || speedKmh <= 0) return;
     if (fix.gpsAccuracyM != null && fix.gpsAccuracyM! > 50) return;
@@ -112,11 +151,21 @@ class PreAlertService {
     _evaluating = true;
     var heading = fix.gpsHeadingDeg;
     final previous = _previousFix;
-    if (heading == null && previous != null && GeoMath.distanceMeters(
-        lat1: previous.latitude, lon1: previous.longitude,
-        lat2: fix.latitude, lon2: fix.longitude) >= 5) {
-      heading = GeoMath.bearingDegrees(lat1: previous.latitude, lon1: previous.longitude,
-          lat2: fix.latitude, lon2: fix.longitude);
+    if (heading == null &&
+        previous != null &&
+        GeoMath.distanceMeters(
+              lat1: previous.latitude,
+              lon1: previous.longitude,
+              lat2: fix.latitude,
+              lon2: fix.longitude,
+            ) >=
+            5) {
+      heading = GeoMath.bearingDegrees(
+        lat1: previous.latitude,
+        lon1: previous.longitude,
+        lat2: fix.latitude,
+        lon2: fix.longitude,
+      );
     }
     _previousFix = fix;
     // Rearm after leaving a location and returning later, including in one trip.
@@ -142,23 +191,35 @@ class PreAlertService {
         candidates: candidates,
         alreadyAlertedIds: _alertedEventIds,
         headingDeg: heading,
+        evaluatedAtUtc: now().toUtc(),
       );
       if (decision == null) return;
 
-      _activeAlert = decision;
-
-      if (!decision.shouldSpeak) return;
+      if (!decision.shouldSpeak) {
+        _activeAlert = decision;
+        return;
+      }
 
       final roadEventId = decision.candidate.id;
       if (roadEventId != null) {
-        final last = _lastAlertAt[roadEventId];
-        final now = fix.timestampUtc;
-        if (last != null && now.difference(last) < reAlertCooldown) return;
-        _lastAlertAt[roadEventId] = now;
-        _alertedEventIds.add(roadEventId);
+        if (_inFlightEventIds.contains(roadEventId)) return;
+        final lastDelivered = _lastAlertAt[roadEventId];
+        if (lastDelivered != null &&
+            fix.timestampUtc.difference(lastDelivered) < reAlertCooldown)
+          return;
+        final lastAttempt = _lastAttemptAt[roadEventId];
+        if (lastAttempt != null &&
+            fix.timestampUtc.difference(lastAttempt) <
+                const Duration(seconds: 5))
+          return;
+        _inFlightEventIds.add(roadEventId);
+        _lastAttemptAt[roadEventId] = fix.timestampUtc;
       }
-
-      await issueAlert(decision);
+      try {
+        await issueAlert(decision);
+      } finally {
+        if (roadEventId != null) _inFlightEventIds.remove(roadEventId);
+      }
     } catch (e) {
       if (kDebugMode) {
         debugPrint('PreAlertService: evaluation failed ($e)');
@@ -173,25 +234,15 @@ class PreAlertService {
   /// Returns the persisted `pre_alerts` row id, or null when the warning
   /// could not be persisted.
   Future<int?> issueAlert(PreAlertDecision decision) async {
-    final message = PreAlertMessageBuilder.build(decision);
-
-    // Route through hands-free orchestrator if active (manages mic pause);
-    // otherwise fall back to the raw VoiceAlertService.
-    final hf = _handsfreeService;
-    if (hf != null && hf.state.mode != HandsfreeMode.off) {
-      unawaited(hf.announcePreAlert(decision));
-    } else {
-      // Haptics first so the rider perceives the warning even if TTS is slow.
-      if (decision.urgency == PreAlertUrgency.imminent) {
-        unawaited(voiceService.speak(message, pitch: 1.1, hapticFallback: false));
-      } else {
-        unawaited(voiceService.speak(message, hapticFallback: false));
-      }
-    }
-
+    final message = _messageFor(decision);
+    var spokenMessage = message;
+    final isStillRelevant = () => _remainingMeters(decision) > 0;
+    final roadEventId = decision.candidate.id;
+    int? rowId;
     try {
-      final roadEventId = decision.candidate.id;
-      final rowId = await db.into(db.preAlerts).insert(
+      rowId = await db
+          .into(db.preAlerts)
+          .insert(
             PreAlertsCompanion.insert(
               roadEventId: Value(roadEventId),
               tripId: Value(_activeTripId),
@@ -204,25 +255,110 @@ class PreAlertService {
               recommendedSpeedKmh: decision.recommendedSpeedKmh,
               urgency: decision.urgency.name,
               spokenText: message,
-              alertedAtUtc: DateTime.now().toUtc(),
+              alertedAtUtc: now().toUtc(),
+              deliveryStatus: const Value('queued'),
             ),
           );
-
-      if (roadEventId != null) {
-        await registry.incrementAlertCount(roadEventId);
-      }
-
-      if (!_alertController.isClosed) {
-        _alertController.add(decision);
-      }
-      return rowId;
-    } catch (e) {
-      if (kDebugMode) {
-        debugPrint('PreAlertService: failed to persist alert ($e)');
-      }
-      return null;
+    } catch (error) {
+      lastDeliveryError = 'Could not record warning attempt: $error';
+      if (kDebugMode)
+        debugPrint('PreAlertService: failed to create delivery log ($error)');
     }
+
+    var delivery = 'failed';
+    String? failure;
+    try {
+      final hf = _handsfreeService;
+      if (hf != null && hf.state.mode != HandsfreeMode.off) {
+        delivery = await hf
+            .announcePreAlert(decision)
+            .timeout(const Duration(seconds: 20), onTimeout: () => 'failed');
+      } else {
+        final success = await voiceService
+            .speak(
+              message,
+              pitch: decision.urgency == PreAlertUrgency.imminent ? 1.1 : 1.0,
+              hapticFallback: decision.urgency == PreAlertUrgency.imminent,
+              shouldSpeak: isStillRelevant,
+              textProvider: () {
+                spokenMessage = _messageFor(decision);
+                return spokenMessage;
+              },
+            )
+            .timeout(const Duration(seconds: 20), onTimeout: () => false);
+        delivery = success
+            ? 'delivered'
+            : isStillRelevant()
+            ? 'failed'
+            : 'expired';
+      }
+    } catch (error) {
+      failure = error.toString();
+      delivery = 'failed';
+    }
+
+    if (delivery == 'expired' || delivery == 'cancelled') {
+      failure = delivery == 'expired'
+          ? 'Warning expired before playback.'
+          : 'Warning was cancelled before playback.';
+    } else if (delivery == 'failed' && failure == null) {
+      failure = 'Speech playback did not complete successfully.';
+    }
+
+    var deliveryLogged = rowId == null;
+    if (rowId != null) {
+      try {
+        await (db.update(
+          db.preAlerts,
+        )..where((t) => t.id.equals(rowId!))).write(
+          PreAlertsCompanion(
+            spokenText: Value(spokenMessage),
+            deliveryStatus: Value(delivery),
+            deliveredAtUtc: Value(
+              delivery == 'delivered' ? now().toUtc() : null,
+            ),
+            deliveryFailure: Value(failure),
+          ),
+        );
+        deliveryLogged = true;
+      } catch (error) {
+        lastDeliveryError =
+            'Speech $delivery, but its delivery status could not be saved: $error';
+        if (kDebugMode) {
+          debugPrint('PreAlertService: failed to update delivery log ($error)');
+        }
+      }
+    }
+    if (delivery == 'delivered') {
+      if (deliveryLogged) lastDeliveryError = null;
+      _activeAlert = decision;
+      if (roadEventId != null) {
+        _lastAlertAt[roadEventId] = decision.evaluatedAtUtc ?? now().toUtc();
+        _alertedEventIds.add(roadEventId);
+        await registry.incrementAlertCount(roadEventId, at: now().toUtc());
+      }
+      if (!_alertController.isClosed) _alertController.add(decision);
+    } else {
+      lastDeliveryError = failure;
+      if (kDebugMode)
+        debugPrint('PreAlertService: warning $delivery ($failure)');
+    }
+    return rowId;
   }
+
+  double _remainingMeters(PreAlertDecision decision) {
+    final evaluated = decision.evaluatedAtUtc;
+    final age = evaluated == null
+        ? 0.0
+        : now().toUtc().difference(evaluated).inMilliseconds / 1000.0;
+    if (age < -2 || age > 90) return 0;
+    return decision.distanceMeters - decision.speedKmh / 3.6 * age;
+  }
+
+  String _messageFor(PreAlertDecision decision) => PreAlertMessageBuilder.build(
+    decision,
+    distanceOverride: _remainingMeters(decision),
+  );
 
   int? _activeTripId;
   int? get activeTripId => _activeTripId;
@@ -258,7 +394,11 @@ class PreAlertService {
   /// post-event feedback loop can score its timing.
   Future<PreAlert?> findMostRecentPreAlert({int? tripId, Duration? within}) {
     var query = db.select(db.preAlerts)
-      ..orderBy([(t) => OrderingTerm(expression: t.alertedAtUtc, mode: OrderingMode.desc)])
+      ..where((t) => t.deliveryStatus.equals('delivered'))
+      ..orderBy([
+        (t) =>
+            OrderingTerm(expression: t.alertedAtUtc, mode: OrderingMode.desc),
+      ])
       ..limit(1);
 
     final effectiveTripId = tripId ?? _activeTripId;
@@ -266,8 +406,12 @@ class PreAlertService {
       query = query..where((t) => t.tripId.equals(effectiveTripId));
     }
     if (within != null) {
-      query = query..where(
-          (t) => t.alertedAtUtc.isBiggerOrEqualValue(DateTime.now().toUtc().subtract(within)));
+      query = query
+        ..where(
+          (t) => t.alertedAtUtc.isBiggerOrEqualValue(
+            now().toUtc().subtract(within),
+          ),
+        );
     }
 
     return query.getSingleOrNull();
@@ -275,7 +419,9 @@ class PreAlertService {
 
   /// Links a completed labeled event to the warning that preceded it.
   Future<void> linkEventToPreAlert(int eventId) async {
-    final alert = await findMostRecentPreAlert(within: const Duration(minutes: 10));
+    final alert = await findMostRecentPreAlert(
+      within: const Duration(minutes: 10),
+    );
     if (alert == null) return;
     await (db.update(db.preAlerts)..where((t) => t.id.equals(alert.id))).write(
       PreAlertsCompanion(eventId: Value(eventId)),

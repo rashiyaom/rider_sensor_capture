@@ -1,11 +1,17 @@
+import '../../location/location_quality.dart';
+
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:drift/drift.dart' as drift;
+import 'package:permission_handler/permission_handler.dart';
 
 import '../../core/services/rider_feedback_service.dart';
+import '../../core/services/recording_lifetime_service.dart';
 import '../../data/local_db/database.dart';
 import '../../providers/db_providers.dart';
 import '../../providers/pre_alert_providers.dart';
@@ -14,6 +20,7 @@ import '../../providers/ml_inference_providers.dart';
 import '../../providers/ride_recording_provider.dart';
 import '../events/event_recording_controller.dart';
 import '../live_events/trip_event_totals.dart';
+import 'interrupted_trip_recovery.dart';
 
 const Object _undefined = Object();
 
@@ -34,6 +41,8 @@ class TripState {
   final List<Map<String, dynamic>> routePoints;
   final Trip? lastCompletedTrip;
   final String wristSide;
+  final String? recoveryNotice;
+  final String? backgroundLifetimeError;
 
   const TripState({
     this.isJourneyActive = false,
@@ -52,6 +61,8 @@ class TripState {
     this.routePoints = const [],
     this.lastCompletedTrip,
     this.wristSide = 'Both Hands',
+    this.recoveryNotice,
+    this.backgroundLifetimeError,
   });
 
   String get formattedElapsed {
@@ -64,7 +75,8 @@ class TripState {
     return '$m:$s';
   }
 
-  String get formattedDistanceKm => (distanceMeters / 1000.0).toStringAsFixed(2);
+  String get formattedDistanceKm =>
+      (distanceMeters / 1000.0).toStringAsFixed(2);
 
   TripState copyWith({
     bool? isJourneyActive,
@@ -83,10 +95,14 @@ class TripState {
     List<Map<String, dynamic>>? routePoints,
     Trip? lastCompletedTrip,
     String? wristSide,
+    String? recoveryNotice,
+    String? backgroundLifetimeError,
   }) {
     return TripState(
       isJourneyActive: isJourneyActive ?? this.isJourneyActive,
-      activeTripId: activeTripId == _undefined ? this.activeTripId : activeTripId as int?,
+      activeTripId: activeTripId == _undefined
+          ? this.activeTripId
+          : activeTripId as int?,
       riderName: riderName ?? this.riderName,
       startTime: startTime ?? this.startTime,
       elapsed: elapsed ?? this.elapsed,
@@ -101,6 +117,9 @@ class TripState {
       routePoints: routePoints ?? this.routePoints,
       lastCompletedTrip: lastCompletedTrip ?? this.lastCompletedTrip,
       wristSide: wristSide ?? this.wristSide,
+      recoveryNotice: recoveryNotice ?? this.recoveryNotice,
+      backgroundLifetimeError:
+          backgroundLifetimeError ?? this.backgroundLifetimeError,
     );
   }
 }
@@ -111,41 +130,94 @@ class TripController extends StateNotifier<TripState> {
   StreamSubscription<Position>? _positionSubscription;
   Position? _lastGpsPoint;
   final List<Map<String, dynamic>> _routePoints = [];
+  late final Future<void> _startupRecovery;
 
-  TripController(this.ref) : super(const TripState());
+  TripController(this.ref) : super(const TripState()) {
+    _startupRecovery = _recoverInterruptedTrips();
+  }
+
+  Future<void> _recoverInterruptedTrips() async {
+    try {
+      final recovered = await InterruptedTripRecovery.recover(
+        ref.read(appDatabaseProvider),
+      );
+      if (mounted && recovered.isNotEmpty) {
+        state = state.copyWith(
+          recoveryNotice:
+              '${recovered.length} ride${recovered.length == 1 ? '' : 's'} recovered after an unexpected app stop. Saved data may end before the ride did.',
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        state = state.copyWith(
+          recoveryNotice:
+              'An interrupted ride could not be recovered from storage: $error',
+        );
+      }
+    }
+  }
 
   void setRiderName(String name) {
-    state = state.copyWith(riderName: name.trim().isEmpty ? 'Rider' : name.trim());
+    state = state.copyWith(
+      riderName: name.trim().isEmpty ? 'Rider' : name.trim(),
+    );
   }
 
   void setWristSide(String side) {
-    state = state.copyWith(wristSide: side.trim().isEmpty ? 'Both Hands' : side.trim());
+    state = state.copyWith(
+      wristSide: side.trim().isEmpty ? 'Both Hands' : side.trim(),
+    );
   }
 
   Future<bool>? _startingJourney;
   Future<Trip?>? _endingJourney;
 
-  Future<bool> startJourney({String? riderName, String wristSide = 'Both Hands'}) async {
+  Future<bool> startJourney({
+    String? riderName,
+    String wristSide = 'Both Hands',
+  }) async {
     if (_endingJourney != null) await _endingJourney;
     if (_startingJourney != null) return _startingJourney!;
     final operation = _startJourney(riderName: riderName, wristSide: wristSide);
     _startingJourney = operation;
-    try { return await operation; } finally { _startingJourney = null; }
+    try {
+      return await operation;
+    } finally {
+      _startingJourney = null;
+    }
   }
 
-  Future<bool> _startJourney({String? riderName, String wristSide = 'Both Hands'}) async {
+  Future<bool> _startJourney({
+    String? riderName,
+    String wristSide = 'Both Hands',
+  }) async {
+    await _startupRecovery;
     if (state.isJourneyActive) return true;
 
     final chosenRider = (riderName != null && riderName.trim().isNotEmpty)
         ? riderName.trim()
         : state.riderName;
 
+    String? backgroundLifetimeError;
+    if (Platform.isIOS) {
+      try {
+        final alwaysLocation = await Permission.locationAlways.request();
+        if (!alwaysLocation.isGranted) {
+          backgroundLifetimeError = 'Allow Always location access in iOS Settings for GPS updates while Ride Capture is in the background.';
+        }
+      } catch (error) {
+        backgroundLifetimeError =
+            'Could not enable iOS background location: $error';
+      }
+    }
+
     Position? startPos;
     try {
       final perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         final req = await Geolocator.requestPermission();
-        if (req == LocationPermission.denied || req == LocationPermission.deniedForever) {
+        if (req == LocationPermission.denied ||
+            req == LocationPermission.deniedForever) {
           // Continue without GPS if denied
         }
       }
@@ -182,7 +254,9 @@ class TripController extends StateNotifier<TripState> {
         startTimestampUtc: drift.Value(now.toUtc()),
         startLat: drift.Value(startPos?.latitude),
         startLng: drift.Value(startPos?.longitude),
-        routeCoordinatesJson: drift.Value(_routePoints.isNotEmpty ? jsonEncode(_routePoints) : null),
+        routeCoordinatesJson: drift.Value(
+          _routePoints.isNotEmpty ? jsonEncode(_routePoints) : null,
+        ),
       ),
     );
 
@@ -197,7 +271,9 @@ class TripController extends StateNotifier<TripState> {
             longitude: startPos.longitude,
             altitude: drift.Value(startPos.altitude),
             gpsSpeedMps: drift.Value(0.0),
-            gpsHeadingDeg: drift.Value(startPos.heading >= 0 ? startPos.heading : null),
+            gpsHeadingDeg: drift.Value(
+              startPos.heading >= 0 ? startPos.heading : null,
+            ),
             gpsAccuracyM: drift.Value(startPos.accuracy),
           ),
         );
@@ -208,6 +284,11 @@ class TripController extends StateNotifier<TripState> {
     ref.read(roadEventWatcherProvider).beginTrip(tripId);
     repo.setActiveTripId(tripId);
     ref.read(rideRecordingProvider.notifier).startRecording();
+    try {
+      await RecordingLifetimeService().start();
+    } catch (error) {
+      backgroundLifetimeError ??= error.toString();
+    }
     unawaited(RiderFeedbackService.onTripStarted());
 
     // Start the predictive pre-alert engine for this journey so the rider is
@@ -240,6 +321,7 @@ class TripController extends StateNotifier<TripState> {
       sensorRowsCount: 0,
       eventsCount: 0,
       routePoints: List.unmodifiable(_routePoints),
+      backgroundLifetimeError: backgroundLifetimeError,
     );
 
     // Start 1-second elapsed timer
@@ -253,68 +335,86 @@ class TripController extends StateNotifier<TripState> {
     // Start live GPS tracking stream
     _positionSubscription?.cancel();
     try {
-      _positionSubscription = Geolocator.getPositionStream(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 3, // Update every 3 meters
-        ),
-      ).listen(
-        (pos) {
-          if (!mounted || !state.isJourneyActive) return;
+      _positionSubscription =
+          Geolocator.getPositionStream(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.high,
+              distanceFilter: 3, // Update every 3 meters
+            ),
+          ).listen(
+            (pos) {
+              if (!mounted || !state.isJourneyActive) return;
 
-          double addedDist = 0.0;
-          if (_lastGpsPoint != null) {
-            addedDist = Geolocator.distanceBetween(
-              _lastGpsPoint!.latitude,
-              _lastGpsPoint!.longitude,
-              pos.latitude,
-              pos.longitude,
-            );
-          }
-          _lastGpsPoint = pos;
-
-          final speedKmh = pos.speed >= 0 ? pos.speed * 3.6 : 0.0;
-          final newPeak = speedKmh > state.peakSpeedKmh ? speedKmh : state.peakSpeedKmh;
-          final totalDist = state.distanceMeters + addedDist;
-
-          _routePoints.add({
-            'lat': pos.latitude,
-            'lng': pos.longitude,
-            'speed_kmh': speedKmh,
-            'altitude': pos.altitude,
-            'timestamp_utc': pos.timestamp.toUtc().toIso8601String(),
-          });
-
-          // Persist live GPS reading to SQLite
-          try {
-            repo.insertLocationReading(
-              LocationReadingsCompanion.insert(
-                tripId: tripId,
-                timestampUtc: pos.timestamp.toUtc(),
+              if (!LocationQuality.accepts(
                 latitude: pos.latitude,
                 longitude: pos.longitude,
-                altitude: drift.Value(pos.altitude),
-                gpsSpeedMps: drift.Value(pos.speed >= 0 ? pos.speed : null),
-                gpsHeadingDeg: drift.Value(pos.heading >= 0 ? pos.heading : null),
-                gpsAccuracyM: drift.Value(pos.accuracy),
-              ),
-            );
-          } catch (_) {}
+                timestamp: pos.timestamp,
+                now: DateTime.now().toUtc(),
+                accuracy: pos.accuracy,
+                speedMps: pos.speed < 0 ? null : pos.speed,
+                previousLatitude: _lastGpsPoint?.latitude,
+                previousLongitude: _lastGpsPoint?.longitude,
+                previousTime: _lastGpsPoint?.timestamp,
+              ))
+                return;
+              double addedDist = 0.0;
+              if (_lastGpsPoint != null &&
+                  pos.timestamp.difference(_lastGpsPoint!.timestamp) <=
+                      const Duration(seconds: 10)) {
+                addedDist = Geolocator.distanceBetween(
+                  _lastGpsPoint!.latitude,
+                  _lastGpsPoint!.longitude,
+                  pos.latitude,
+                  pos.longitude,
+                );
+              }
+              _lastGpsPoint = pos;
 
-          state = state.copyWith(
-            currentPosition: pos,
-            distanceMeters: totalDist,
-            currentSpeedKmh: speedKmh,
-            peakSpeedKmh: newPeak,
-            routePoints: List.unmodifiable(_routePoints),
+              final speedKmh = pos.speed >= 0 ? pos.speed * 3.6 : 0.0;
+              final newPeak = speedKmh > state.peakSpeedKmh
+                  ? speedKmh
+                  : state.peakSpeedKmh;
+              final totalDist = state.distanceMeters + addedDist;
+
+              _routePoints.add({
+                'lat': pos.latitude,
+                'lng': pos.longitude,
+                'speed_kmh': speedKmh,
+                'altitude': pos.altitude,
+                'timestamp_utc': pos.timestamp.toUtc().toIso8601String(),
+              });
+
+              // Persist live GPS reading to SQLite
+              try {
+                repo.insertLocationReading(
+                  LocationReadingsCompanion.insert(
+                    tripId: tripId,
+                    timestampUtc: pos.timestamp.toUtc(),
+                    latitude: pos.latitude,
+                    longitude: pos.longitude,
+                    altitude: drift.Value(pos.altitude),
+                    gpsSpeedMps: drift.Value(pos.speed >= 0 ? pos.speed : null),
+                    gpsHeadingDeg: drift.Value(
+                      pos.heading >= 0 ? pos.heading : null,
+                    ),
+                    gpsAccuracyM: drift.Value(pos.accuracy),
+                  ),
+                );
+              } catch (_) {}
+
+              state = state.copyWith(
+                currentPosition: pos,
+                distanceMeters: totalDist,
+                currentSpeedKmh: speedKmh,
+                peakSpeedKmh: newPeak,
+                routePoints: List.unmodifiable(_routePoints),
+              );
+            },
+            onError: (error) {
+              // GPS stream error ignored cleanly
+            },
+            cancelOnError: false,
           );
-
-        },
-        onError: (error) {
-          // GPS stream error ignored cleanly
-        },
-        cancelOnError: false,
-      );
     } catch (_) {}
 
     return true;
@@ -325,12 +425,18 @@ class TripController extends StateNotifier<TripState> {
     if (_endingJourney != null) return _endingJourney!;
     final operation = _endJourney();
     _endingJourney = operation;
-    try { return await operation; } finally { _endingJourney = null; }
+    try {
+      return await operation;
+    } finally {
+      _endingJourney = null;
+    }
   }
 
   Future<Trip?> _endJourney() async {
     if (!state.isJourneyActive) return null;
-    await ref.read(eventRecordingControllerProvider.notifier).stopAndSaveEvent(reason: 'Ride ended');
+    await ref
+        .read(eventRecordingControllerProvider.notifier)
+        .stopAndSaveEvent(reason: 'Ride ended');
 
     final tripId = state.activeTripId;
     await ref.read(roadEventWatcherProvider).stop();
@@ -342,17 +448,15 @@ class TripController extends StateNotifier<TripState> {
     _positionSubscription?.cancel();
     _positionSubscription = null;
 
-
     final repo = ref.read(sensorRepositoryProvider);
     final db = ref.read(appDatabaseProvider);
     Trip? savedTrip;
 
-    try {
-      // 1. Stop recording and flush buffers immediately
-      try {
-        await ref.read(rideRecordingProvider.notifier).stopRecording();
-      } catch (_) {}
+    // Do not close the trip or report success until all samples are committed.
+    // On failure recording is paused; the same trip can retry End journey.
+    await ref.read(rideRecordingProvider.notifier).stopRecording();
 
+    try {
       // 2. Fetch end GPS position with a 2-second timeout
       Position? endPos;
       try {
@@ -387,7 +491,9 @@ class TripController extends StateNotifier<TripState> {
                 longitude: endPos.longitude,
                 altitude: drift.Value(endPos.altitude),
                 gpsSpeedMps: drift.Value(0.0),
-                gpsHeadingDeg: drift.Value(endPos.heading >= 0 ? endPos.heading : null),
+                gpsHeadingDeg: drift.Value(
+                  endPos.heading >= 0 ? endPos.heading : null,
+                ),
                 gpsAccuracyM: drift.Value(endPos.accuracy),
               ),
             );
@@ -420,11 +526,29 @@ class TripController extends StateNotifier<TripState> {
         int accels = 0;
         int confirmed = 0;
         try {
-          final tripEvents = await (db.select(db.eventRecords)..where((t) => t.tripId.equals(tripId))).get();
-          bumps = tripEvents.where((e) => e.eventType.toLowerCase().contains('bump')).length;
-          turns = tripEvents.where((e) => e.eventType.toLowerCase().contains('turn')).length;
-          brakes = tripEvents.where((e) => e.eventType.toLowerCase().contains('brake') || (e.classification?.contains('braking') ?? false)).length;
-          accels = tripEvents.where((e) => e.eventType.toLowerCase().contains('accel') || (e.classification?.contains('accel') ?? false)).length;
+          final tripEvents = await (db.select(
+            db.eventRecords,
+          )..where((t) => t.tripId.equals(tripId))).get();
+          bumps = tripEvents
+              .where((e) => e.eventType.toLowerCase().contains('bump'))
+              .length;
+          turns = tripEvents
+              .where((e) => e.eventType.toLowerCase().contains('turn'))
+              .length;
+          brakes = tripEvents
+              .where(
+                (e) =>
+                    e.eventType.toLowerCase().contains('brake') ||
+                    (e.classification?.contains('braking') ?? false),
+              )
+              .length;
+          accels = tripEvents
+              .where(
+                (e) =>
+                    e.eventType.toLowerCase().contains('accel') ||
+                    (e.classification?.contains('accel') ?? false),
+              )
+              .length;
           confirmed = tripEvents.where((e) => e.crossConfirmed).length;
         } catch (_) {}
 
@@ -432,9 +556,14 @@ class TripController extends StateNotifier<TripState> {
         double? avgHr;
         int? maxHr;
         try {
-          final hrReadings = await (db.select(db.sensorReadings)
-                ..where((t) => t.tripId.equals(tripId) & t.heartRate.isNotNull() & t.heartRate.isBiggerThanValue(30)))
-              .get();
+          final hrReadings =
+              await (db.select(db.sensorReadings)..where(
+                    (t) =>
+                        t.tripId.equals(tripId) &
+                        t.heartRate.isNotNull() &
+                        t.heartRate.isBiggerThanValue(30),
+                  ))
+                  .get();
           if (hrReadings.isNotEmpty) {
             final hrs = hrReadings.map((r) => r.heartRate!).toList();
             maxHr = hrs.reduce(math.max);
@@ -446,7 +575,11 @@ class TripController extends StateNotifier<TripState> {
         if (distKm > 0.05) {
           eventsPerKm = totalEvents / distKm;
         }
-        final driverScore = (100.0 - (brakes * 4.0) - (turns * 2.5) - (bumps * 1.0)).clamp(10.0, 100.0);
+        final driverScore =
+            (100.0 - (brakes * 4.0) - (turns * 2.5) - (bumps * 1.0)).clamp(
+              10.0,
+              100.0,
+            );
 
         try {
           final existingTrip = await repo.getTrip(tripId);
@@ -474,7 +607,9 @@ class TripController extends StateNotifier<TripState> {
               avgHr: drift.Value(avgHr),
               maxHr: drift.Value(maxHr),
               driverScore: drift.Value(driverScore),
-              routeCoordinatesJson: drift.Value(_routePoints.isNotEmpty ? jsonEncode(_routePoints) : null),
+              routeCoordinatesJson: drift.Value(
+                _routePoints.isNotEmpty ? jsonEncode(_routePoints) : null,
+              ),
             );
             await repo.updateTrip(updated);
             await refreshTripEventTotals(db, tripId);
@@ -487,6 +622,10 @@ class TripController extends StateNotifier<TripState> {
     } finally {
       try {
         repo.setActiveTripId(null);
+      } catch (_) {}
+
+      try {
+        await RecordingLifetimeService().stop();
       } catch (_) {}
 
       // Stop the predictive pre-alert engine when the journey ends.
@@ -534,10 +673,11 @@ class TripController extends StateNotifier<TripState> {
   }
 }
 
-final tripControllerProvider =
-    StateNotifierProvider<TripController, TripState>((ref) {
-  return TripController(ref);
-});
+final tripControllerProvider = StateNotifierProvider<TripController, TripState>(
+  (ref) {
+    return TripController(ref);
+  },
+);
 
 /// Stream of all saved trips from SQLite ordered by descending start time
 final allTripsStreamProvider = StreamProvider.autoDispose<List<Trip>>((ref) {

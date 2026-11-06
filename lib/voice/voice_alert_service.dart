@@ -18,6 +18,7 @@ class VoiceAlertService {
 
   /// Set to false to disable speech synthesis entirely (haptics only).
   final bool ttsEnabled;
+  final Duration speechTimeout;
 
   Future<bool>? _initialization;
   Future<void> _speechQueue = Future<void>.value();
@@ -31,7 +32,11 @@ class VoiceAlertService {
   /// Text currently being spoken (useful for the UI "speaking" indicator).
   String? currentUtterance;
 
-  VoiceAlertService({FlutterTts? tts, this.ttsEnabled = true}) {
+  VoiceAlertService({
+    FlutterTts? tts,
+    this.ttsEnabled = true,
+    this.speechTimeout = const Duration(seconds: 15),
+  }) {
     if (tts != null) _tts = tts;
   }
 
@@ -84,6 +89,8 @@ class VoiceAlertService {
     double pitch = 1.0,
     bool interrupt = false,
     bool hapticFallback = true,
+    bool Function()? shouldSpeak,
+    String Function()? textProvider,
   }) {
     final trimmed = text.trim();
     if (trimmed.isEmpty || _disposed) return Future.value(false);
@@ -96,6 +103,8 @@ class VoiceAlertService {
         pitch: pitch,
         hapticFallback: hapticFallback,
         generation: generation,
+        shouldSpeak: shouldSpeak,
+        textProvider: textProvider,
       ),
     );
     _speechQueue = result.then<void>((_) {});
@@ -110,10 +119,14 @@ class VoiceAlertService {
     required double pitch,
     required bool hapticFallback,
     required int generation,
+    bool Function()? shouldSpeak,
+    String Function()? textProvider,
   }) async {
-    if (!_isCurrent(generation)) return false;
+    if (!_isCurrent(generation) || (shouldSpeak != null && !shouldSpeak()))
+      return false;
     await _stopFuture;
-    if (!_isCurrent(generation)) return false;
+    if (!_isCurrent(generation) || (shouldSpeak != null && !shouldSpeak()))
+      return false;
     final ready = await ensureInitialized();
     if (!_isCurrent(generation)) return false;
     if (!ready) {
@@ -127,15 +140,18 @@ class VoiceAlertService {
       if (!_isCurrent(generation)) return false;
       await engine.setPitch(pitch);
       if (!_isCurrent(generation)) return false;
+      if (shouldSpeak != null && !shouldSpeak()) return false;
       final active = Completer<bool>();
       _activeSpeech = active;
-      currentUtterance = text;
+      final utterance = (textProvider?.call() ?? text).trim();
+      if (utterance.isEmpty) return false;
+      currentUtterance = utterance;
       _speaking = true;
       // Some native error/stop paths don't settle the plugin's speak future.
       final success = await Future.any<bool>([
-        engine.speak(text).then((result) => result == 1),
+        engine.speak(utterance).then((result) => result == 1),
         active.future,
-      ]);
+      ]).timeout(speechTimeout, onTimeout: () => false);
       if (!_isCurrent(generation)) return false;
       if (!success) {
         await engine.stop();

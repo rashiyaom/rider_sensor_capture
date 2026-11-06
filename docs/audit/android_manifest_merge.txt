@@ -1,0 +1,278 @@
+> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+
+> Configure project :app
+WARNING: The option setting 'android.builtInKotlin=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+WARNING: The option setting 'android.newDsl=false' is deprecated.
+The current default is 'true'.
+It will be removed in version 10.0 of the Android Gradle plugin.
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':app' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :battery_plus
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':battery_plus' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :flutter_blue_plus_android
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':flutter_blue_plus_android' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :flutter_tts
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':flutter_tts' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :geolocator_android
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':geolocator_android' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :jni
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':jni' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :jni_flutter
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':jni_flutter' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :network_info_plus
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':network_info_plus' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :permission_handler_android
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':permission_handler_android' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :record_android
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':record_android' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :share_plus
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':share_plus' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :skio_uvc_camera
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':skio_uvc_camera' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :speech_to_text
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':speech_to_text' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :sqlite3_flutter_libs
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':sqlite3_flutter_libs' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+
+> Configure project :url_launcher_android
+w: [33m[1m⚠️ Deprecated 'org.jetbrains.kotlin.android' plugin usage[0m[0m
+The 'org.jetbrains.kotlin.android' plugin in project ':url_launcher_android' is no longer required for Kotlin support since AGP 9.0.
+[32m[1mSolution:[0m[0m
+[32m[3mRemove both `android.builtInKotlin=true` and `android.newDsl=false` from `gradle.properties`, then migrate to built-in Kotlin.[0m[0m
+[36mSee [0m[34mhttps://kotl.in/gradle/agp-built-in-kotlin[0m[36m for more details.[0m
+
+WARNING: Your app uses the following plugins that apply Kotlin Gradle Plugin (KGP): battery_plus, flutter_tts, network_info_plus, share_plus, speech_to_text
+Future versions of Flutter will fail to build if your app uses plugins that apply KGP.
+
+Please check the changelogs of these plugins and upgrade to a version that supports Built-in Kotlin.
+If no such version exists, report the issue to the plugin. If necessary, here is a guide on filing
+an issue against a plugin: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-app-developers#report-incompatible-kotlin-gradle-plugin-usage-to-plugin-authors
+
+If you are a plugin author, please migrate your plugin to Built-in Kotlin using this guide: https://docs.flutter.dev/release/breaking-changes/migrate-to-built-in-kotlin/for-plugin-authors
+
+> Task :app:validateCompileSdkVersion
+> Task :app:preBuild
+> Task :app:preDebugBuild
+> Task :app:extractDeepLinksDebug
+> Task :battery_plus:preBuild UP-TO-DATE
+> Task :battery_plus:preDebugBuild UP-TO-DATE
+> Task :battery_plus:extractDeepLinksDebug
+> Task :flutter_blue_plus_android:preBuild UP-TO-DATE
+> Task :flutter_blue_plus_android:preDebugBuild UP-TO-DATE
+> Task :flutter_blue_plus_android:extractDeepLinksDebug
+> Task :flutter_tts:preBuild UP-TO-DATE
+> Task :flutter_tts:preDebugBuild UP-TO-DATE
+> Task :flutter_tts:extractDeepLinksDebug
+> Task :geolocator_android:preBuild UP-TO-DATE
+> Task :geolocator_android:preDebugBuild UP-TO-DATE
+> Task :geolocator_android:extractDeepLinksDebug
+> Task :jni:preBuild UP-TO-DATE
+> Task :jni:preDebugBuild UP-TO-DATE
+> Task :jni:extractDeepLinksDebug
+> Task :jni_flutter:preBuild UP-TO-DATE
+> Task :jni_flutter:preDebugBuild UP-TO-DATE
+> Task :jni_flutter:extractDeepLinksDebug
+> Task :network_info_plus:preBuild UP-TO-DATE
+> Task :network_info_plus:preDebugBuild UP-TO-DATE
+> Task :network_info_plus:extractDeepLinksDebug
+> Task :permission_handler_android:preBuild UP-TO-DATE
+> Task :permission_handler_android:preDebugBuild UP-TO-DATE
+> Task :permission_handler_android:extractDeepLinksDebug
+
+> Task :geolocator_android:processDebugManifest
+package="com.baseflow.geolocator" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/geolocator_android-4.6.2/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.baseflow.geolocator" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/geolocator_android-4.6.2/android/src/main/AndroidManifest.xml.
+
+> Task :network_info_plus:processDebugManifest
+package="dev.fluttercommunity.plus.network_info" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/network_info_plus-6.1.4/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="dev.fluttercommunity.plus.network_info" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/network_info_plus-6.1.4/android/src/main/AndroidManifest.xml.
+
+> Task :battery_plus:processDebugManifest
+package="dev.fluttercommunity.plus.battery" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/battery_plus-6.2.3/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="dev.fluttercommunity.plus.battery" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/battery_plus-6.2.3/android/src/main/AndroidManifest.xml.
+
+> Task :flutter_blue_plus_android:processDebugManifest
+package="com.lib.flutter_blue_plus" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/flutter_blue_plus_android-7.0.4/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.lib.flutter_blue_plus" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/flutter_blue_plus_android-7.0.4/android/src/main/AndroidManifest.xml.
+
+> Task :flutter_tts:processDebugManifest
+package="com.eyedeadevelopment.fluttertts" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.eyedeadevelopment.fluttertts" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/flutter_tts-4.2.5/android/src/main/AndroidManifest.xml.
+
+> Task :jni:processDebugManifest
+package="com.github.dart_lang.jni" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/jni-1.0.3/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.github.dart_lang.jni" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/jni-1.0.3/android/src/main/AndroidManifest.xml.
+
+> Task :jni_flutter:processDebugManifest
+package="com.github.dart_lang.jni_flutter" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/jni_flutter-1.0.2/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.github.dart_lang.jni_flutter" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/jni_flutter-1.0.2/android/src/main/AndroidManifest.xml.
+
+> Task :record_android:preBuild UP-TO-DATE
+> Task :record_android:preDebugBuild UP-TO-DATE
+> Task :record_android:extractDeepLinksDebug
+
+> Task :permission_handler_android:processDebugManifest
+package="com.baseflow.permissionhandler" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/permission_handler_android-12.1.0/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="com.baseflow.permissionhandler" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/permission_handler_android-12.1.0/android/src/main/AndroidManifest.xml.
+
+> Task :share_plus:preBuild UP-TO-DATE
+> Task :share_plus:preDebugBuild UP-TO-DATE
+> Task :share_plus:extractDeepLinksDebug
+> Task :record_android:processDebugManifest
+> Task :skio_uvc_camera:preBuild UP-TO-DATE
+> Task :skio_uvc_camera:preDebugBuild UP-TO-DATE
+> Task :skio_uvc_camera:extractDeepLinksDebug
+> Task :speech_to_text:preBuild UP-TO-DATE
+> Task :speech_to_text:preDebugBuild UP-TO-DATE
+
+> Task :share_plus:processDebugManifest
+package="dev.fluttercommunity.plus.share" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/share_plus-10.1.4/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="dev.fluttercommunity.plus.share" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/share_plus-10.1.4/android/src/main/AndroidManifest.xml.
+
+> Task :speech_to_text:extractDeepLinksDebug
+> Task :sqlite3_flutter_libs:preBuild UP-TO-DATE
+> Task :sqlite3_flutter_libs:preDebugBuild UP-TO-DATE
+> Task :sqlite3_flutter_libs:extractDeepLinksDebug
+> Task :url_launcher_android:preBuild UP-TO-DATE
+> Task :url_launcher_android:preDebugBuild UP-TO-DATE
+> Task :speech_to_text:processDebugManifest
+
+> Task :skio_uvc_camera:processDebugManifest
+/Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/skio_uvc_camera-0.2.1/android/src/main/AndroidManifest.xml:10:5-91 Warning:
+	uses-permission#android.permission.RECORD_AUDIO was tagged at AndroidManifest.xml:10 to remove other declarations but no other declaration present
+/Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/skio_uvc_camera-0.2.1/android/src/main/AndroidManifest.xml:11:5-102 Warning:
+	uses-permission#android.permission.MANAGE_EXTERNAL_STORAGE was tagged at AndroidManifest.xml:11 to remove other declarations but no other declaration present
+/Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/skio_uvc_camera-0.2.1/android/src/main/AndroidManifest.xml:12:5-100 Warning:
+	uses-permission#android.permission.READ_EXTERNAL_STORAGE was tagged at AndroidManifest.xml:12 to remove other declarations but no other declaration present
+/Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/skio_uvc_camera-0.2.1/android/src/main/AndroidManifest.xml:13:5-101 Warning:
+	uses-permission#android.permission.WRITE_EXTERNAL_STORAGE was tagged at AndroidManifest.xml:13 to remove other declarations but no other declaration present
+/Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/skio_uvc_camera-0.2.1/android/src/main/AndroidManifest.xml:14:5-97 Warning:
+	uses-permission#android.permission.FOREGROUND_SERVICE was tagged at AndroidManifest.xml:14 to remove other declarations but no other declaration present
+/Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/skio_uvc_camera-0.2.1/android/src/main/AndroidManifest.xml:18:5-21:44 Warning:
+	uses-feature#android.hardware.usb.host@android:required was tagged at AndroidManifest.xml:18 to replace other declarations but no other declaration present
+
+> Task :url_launcher_android:extractDeepLinksDebug
+
+> Task :sqlite3_flutter_libs:processDebugManifest
+package="eu.simonbinder.sqlite3_flutter_libs" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/sqlite3_flutter_libs-0.5.42/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="eu.simonbinder.sqlite3_flutter_libs" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/sqlite3_flutter_libs-0.5.42/android/src/main/AndroidManifest.xml.
+
+> Task :url_launcher_android:processDebugManifest
+package="io.flutter.plugins.urllauncher" found in source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/url_launcher_android-6.3.33/android/src/main/AndroidManifest.xml.
+Setting the namespace via the package attribute in the source AndroidManifest.xml is no longer supported, and the value is ignored.
+Recommendation: remove package="io.flutter.plugins.urllauncher" from the source AndroidManifest.xml: /Users/omvipulbhairashiya/.pub-cache/hosted/pub.dev/url_launcher_android-6.3.33/android/src/main/AndroidManifest.xml.
+
+> Task :app:processDebugMainManifest
+
+[Incubating] Problems report is available at: file:///Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML%20app/ride_sensor_capture/build/reports/problems/problems-report.html
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/9.5.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD SUCCESSFUL in 9s
+35 actionable tasks: 31 executed, 4 up-to-date
+Consider enabling configuration cache to speed up this build: https://docs.gradle.org/9.5.0/userguide/configuration_cache_enabling.html

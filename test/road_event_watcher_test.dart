@@ -18,7 +18,7 @@ void main() {
       timestampUtc: now.add(Duration(milliseconds: millis)), topFeatures: const {}, explanation: 'test');
   setUp(() {
     db = AppDatabase.forTesting(NativeDatabase.memory());
-    location = LocationService();
+    location = LocationService(clock: () => now);
     location.injectFixForTesting(LocationFix(latitude: 12.97, longitude: 77.59, timestampUtc: now));
     alerts = PreAlertService(db: db, voiceService: VoiceAlertService(ttsEnabled: false));
     watcher = RoadEventWatcher(preAlertService: alerts, locationService: location);

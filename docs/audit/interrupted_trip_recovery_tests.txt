@@ -1,0 +1,47 @@
+00:00 +0: loading /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/trip_aggregate_test.dart
+00:00 +0: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/interrupted_trip_recovery_test.dart: closes open rides at the last durable sample and preserves a warning
+00:00 +1: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: stores event coordinates, confirmation and feedback without creating a hazard
+00:00 +2: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: stores event coordinates, confirmation and feedback without creating a hazard
+00:00 +3: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: saving after trip creates exactly one future alert and persists review choice
+PreAlertService: warning failed (Speech playback did not complete successfully.)
+00:00 +4: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: discard, no reply and negative reply never silently create hazards
+00:00 +5: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: missing GPS remains visible for review but cannot become an alert
+00:00 +6: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/live_event_review_test.dart: v16 upgrade preserves trips and event reviews while adding delivery state
+WARNING (drift): It looks like you've created the database class AppDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new _$AppDatabase (package:ride_sensor_capture/data/local_db/database.g.dart:12087:36)
+#4      new AppDatabase.forTesting (package:ride_sensor_capture/data/local_db/database.dart)
+#5      main.<anonymous closure> (file:///Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML%20app/ride_sensor_capture/test/live_event_review_test.dart:134:37)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+WARNING (drift): It looks like you've created the database class AppDatabase multiple times. When these two databases use the same QueryExecutor, race conditions will occur and might corrupt the database. 
+Try to follow the advice at https://drift.simonbinder.eu/faq/#using-the-database or, if you know what you're doing, set driftRuntimeOptions.dontWarnAboutMultipleDatabases = true
+Here is the stacktrace from when the database was opened a second time:
+#0      GeneratedDatabase._handleInstantiated (package:drift/src/runtime/api/db_base.dart:96:30)
+#1      GeneratedDatabase._whenConstructed (package:drift/src/runtime/api/db_base.dart:73:12)
+#2      new GeneratedDatabase (package:drift/src/runtime/api/db_base.dart:64:5)
+#3      new _$AppDatabase (package:ride_sensor_capture/data/local_db/database.g.dart:12087:36)
+#4      new AppDatabase.forTesting (package:ride_sensor_capture/data/local_db/database.dart)
+#5      main.<anonymous closure> (file:///Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML%20app/ride_sensor_capture/test/live_event_review_test.dart:150:35)
+<asynchronous suspension>
+#6      Declarer.test.<anonymous closure>.<anonymous closure> (package:test_api/src/backend/declarer.dart:253:15)
+<asynchronous suspension>
+#7      Declarer.test.<anonymous closure> (package:test_api/src/backend/declarer.dart:250:11)
+<asynchronous suspension>
+#8      Invoker._waitForOutstandingCallbacks.<anonymous closure> (package:test_api/src/backend/invoker.dart:318:9)
+<asynchronous suspension>
+This warning will only appear on debug builds.
+00:00 +7: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/e2e_trip_lifecycle_pipeline_test.dart: E2E Pipeline Test: Dual-watch streaming, event bounding boxes, and CSV integrity
+VoiceAlertService: TTS unavailable (MissingPluginException(No implementation found for method awaitSpeakCompletion on channel flutter_tts))
+00:00 +8: /Users/omvipulbhairashiya/Downloads/projects/RESEARCH/ML app/ride_sensor_capture/test/e2e_trip_lifecycle_pipeline_test.dart: E2E Pipeline Test: Dual-watch streaming, event bounding boxes, and CSV integrity
+00:01 +9: All tests passed!

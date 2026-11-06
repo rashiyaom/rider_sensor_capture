@@ -39,6 +39,11 @@
 	<string>This app requires location access to record GPS coordinates alongside ride sensor data.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>This app requires location access during active ride data recording sessions.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>bluetooth-central</string>
+	</array>
 	
 	<!-- Speech Recognition & Microphone permissions -->
 	<key>NSSpeechRecognitionUsageDescription</key>
