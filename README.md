@@ -390,7 +390,7 @@ flutter run --dart-define=GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxx
 
 ## 🧪 Testing & Verification
 
-The repository contains **223 automated unit and integration tests** covering:
+The repository contains automated unit and integration tests covering:
 * BLE parsing and model validation
 * Monotonic sequence number continuation across database reconnects
 * Camera detection payload verification and bounds checking
@@ -413,6 +413,25 @@ Static analysis:
 ```bash
 flutter analyze
 ```
+
+On this Apple Silicon host, Flutter uses the existing native ARM Java 17 for Android builds:
+
+```bash
+flutter config --jdk-dir=/opt/homebrew/opt/openjdk@17
+flutter build apk --debug
+```
+
+Run the Firestore security-rules tests from `functions/`:
+
+```bash
+cd functions
+npm ci
+npm run test:rules
+```
+
+The Firestore rules emulator requires Java 21, which was removed from this host at the user's request. See [the validation record](docs/audit/OLD_FEATURE_VALIDATION_2026-11-08.md) for previous results and research accuracy limits.
+
+The downloadable pilot APK is a debug build in `releases/`. The live Firebase project still needs the crowd-processing Cloud Function and Firestore index deployed before server-processed crowd reports can complete.
 
 ---
 

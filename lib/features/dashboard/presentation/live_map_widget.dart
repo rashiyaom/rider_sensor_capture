@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -40,7 +39,7 @@ class _LiveMapSectionState extends ConsumerState<LiveMapSection>
 
   bool _isExpanded = false;
   bool _showHazards = true;
-  bool _showRoute = true;
+  final bool _showRoute = true;
   bool _useDarkTiles = true;
   bool _showLookaheadCone = true;
   MapHeatmapMode _heatmapMode = MapHeatmapMode.solidCyan;

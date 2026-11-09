@@ -1,8 +1,8 @@
-/// Generates a standalone, production-ready Python training and analysis script (train_baseline.py)
+/// Generates a standalone Python baseline training and analysis script.
 /// bundled directly into every dataset and journey export.
 ///
 /// Enables researchers and ML engineers to train Random Forest and Gradient Boosting models
-/// on their exported 50Hz sensor data in under 30 seconds.
+/// on exported sensor data. Reported scores are within-ride baselines only.
 class MlStarterScriptGenerator {
   MlStarterScriptGenerator._();
 
@@ -13,75 +13,78 @@ class MlStarterScriptGenerator {
         : "None";
 
     return '''# ==============================================================================
-# 🚴 Ride Sensor ML Pipeline — Baseline Classifier & Feature Extractor
+# Ride Sensor ML Pipeline — Baseline Classifier
 # Generated automatically by Ride Sensor Capture
 # ==============================================================================
 # Requirements:
 #   pip install numpy pandas scikit-learn scipy matplotlib joblib
 #
 # Usage:
-#   python train_baseline.py                     # auto-detects CSV in current directory
-#   python train_baseline.py --csv path/to.csv   # specify CSV path explicitly
+#   python train_baseline.py                          # finds features_windowed CSV
+#   python train_baseline.py --csv features_windowed.csv
 # ==============================================================================
 
 import os
 import sys
 import glob
 import argparse
+from collections import Counter
 import numpy as np
 import pandas as pd
-from scipy import signal, stats
+from scipy import signal
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
-from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, f1_score
-from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report, accuracy_score, f1_score
 import joblib
 
 # Default filename hint from export
 DEFAULT_CSV = $csvHint
 
 def find_dataset_csv(cli_arg=None):
-    if cli_arg and os.path.exists(cli_arg):
-        return cli_arg
+    if cli_arg:
+        if os.path.exists(cli_arg):
+            return cli_arg
+        raise FileNotFoundError(f"CSV not found: {cli_arg}")
     if DEFAULT_CSV and os.path.exists(DEFAULT_CSV):
         return DEFAULT_CSV
-    
-    # Auto-discover CSVs in current directory
-    candidates = glob.glob("*.csv")
-    trip_csvs = [c for c in candidates if "trip_" in c or "sensor" in c or "consolidated" in c]
-    if trip_csvs:
-        return trip_csvs[0]
+
+    candidates = sorted(glob.glob("features_windowed*.csv"))
     if candidates:
         return candidates[0]
-    
-    raise FileNotFoundError("No sensor CSV files found in the current directory. Specify with --csv <path>")
+    raise FileNotFoundError("No features_windowed CSV found. Export windowed features from the app first.")
 
 def load_and_preprocess(csv_path):
-    print(f"[*] Loading sensor telemetry from: {csv_path}")
+    print(f"[*] Loading time-based feature windows from: {csv_path}")
     df = pd.read_csv(csv_path)
-    print(f"    Loaded {len(df):,} total sensor rows with columns: {list(df.columns)}")
+    required = {'target_label', 'dataset_split', 'split_strategy'}
+    if not required.issubset(df.columns):
+        raise ValueError("Expected a features_windowed CSV with target_label, dataset_split and split_strategy; raw sensor CSVs cannot be trained by this baseline.")
+    if df.empty:
+        raise ValueError("The feature CSV contains no windows.")
+    df['target_label'] = df['target_label'].fillna('').astype(str).str.strip().str.lower()
+    if (df['target_label'] == '').any():
+        raise ValueError("Every feature window needs an explicit target_label.")
+    if not df['dataset_split'].isin(['train', 'val', 'test']).all():
+        raise ValueError("dataset_split must contain only train, val or test.")
+    if not df['split_strategy'].eq('chronological_disjoint_samples').all():
+        raise ValueError("Expected disjoint raw-sample splits; this export is not suitable for evaluation.")
+    print(f"[*] Loaded {len(df):,} windows. Label distribution:\\n{df['target_label'].value_counts()}\\n")
+    return df
 
-    # Clean and fill missing sensor columns
-    numeric_cols = df.select_dtypes(include=[np.number]).columns
-    df[numeric_cols] = df[numeric_cols].ffill().bfill().fillna(0.0)
-
-    # Determine ground-truth label column
-    label_col = None
-    for col in ['event_type', 'event_label', 'label', 'tag', 'eventType']:
-        if col in df.columns:
-            label_col = col
-            break
-    
-    if label_col is None:
-        print("[!] Warning: No explicit 'event_type' column found. Assuming all rows are 'normal_riding'.")
-        df['event_type'] = 'normal_riding'
-        label_col = 'event_type'
-    else:
-        # Standardize missing labels to normal_riding
-        df[label_col] = df[label_col].fillna('normal_riding').astype(str).str.strip().str.lower()
-        df[label_col] = df[label_col].replace({'': 'normal_riding', 'nan': 'normal_riding', 'none': 'normal_riding'})
-
-    print(f"[*] Label distribution across raw 50Hz rows:\\n{df[label_col].value_counts()}\\n")
-    return df, label_col
+def prepare_features(df):
+    # IDs, timestamps and event review outcomes are metadata or label-derived.
+    excluded = {
+        'window_index', 'trip_id', 'start_row_idx', 'end_row_idx',
+        'target_label_id', 'event_id', 'event_cross_confirmed',
+        'event_hr_spike_confirmed', 'duration_sec', 'sample_count',
+    }
+    numeric = df.select_dtypes(include=[np.number]).columns
+    feature_cols = [c for c in numeric if c not in excluded and not c.startswith('event_')]
+    if not feature_cols:
+        raise ValueError("No numeric sensor features found in the feature CSV.")
+    X = df[feature_cols].replace([np.inf, -np.inf], np.nan).fillna(0.0)
+    y = df['target_label']
+    splits = df['dataset_split']
+    return X, y, splits
 
 def extract_window_features(window_df, sample_rate_hz=50.0):
     """
@@ -172,8 +175,8 @@ def build_windowed_dataset(df, label_col, window_sec=1.5, stride_sec=0.5, sample
         window_labels = window_df[label_col].values
         # If any specialized event (e.g. bump, turn) exists in >= 30% of window, assign that label
         non_normal = [l for l in window_labels if l != 'normal_riding']
-        if len(non_normal) >= int(0.3 * len(window_labels)):
-            assigned_label = stats.mode(non_normal, keepdims=False)[0]
+        if len(non_normal) >= int(np.ceil(0.3 * len(window_labels))):
+            assigned_label = Counter(non_normal).most_common(1)[0][0]
         else:
             assigned_label = 'normal_riding'
 
@@ -185,25 +188,35 @@ def build_windowed_dataset(df, label_col, window_sec=1.5, stride_sec=0.5, sample
     print(f"    Class distribution across windows:\\n{pd.Series(labels).value_counts()}\\n")
     return feature_df, pd.Series(labels)
 
-def train_and_evaluate(X, y, purge_windows):
+def train_and_evaluate(X, y, purge_windows, dataset_split=None):
     print("==============================================================================")
     print("🚀 Training Machine Learning Classifiers (Random Forest & Gradient Boosting)")
     print("==============================================================================")
 
     # Windows overlap. Preserve chronological order and purge every window
     # that could share a raw sample with the test partition.
-    cutoff = int(len(X) * 0.75)
-    train_stop = cutoff - purge_windows
-    if train_stop < 2 or len(X) - cutoff < 1:
-        raise ValueError("Not enough disjoint windows for evaluation; collect a longer ride.")
-    X_train, y_train = X.iloc[:train_stop], y.iloc[:train_stop]
-    X_test, y_test = X.iloc[cutoff:], y.iloc[cutoff:]
-    print("[*] Chronological evaluation with purged overlap; this is not held-out-rider validation.")
+    if dataset_split is None:
+        cutoff = int(len(X) * 0.75)
+        train_stop = cutoff - purge_windows
+        if train_stop < 2 or len(X) - cutoff < 1:
+            raise ValueError("Not enough disjoint windows for evaluation; collect a longer ride.")
+        X_train, y_train = X.iloc[:train_stop], y.iloc[:train_stop]
+        X_test, y_test = X.iloc[cutoff:], y.iloc[cutoff:]
+    else:
+        train_mask = dataset_split.eq('train')
+        test_mask = dataset_split.eq('test')
+        X_train, y_train = X.loc[train_mask], y.loc[train_mask]
+        X_test, y_test = X.loc[test_mask], y.loc[test_mask]
+        if len(X_train) < 2 or len(X_test) < 2:
+            raise ValueError("Need train and test windows from disjoint source samples.")
+    print("[*] Disjoint chronological evaluation; this is not held-out-rider validation.")
 
     print(f"[*] Training Set: {len(X_train)} windows | Test Set: {len(X_test)} windows")
 
     # 1. Random Forest Classifier
     rf = RandomForestClassifier(n_estimators=120, max_depth=12, random_state=42, class_weight='balanced')
+    if y_train.nunique() < 2 or y_test.nunique() < 2:
+        raise ValueError("Need at least two event classes in both train and test; collect more labeled rides.")
     rf.fit(X_train, y_train)
     y_pred_rf = rf.predict(X_test)
     rf_acc = accuracy_score(y_test, y_pred_rf)
@@ -233,28 +246,26 @@ def train_and_evaluate(X, y, purge_windows):
     print(f"\\n[✓] Best model saved successfully to: {model_filename}")
 
     # Export computed windowed feature dataset for Python / Excel / AutoML
-    features_csv = 'dataset_features_windowed_1s.csv'
+    features_csv = 'baseline_features_windowed.csv'
     export_df = X.copy()
     export_df['target_label'] = y
     export_df.to_csv(features_csv, index=False)
     print(f"[✓] Exported tabular ML feature dataset to: {features_csv}")
 
     print("\\n==============================================================================")
-    print("✨ ML Pipeline Completed Successfully! You can deploy this model or load it with joblib.")
+    print("Baseline complete. Validate on held-out riders and rides before using this model for decisions.")
     print("==============================================================================")
 
 def main():
     parser = argparse.ArgumentParser(description="Ride Sensor Baseline ML Trainer")
-    parser.add_argument('--csv', type=str, default=None, help="Path to telemetry CSV file")
-    parser.add_argument('--window', type=float, default=1.5, help="Window size in seconds (default: 1.5)")
-    parser.add_argument('--stride', type=float, default=0.5, help="Stride step in seconds (default: 0.5)")
+    parser.add_argument('--csv', type=str, default=None, help="Path to features_windowed CSV")
     args = parser.parse_args()
 
     try:
         csv_file = find_dataset_csv(args.csv)
-        df, label_col = load_and_preprocess(csv_file)
-        X, y = build_windowed_dataset(df, label_col, window_sec=args.window, stride_sec=args.stride)
-        train_and_evaluate(X, y, purge_windows=int(np.ceil(args.window / args.stride)))
+        df = load_and_preprocess(csv_file)
+        X, y, splits = prepare_features(df)
+        train_and_evaluate(X, y, purge_windows=0, dataset_split=splits)
     except Exception as e:
         print(f"[!] Error executing ML pipeline: {e}")
         sys.exit(1)

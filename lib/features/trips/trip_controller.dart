@@ -355,8 +355,9 @@ class TripController extends StateNotifier<TripState> {
                 previousLatitude: _lastGpsPoint?.latitude,
                 previousLongitude: _lastGpsPoint?.longitude,
                 previousTime: _lastGpsPoint?.timestamp,
-              ))
+              )) {
                 return;
+              }
               double addedDist = 0.0;
               if (_lastGpsPoint != null &&
                   pos.timestamp.difference(_lastGpsPoint!.timestamp) <=

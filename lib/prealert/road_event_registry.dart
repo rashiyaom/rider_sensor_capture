@@ -1,11 +1,28 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:drift/drift.dart';
 
 import '../data/local_db/database.dart';
 import '../location/geo_math.dart';
 import 'pre_alert_engine.dart';
 import '../features/live_events/event_library_repository.dart';
+
+class HazardImportRow {
+  final RoadEventKind kind;
+  final double latitude;
+  final double longitude;
+  final double severity;
+  final String? note;
+
+  const HazardImportRow({
+    required this.kind,
+    required this.latitude,
+    required this.longitude,
+    required this.severity,
+    this.note,
+  });
+}
 
 /// Persistence layer for the geo-tagged road-event knowledge base that powers
 /// the predictive pre-alert system.
@@ -27,6 +44,17 @@ class RoadEventRegistry {
     String? note,
     DateTime? detectedAtUtc,
   }) async {
+    validateCoordinates(latitude, longitude);
+    if (!severity.isFinite || severity < 0 || severity > 1) {
+      throw ArgumentError.value(severity, 'severity', 'Must be from 0 to 1.');
+    }
+    if (!confidence.isFinite || confidence < 0 || confidence > 1) {
+      throw ArgumentError.value(
+        confidence,
+        'confidence',
+        'Must be from 0 to 1.',
+      );
+    }
     return _db
         .into(_db.roadEvents)
         .insert(
@@ -44,6 +72,50 @@ class RoadEventRegistry {
           ),
         );
   }
+
+  static void validateCoordinates(double latitude, double longitude) {
+    if (!latitude.isFinite || latitude < -90 || latitude > 90) {
+      throw ArgumentError.value(latitude, 'latitude', 'Invalid latitude.');
+    }
+    if (!longitude.isFinite || longitude < -180 || longitude > 180) {
+      throw ArgumentError.value(longitude, 'longitude', 'Invalid longitude.');
+    }
+  }
+
+  /// Imports a reviewed batch atomically. Re-importing the same coordinate and
+  /// event kind does not create another warning location.
+  Future<int> importBatch(List<HazardImportRow> rows) =>
+      _db.transaction(() async {
+        var inserted = 0;
+        for (final row in rows) {
+          validateCoordinates(row.latitude, row.longitude);
+          if (row.kind == RoadEventKind.unknown) {
+            throw ArgumentError.value(row.kind, 'kind', 'Unknown event kind.');
+          }
+          final existing =
+              await (_db.select(_db.roadEvents)
+                    ..where(
+                      (t) =>
+                          t.eventType.equals(row.kind.name) &
+                          t.latitude.equals(row.latitude) &
+                          t.longitude.equals(row.longitude),
+                    )
+                    ..limit(1))
+                  .getSingleOrNull();
+          if (existing != null) continue;
+          await register(
+            kind: row.kind,
+            latitude: row.latitude,
+            longitude: row.longitude,
+            severity: row.severity,
+            confidence: 1.0,
+            source: 'imported',
+            note: row.note,
+          );
+          inserted++;
+        }
+        return inserted;
+      });
 
   /// Loads every hazard within [radiusMeters] of the given position.
   ///
@@ -72,6 +144,12 @@ class RoadEventRegistry {
 
     final candidates = <RoadEventCandidate>[];
     for (final row in rows) {
+      // Old debug builds could store benchmark hazards as ordinary seeded rows.
+      if (kReleaseMode &&
+          (row.source == 'benchmark' ||
+              (row.note?.startsWith('Benchmark Track:') ?? false))) {
+        continue;
+      }
       final distance = GeoMath.distanceMeters(
         lat1: latitude,
         lon1: longitude,

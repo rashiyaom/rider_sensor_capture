@@ -36,6 +36,10 @@ migrate_working_dir/
 # Secrets — the Groq API key lives here and must never be committed.
 # Use `.env.example` as the template.
 .env
+/android/key.properties
+/android/*.jks
+/android/*.keystore
+/releases/*.apk
 
 # Symbolication related
 app.*.symbols

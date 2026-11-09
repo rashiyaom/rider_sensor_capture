@@ -1,5 +1,8 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +15,9 @@ import 'features/devices/presentation/devices_screen.dart';
 import 'features/events/presentation/events_screen.dart';
 import 'features/camera/presentation/camera_capture_screen.dart';
 import 'features/export/presentation/export_screen.dart';
+import 'features/auth/phone_otp_sign_in_screen.dart';
+import 'features/auth/profile_setup_screen.dart';
+import 'features/auth/account_settings_screen.dart';
 import 'providers/db_providers.dart';
 import 'providers/ble_providers.dart';
 import 'providers/handsfree_providers.dart';
@@ -30,10 +36,98 @@ class RideSensorCaptureApp extends StatelessWidget {
         title: 'Ride Sensor Capture',
         debugShowCheckedModeBanner: false,
         theme: buildAppTheme(),
-        home: const MainNavigationShell(),
+        home: const FirebaseAuthGate(),
       ),
     );
   }
+}
+
+/// Requires phone sign-in on Firebase-enabled Android builds. Desktop widget
+/// tests and platforms without Firebase options continue in local-only mode.
+class FirebaseAuthGate extends StatelessWidget {
+  const FirebaseAuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    if (Firebase.apps.isEmpty) return const MainNavigationShell();
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return const PhoneOtpSignInScreen();
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final user = snapshot.data;
+        if (user == null) return const PhoneOtpSignInScreen();
+        return UserProfileGate(user: user);
+      },
+    );
+  }
+}
+
+class UserProfileGate extends StatefulWidget {
+  const UserProfileGate({super.key, required this.user});
+
+  final User user;
+
+  @override
+  State<UserProfileGate> createState() => _UserProfileGateState();
+}
+
+class _UserProfileGateState extends State<UserProfileGate> {
+  late Stream<DocumentSnapshot<Map<String, dynamic>>> _profileStream;
+
+  @override
+  void initState() {
+    super.initState();
+    _resetStream();
+  }
+
+  void _resetStream() {
+    _profileStream = FirebaseFirestore.instance
+        .collection('userProfiles')
+        .doc(widget.user.uid)
+        .snapshots();
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
+        stream: _profileStream,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Could not load your account profile.'),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => setState(_resetStream),
+                      child: const Text('Retry'),
+                    ),
+                    TextButton(
+                      onPressed: FirebaseAuth.instance.signOut,
+                      child: const Text('Sign out'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+          if (snapshot.connectionState == ConnectionState.waiting ||
+              snapshot.data == null) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
+          if (!snapshot.data!.exists) return const ProfileSetupScreen();
+          return const MainNavigationShell();
+        },
+      );
 }
 
 class MainNavigationShell extends ConsumerStatefulWidget {
@@ -121,6 +215,21 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
           // Screen contents with bottom padding for the floating dock
           IndexedStack(index: _currentIndex, children: _screens),
 
+          if (Firebase.apps.isNotEmpty)
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 6,
+              right: 10,
+              child: IconButton(
+                tooltip: 'Account and sign out',
+                style: IconButton.styleFrom(
+                  backgroundColor: const Color(0xCC18181D),
+                  foregroundColor: AppColors.textPrimary,
+                ),
+                icon: const Icon(Icons.account_circle_outlined),
+                onPressed: () => _showAccountDialog(context),
+              ),
+            ),
+
           // Missing Permission Warning Banner at Top
           if (_hasCheckedPermissions && _permissionStatus.isCriticalMissing)
             Positioned(
@@ -156,6 +265,41 @@ class _MainNavigationShellState extends ConsumerState<MainNavigationShell> {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showAccountDialog(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Driver account'),
+        content: Text(user?.phoneNumber ?? 'Signed in driver'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const AccountSettingsScreen(),
+                ),
+              );
+            },
+            child: const Text('Account settings'),
+          ),
+          FilledButton.tonal(
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await FirebaseAuth.instance.signOut();
+            },
+            child: const Text('Sign out'),
           ),
         ],
       ),

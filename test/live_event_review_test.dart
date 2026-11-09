@@ -125,7 +125,7 @@ void main() {
   );
 
   test(
-    'v16 upgrade preserves trips and event reviews while adding delivery state',
+    'v16 upgrade preserves trips and adds delivery plus crowd report state',
     () async {
       final temp = await Directory.systemTemp.createTemp(
         'ride_review_migration_',
@@ -144,6 +144,9 @@ void main() {
         );
         await migrationDb.customStatement(
           'ALTER TABLE pre_alerts DROP COLUMN delivery_failure',
+        );
+        await migrationDb.customStatement(
+          'ALTER TABLE live_event_reviews DROP COLUMN gps_accuracy_m',
         );
         await migrationDb.customStatement('PRAGMA user_version = 16');
         await migrationDb.close();
@@ -164,7 +167,11 @@ void main() {
             'delivery_failure',
           ]),
         );
-        expect(migrationDb.schemaVersion, 17);
+        expect(
+          await migrationDb.select(migrationDb.crowdEventReports).get(),
+          isEmpty,
+        );
+        expect(migrationDb.schemaVersion, 19);
       } finally {
         await migrationDb.close();
         await temp.delete(recursive: true);

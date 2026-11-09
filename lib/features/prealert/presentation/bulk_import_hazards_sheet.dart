@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:ui';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import 'package:geolocator/geolocator.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../prealert/pre_alert_engine.dart';
+import '../../../prealert/road_event_registry.dart';
 import '../../../providers/pre_alert_providers.dart';
 
 /// Modal bottom sheet allowing bulk import of pre-recorded hazards via CSV text,
@@ -28,7 +31,8 @@ class BulkImportHazardsSheet extends ConsumerStatefulWidget {
       _BulkImportHazardsSheetState();
 }
 
-class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet> {
+class _BulkImportHazardsSheetState
+    extends ConsumerState<BulkImportHazardsSheet> {
   final TextEditingController _csvController = TextEditingController();
   bool _isImporting = false;
   String? _statusMessage;
@@ -44,7 +48,7 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
   @override
   void initState() {
     super.initState();
-    _csvController.text = _sampleCsv;
+    _csvController.text = kDebugMode ? _sampleCsv : '';
   }
 
   @override
@@ -63,47 +67,65 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
     });
     HapticFeedback.mediumImpact();
 
-    int importedCount = 0;
     final registry = ref.read(roadEventRegistryProvider);
     final lines = LineSplitter.split(text);
 
     try {
+      final rows = <HazardImportRow>[];
+      var lineNumber = 0;
       for (final line in lines) {
+        lineNumber++;
         final trimmed = line.trim();
-        if (trimmed.isEmpty || trimmed.startsWith('#') || trimmed.startsWith('//')) {
+        if (trimmed.isEmpty ||
+            trimmed.startsWith('#') ||
+            trimmed.startsWith('//')) {
           continue;
         }
 
         final parts = trimmed.split(',').map((p) => p.trim()).toList();
-        if (parts.length < 3) continue;
+        if (parts.length < 3) {
+          throw FormatException(
+            'Line $lineNumber needs latitude, longitude and type.',
+          );
+        }
 
         final lat = double.tryParse(parts[0]);
         final lng = double.tryParse(parts[1]);
-        if (lat == null || lng == null) continue;
+        if (lat == null || lng == null) {
+          throw FormatException('Line $lineNumber has invalid coordinates.');
+        }
+        RoadEventRegistry.validateCoordinates(lat, lng);
 
         final kind = RoadEventKind.fromString(parts[2]);
-        final severity = parts.length > 3 ? (double.tryParse(parts[3]) ?? 0.7) : 0.7;
+        if (kind == RoadEventKind.unknown) {
+          throw FormatException('Line $lineNumber has an unknown event type.');
+        }
+        final severity = parts.length > 3 ? double.tryParse(parts[3]) : 0.7;
+        if (severity == null ||
+            !severity.isFinite ||
+            severity < 0 ||
+            severity > 1) {
+          throw FormatException('Line $lineNumber needs severity from 0 to 1.');
+        }
         final note = parts.length > 4 ? parts.sublist(4).join(', ') : null;
-
-        await registry.register(
-          kind: kind,
-          latitude: lat,
-          longitude: lng,
-          severity: severity.clamp(0.1, 1.0),
-          confidence: 1.0,
-          source: 'seeded',
-          note: note,
-          detectedAtUtc: DateTime.now().toUtc(),
+        rows.add(
+          HazardImportRow(
+            kind: kind,
+            latitude: lat,
+            longitude: lng,
+            severity: severity,
+            note: note,
+          ),
         );
-        importedCount++;
       }
+      final importedCount = await registry.importBatch(rows);
 
       setState(() {
         _isImporting = false;
         _isSuccess = importedCount > 0;
         _statusMessage = importedCount > 0
             ? 'Successfully imported $importedCount road hazards!'
-            : 'No valid coordinate rows found in text.';
+            : 'No new hazards were imported.';
       });
 
       if (importedCount > 0 && mounted) {
@@ -126,8 +148,10 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
       _statusMessage = 'Getting current GPS for test track layout...';
     });
 
-    double centerLat = 19.0760;
-    double centerLng = 72.8774;
+    if (!kDebugMode) return;
+
+    double centerLat;
+    double centerLng;
 
     try {
       final pos = await Geolocator.getCurrentPosition(
@@ -138,17 +162,55 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
       );
       centerLat = pos.latitude;
       centerLng = pos.longitude;
+      RoadEventRegistry.validateCoordinates(centerLat, centerLng);
     } catch (_) {
-      // Use fallback center
+      if (!mounted) return;
+      setState(() {
+        _isImporting = false;
+        _isSuccess = false;
+        _statusMessage =
+            'Current GPS unavailable. No benchmark hazards were added.';
+      });
+      return;
     }
 
     // Generate 5 benchmark hazards spaced ~100m apart in a forward path
     final benchmarkHazards = [
-      (0.0008, 0.0004, RoadEventKind.bump, 0.85, 'Benchmark Track: Harsh speed breaker #1'),
-      (0.0016, 0.0009, RoadEventKind.pothole, 0.90, 'Benchmark Track: Left lane pothole #2'),
-      (0.0024, 0.0013, RoadEventKind.turn, 0.75, 'Benchmark Track: Sharp right curve #3'),
-      (0.0032, 0.0018, RoadEventKind.braking, 0.70, 'Benchmark Track: Deceleration zone #4'),
-      (0.0040, 0.0022, RoadEventKind.bump, 0.60, 'Benchmark Track: Multi-ridge bump #5'),
+      (
+        0.0008,
+        0.0004,
+        RoadEventKind.bump,
+        0.85,
+        'Benchmark Track: Harsh speed breaker #1',
+      ),
+      (
+        0.0016,
+        0.0009,
+        RoadEventKind.pothole,
+        0.90,
+        'Benchmark Track: Left lane pothole #2',
+      ),
+      (
+        0.0024,
+        0.0013,
+        RoadEventKind.turn,
+        0.75,
+        'Benchmark Track: Sharp right curve #3',
+      ),
+      (
+        0.0032,
+        0.0018,
+        RoadEventKind.braking,
+        0.70,
+        'Benchmark Track: Deceleration zone #4',
+      ),
+      (
+        0.0040,
+        0.0022,
+        RoadEventKind.bump,
+        0.60,
+        'Benchmark Track: Multi-ridge bump #5',
+      ),
     ];
 
     int count = 0;
@@ -161,7 +223,7 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
         longitude: centerLng + h.$2,
         severity: h.$4,
         confidence: 1.0,
-        source: 'seeded',
+        source: 'benchmark',
         note: h.$5,
         detectedAtUtc: DateTime.now().toUtc(),
       );
@@ -171,7 +233,8 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
     setState(() {
       _isImporting = false;
       _isSuccess = true;
-      _statusMessage = 'Seeded $count benchmark test hazards near your GPS position!';
+      _statusMessage =
+          'Seeded $count benchmark test hazards near the current GPS fix.';
     });
 
     if (mounted) {
@@ -221,8 +284,11 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
                             color: AppColors.accentCyan.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.file_upload_outlined,
-                              color: AppColors.accentCyan, size: 20),
+                          child: const Icon(
+                            Icons.file_upload_outlined,
+                            color: AppColors.accentCyan,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 10),
                         const Column(
@@ -237,7 +303,7 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
                               ),
                             ),
                             Text(
-                              'Import CSV ground truth or test tracks',
+                              'Import reviewed locations from CSV',
                               style: TextStyle(
                                 color: AppColors.textSecondary,
                                 fontSize: 11,
@@ -248,7 +314,10 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
                       ],
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: AppColors.textSecondary,
+                      ),
                       onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
@@ -256,63 +325,85 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
                 const SizedBox(height: 16),
 
                 // Quick 1-Tap Action: Seed Nearby Test Track
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E26),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.accentAmber.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.accentAmber.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.auto_awesome_rounded,
-                            color: AppColors.accentAmber, size: 18),
+                if (kDebugMode)
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E1E26),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.accentAmber.withValues(alpha: 0.3),
                       ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '1-Tap Test Benchmark',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.accentAmber.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.auto_awesome_rounded,
+                            color: AppColors.accentAmber,
+                            size: 18,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '1-Tap Test Benchmark',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            Text(
-                              'Generate 5 pre-coded hazards along your current GPS road',
-                              style: TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                            ),
-                          ],
+                              Text(
+                                'Generate 5 pre-coded hazards along your current GPS road',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.accentAmber,
-                          foregroundColor: Colors.black,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          elevation: 0,
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.accentAmber,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 0,
+                          ),
+                          onPressed: _isImporting
+                              ? null
+                              : _seedNearbyBenchmarkTrack,
+                          child: const Text(
+                            'Seed Now',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
-                        onPressed: _isImporting ? null : _seedNearbyBenchmarkTrack,
-                        child: const Text('Seed Now', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800)),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
                 const SizedBox(height: 18),
 
                 // CSV text area
                 const Text(
-                  'PASTE CSV GROUND TRUTH (LAT, LNG, TYPE, SEVERITY, NOTE)',
+                  'PASTE CSV LOCATIONS (LAT, LNG, TYPE, SEVERITY, NOTE)',
                   style: TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
@@ -348,21 +439,34 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
                 // Status message
                 if (_statusMessage != null) ...[
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: (_isSuccess ? AppColors.accentGreen : AppColors.accentRed)
-                          .withValues(alpha: 0.15),
+                      color:
+                          (_isSuccess
+                                  ? AppColors.accentGreen
+                                  : AppColors.accentRed)
+                              .withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: (_isSuccess ? AppColors.accentGreen : AppColors.accentRed)
-                            .withValues(alpha: 0.4),
+                        color:
+                            (_isSuccess
+                                    ? AppColors.accentGreen
+                                    : AppColors.accentRed)
+                                .withValues(alpha: 0.4),
                       ),
                     ),
                     child: Row(
                       children: [
                         Icon(
-                          _isSuccess ? Icons.check_circle_rounded : Icons.error_outline_rounded,
-                          color: _isSuccess ? AppColors.accentGreen : AppColors.accentRed,
+                          _isSuccess
+                              ? Icons.check_circle_rounded
+                              : Icons.error_outline_rounded,
+                          color: _isSuccess
+                              ? AppColors.accentGreen
+                              : AppColors.accentRed,
                           size: 16,
                         ),
                         const SizedBox(width: 8),
@@ -370,7 +474,9 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
                           child: Text(
                             _statusMessage!,
                             style: TextStyle(
-                              color: _isSuccess ? AppColors.accentGreen : AppColors.accentRed,
+                              color: _isSuccess
+                                  ? AppColors.accentGreen
+                                  : AppColors.accentRed,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
@@ -390,19 +496,32 @@ class _BulkImportHazardsSheetState extends ConsumerState<BulkImportHazardsSheet>
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryWhite,
                       foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
                       elevation: 0,
                     ),
                     icon: _isImporting
                         ? const SizedBox(
                             width: 16,
                             height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.black,
+                            ),
                           )
-                        : const Icon(Icons.file_download_done_rounded, size: 18),
+                        : const Icon(
+                            Icons.file_download_done_rounded,
+                            size: 18,
+                          ),
                     label: Text(
-                      _isImporting ? 'Importing Hazards...' : 'Import Parsed Hazards',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                      _isImporting
+                          ? 'Importing Hazards...'
+                          : 'Import Parsed Hazards',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     onPressed: _isImporting ? null : _importCsv,
                   ),

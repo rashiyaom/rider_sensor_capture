@@ -12,8 +12,7 @@ const int kCaptureEventLinkWindowSeconds = 10;
 
 /// Saves UVC JPEGs and their ordered trip/event manifest as one operation.
 class CameraCaptureRepository {
-  CameraCaptureRepository(this._db, this._sensorRepo, {Directory? storageRoot})
-    : _storageRoot = storageRoot;
+  CameraCaptureRepository(this._db, this._sensorRepo, {this._storageRoot});
 
   final AppDatabase _db;
   final SensorRepository _sensorRepo;

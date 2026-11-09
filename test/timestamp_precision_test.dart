@@ -121,6 +121,9 @@ void main() {
         await db.customStatement(
           'ALTER TABLE pre_alerts DROP COLUMN delivery_failure',
         );
+        await db.customStatement(
+          'ALTER TABLE live_event_reviews DROP COLUMN gps_accuracy_m',
+        );
         await db.close();
         db = AppDatabase.forTesting(NativeDatabase(file));
         final old = await db.select(db.sensorReadings).getSingle();

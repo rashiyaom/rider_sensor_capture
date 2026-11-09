@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "711752018646",
+    "project_id": "rydesense",
+    "storage_bucket": "rydesense.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:711752018646:android:95d7e4e23157cc63d8b777",
+        "android_client_info": {
+          "package_name": "com.example.ride_sensor_capture"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC--hoL_eocCjS9ZXdvTP0_ssCbQRQFFT4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:711752018646:android:5f9ccebf365cfb0ed8b777",
+        "android_client_info": {
+          "package_name": "com.example.ryde_sensor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC--hoL_eocCjS9ZXdvTP0_ssCbQRQFFT4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -11333,6 +11333,17 @@ class $LiveEventReviewsTable extends LiveEventReviews
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _gpsAccuracyMMeta = const VerificationMeta(
+    'gpsAccuracyM',
+  );
+  @override
+  late final GeneratedColumn<double> gpsAccuracyM = GeneratedColumn<double>(
+    'gps_accuracy_m',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _confidenceMeta = const VerificationMeta(
     'confidence',
   );
@@ -11424,6 +11435,7 @@ class $LiveEventReviewsTable extends LiveEventReviews
     detectedAtUtc,
     latitude,
     longitude,
+    gpsAccuracyM,
     confidence,
     sensorFeaturesJson,
     confirmationReply,
@@ -11490,6 +11502,15 @@ class $LiveEventReviewsTable extends LiveEventReviews
       context.handle(
         _longitudeMeta,
         longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    }
+    if (data.containsKey('gps_accuracy_m')) {
+      context.handle(
+        _gpsAccuracyMMeta,
+        gpsAccuracyM.isAcceptableOrUnknown(
+          data['gps_accuracy_m']!,
+          _gpsAccuracyMMeta,
+        ),
       );
     }
     if (data.containsKey('confidence')) {
@@ -11587,6 +11608,10 @@ class $LiveEventReviewsTable extends LiveEventReviews
         DriftSqlType.double,
         data['${effectivePrefix}longitude'],
       ),
+      gpsAccuracyM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}gps_accuracy_m'],
+      ),
       confidence: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}confidence'],
@@ -11632,6 +11657,7 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
   final DateTime detectedAtUtc;
   final double? latitude;
   final double? longitude;
+  final double? gpsAccuracyM;
   final double confidence;
   final String sensorFeaturesJson;
   final String? confirmationReply;
@@ -11649,6 +11675,7 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
     required this.detectedAtUtc,
     this.latitude,
     this.longitude,
+    this.gpsAccuracyM,
     required this.confidence,
     required this.sensorFeaturesJson,
     this.confirmationReply,
@@ -11672,6 +11699,9 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
     }
     if (!nullToAbsent || longitude != null) {
       map['longitude'] = Variable<double>(longitude);
+    }
+    if (!nullToAbsent || gpsAccuracyM != null) {
+      map['gps_accuracy_m'] = Variable<double>(gpsAccuracyM);
     }
     map['confidence'] = Variable<double>(confidence);
     map['sensor_features_json'] = Variable<String>(sensorFeaturesJson);
@@ -11706,6 +11736,9 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
       longitude: longitude == null && nullToAbsent
           ? const Value.absent()
           : Value(longitude),
+      gpsAccuracyM: gpsAccuracyM == null && nullToAbsent
+          ? const Value.absent()
+          : Value(gpsAccuracyM),
       confidence: Value(confidence),
       sensorFeaturesJson: Value(sensorFeaturesJson),
       confirmationReply: confirmationReply == null && nullToAbsent
@@ -11737,6 +11770,7 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
       detectedAtUtc: serializer.fromJson<DateTime>(json['detectedAtUtc']),
       latitude: serializer.fromJson<double?>(json['latitude']),
       longitude: serializer.fromJson<double?>(json['longitude']),
+      gpsAccuracyM: serializer.fromJson<double?>(json['gpsAccuracyM']),
       confidence: serializer.fromJson<double>(json['confidence']),
       sensorFeaturesJson: serializer.fromJson<String>(
         json['sensorFeaturesJson'],
@@ -11761,6 +11795,7 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
       'detectedAtUtc': serializer.toJson<DateTime>(detectedAtUtc),
       'latitude': serializer.toJson<double?>(latitude),
       'longitude': serializer.toJson<double?>(longitude),
+      'gpsAccuracyM': serializer.toJson<double?>(gpsAccuracyM),
       'confidence': serializer.toJson<double>(confidence),
       'sensorFeaturesJson': serializer.toJson<String>(sensorFeaturesJson),
       'confirmationReply': serializer.toJson<String?>(confirmationReply),
@@ -11779,6 +11814,7 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
     DateTime? detectedAtUtc,
     Value<double?> latitude = const Value.absent(),
     Value<double?> longitude = const Value.absent(),
+    Value<double?> gpsAccuracyM = const Value.absent(),
     double? confidence,
     String? sensorFeaturesJson,
     Value<String?> confirmationReply = const Value.absent(),
@@ -11794,6 +11830,7 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
     detectedAtUtc: detectedAtUtc ?? this.detectedAtUtc,
     latitude: latitude.present ? latitude.value : this.latitude,
     longitude: longitude.present ? longitude.value : this.longitude,
+    gpsAccuracyM: gpsAccuracyM.present ? gpsAccuracyM.value : this.gpsAccuracyM,
     confidence: confidence ?? this.confidence,
     sensorFeaturesJson: sensorFeaturesJson ?? this.sensorFeaturesJson,
     confirmationReply: confirmationReply.present
@@ -11815,6 +11852,9 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
           : this.detectedAtUtc,
       latitude: data.latitude.present ? data.latitude.value : this.latitude,
       longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      gpsAccuracyM: data.gpsAccuracyM.present
+          ? data.gpsAccuracyM.value
+          : this.gpsAccuracyM,
       confidence: data.confidence.present
           ? data.confidence.value
           : this.confidence,
@@ -11845,6 +11885,7 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
           ..write('detectedAtUtc: $detectedAtUtc, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
+          ..write('gpsAccuracyM: $gpsAccuracyM, ')
           ..write('confidence: $confidence, ')
           ..write('sensorFeaturesJson: $sensorFeaturesJson, ')
           ..write('confirmationReply: $confirmationReply, ')
@@ -11865,6 +11906,7 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
     detectedAtUtc,
     latitude,
     longitude,
+    gpsAccuracyM,
     confidence,
     sensorFeaturesJson,
     confirmationReply,
@@ -11884,6 +11926,7 @@ class LiveEventReview extends DataClass implements Insertable<LiveEventReview> {
           other.detectedAtUtc == this.detectedAtUtc &&
           other.latitude == this.latitude &&
           other.longitude == this.longitude &&
+          other.gpsAccuracyM == this.gpsAccuracyM &&
           other.confidence == this.confidence &&
           other.sensorFeaturesJson == this.sensorFeaturesJson &&
           other.confirmationReply == this.confirmationReply &&
@@ -11901,6 +11944,7 @@ class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
   final Value<DateTime> detectedAtUtc;
   final Value<double?> latitude;
   final Value<double?> longitude;
+  final Value<double?> gpsAccuracyM;
   final Value<double> confidence;
   final Value<String> sensorFeaturesJson;
   final Value<String?> confirmationReply;
@@ -11916,6 +11960,7 @@ class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
     this.detectedAtUtc = const Value.absent(),
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
+    this.gpsAccuracyM = const Value.absent(),
     this.confidence = const Value.absent(),
     this.sensorFeaturesJson = const Value.absent(),
     this.confirmationReply = const Value.absent(),
@@ -11932,6 +11977,7 @@ class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
     required DateTime detectedAtUtc,
     this.latitude = const Value.absent(),
     this.longitude = const Value.absent(),
+    this.gpsAccuracyM = const Value.absent(),
     required double confidence,
     required String sensorFeaturesJson,
     this.confirmationReply = const Value.absent(),
@@ -11952,6 +11998,7 @@ class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
     Expression<DateTime>? detectedAtUtc,
     Expression<double>? latitude,
     Expression<double>? longitude,
+    Expression<double>? gpsAccuracyM,
     Expression<double>? confidence,
     Expression<String>? sensorFeaturesJson,
     Expression<String>? confirmationReply,
@@ -11968,6 +12015,7 @@ class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
       if (detectedAtUtc != null) 'detected_at_utc': detectedAtUtc,
       if (latitude != null) 'latitude': latitude,
       if (longitude != null) 'longitude': longitude,
+      if (gpsAccuracyM != null) 'gps_accuracy_m': gpsAccuracyM,
       if (confidence != null) 'confidence': confidence,
       if (sensorFeaturesJson != null)
         'sensor_features_json': sensorFeaturesJson,
@@ -11987,6 +12035,7 @@ class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
     Value<DateTime>? detectedAtUtc,
     Value<double?>? latitude,
     Value<double?>? longitude,
+    Value<double?>? gpsAccuracyM,
     Value<double>? confidence,
     Value<String>? sensorFeaturesJson,
     Value<String?>? confirmationReply,
@@ -12003,6 +12052,7 @@ class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
       detectedAtUtc: detectedAtUtc ?? this.detectedAtUtc,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      gpsAccuracyM: gpsAccuracyM ?? this.gpsAccuracyM,
       confidence: confidence ?? this.confidence,
       sensorFeaturesJson: sensorFeaturesJson ?? this.sensorFeaturesJson,
       confirmationReply: confirmationReply ?? this.confirmationReply,
@@ -12036,6 +12086,9 @@ class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
     }
     if (longitude.present) {
       map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (gpsAccuracyM.present) {
+      map['gps_accuracy_m'] = Variable<double>(gpsAccuracyM.value);
     }
     if (confidence.present) {
       map['confidence'] = Variable<double>(confidence.value);
@@ -12071,6 +12124,7 @@ class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
           ..write('detectedAtUtc: $detectedAtUtc, ')
           ..write('latitude: $latitude, ')
           ..write('longitude: $longitude, ')
+          ..write('gpsAccuracyM: $gpsAccuracyM, ')
           ..write('confidence: $confidence, ')
           ..write('sensorFeaturesJson: $sensorFeaturesJson, ')
           ..write('confirmationReply: $confirmationReply, ')
@@ -12078,6 +12132,1330 @@ class LiveEventReviewsCompanion extends UpdateCompanion<LiveEventReview> {
           ..write('feedback: $feedback, ')
           ..write('reviewStatus: $reviewStatus, ')
           ..write('roadEventId: $roadEventId')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CrowdEventReportsTable extends CrowdEventReports
+    with TableInfo<$CrowdEventReportsTable, CrowdEventReport> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CrowdEventReportsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _reportKeyMeta = const VerificationMeta(
+    'reportKey',
+  );
+  @override
+  late final GeneratedColumn<String> reportKey = GeneratedColumn<String>(
+    'report_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _ownerUidMeta = const VerificationMeta(
+    'ownerUid',
+  );
+  @override
+  late final GeneratedColumn<String> ownerUid = GeneratedColumn<String>(
+    'owner_uid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _tripIdMeta = const VerificationMeta('tripId');
+  @override
+  late final GeneratedColumn<int> tripId = GeneratedColumn<int>(
+    'trip_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _localReviewIdMeta = const VerificationMeta(
+    'localReviewId',
+  );
+  @override
+  late final GeneratedColumn<int> localReviewId = GeneratedColumn<int>(
+    'local_review_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eventTypeMeta = const VerificationMeta(
+    'eventType',
+  );
+  @override
+  late final GeneratedColumn<String> eventType = GeneratedColumn<String>(
+    'event_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('road_impact'),
+  );
+  static const VerificationMeta _latitudeMeta = const VerificationMeta(
+    'latitude',
+  );
+  @override
+  late final GeneratedColumn<double> latitude = GeneratedColumn<double>(
+    'latitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _longitudeMeta = const VerificationMeta(
+    'longitude',
+  );
+  @override
+  late final GeneratedColumn<double> longitude = GeneratedColumn<double>(
+    'longitude',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _horizontalAccuracyMMeta =
+      const VerificationMeta('horizontalAccuracyM');
+  @override
+  late final GeneratedColumn<double> horizontalAccuracyM =
+      GeneratedColumn<double>(
+        'horizontal_accuracy_m',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _observedAtUtcMeta = const VerificationMeta(
+    'observedAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> observedAtUtc =
+      GeneratedColumn<DateTime>(
+        'observed_at_utc',
+        aliasedName,
+        false,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _headingDegMeta = const VerificationMeta(
+    'headingDeg',
+  );
+  @override
+  late final GeneratedColumn<double> headingDeg = GeneratedColumn<double>(
+    'heading_deg',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _speedKmhMeta = const VerificationMeta(
+    'speedKmh',
+  );
+  @override
+  late final GeneratedColumn<double> speedKmh = GeneratedColumn<double>(
+    'speed_kmh',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _evidenceKindMeta = const VerificationMeta(
+    'evidenceKind',
+  );
+  @override
+  late final GeneratedColumn<String> evidenceKind = GeneratedColumn<String>(
+    'evidence_kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _evidenceConfidenceMeta =
+      const VerificationMeta('evidenceConfidence');
+  @override
+  late final GeneratedColumn<double> evidenceConfidence =
+      GeneratedColumn<double>(
+        'evidence_confidence',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _evidenceJsonMeta = const VerificationMeta(
+    'evidenceJson',
+  );
+  @override
+  late final GeneratedColumn<String> evidenceJson = GeneratedColumn<String>(
+    'evidence_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _driverConfirmedMeta = const VerificationMeta(
+    'driverConfirmed',
+  );
+  @override
+  late final GeneratedColumn<bool> driverConfirmed = GeneratedColumn<bool>(
+    'driver_confirmed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("driver_confirmed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _locationShareConsentedMeta =
+      const VerificationMeta('locationShareConsented');
+  @override
+  late final GeneratedColumn<bool> locationShareConsented =
+      GeneratedColumn<bool>(
+        'location_share_consented',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("location_share_consented" IN (0, 1))',
+        ),
+        defaultValue: const Constant(false),
+      );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('queued'),
+  );
+  static const VerificationMeta _verificationStatusMeta =
+      const VerificationMeta('verificationStatus');
+  @override
+  late final GeneratedColumn<String> verificationStatus =
+      GeneratedColumn<String>(
+        'verification_status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('candidate'),
+      );
+  static const VerificationMeta _cloudEventIdMeta = const VerificationMeta(
+    'cloudEventId',
+  );
+  @override
+  late final GeneratedColumn<String> cloudEventId = GeneratedColumn<String>(
+    'cloud_event_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastSyncErrorMeta = const VerificationMeta(
+    'lastSyncError',
+  );
+  @override
+  late final GeneratedColumn<String> lastSyncError = GeneratedColumn<String>(
+    'last_sync_error',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtUtcMeta = const VerificationMeta(
+    'createdAtUtc',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAtUtc = GeneratedColumn<DateTime>(
+    'created_at_utc',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    reportKey,
+    ownerUid,
+    tripId,
+    localReviewId,
+    eventType,
+    latitude,
+    longitude,
+    horizontalAccuracyM,
+    observedAtUtc,
+    headingDeg,
+    speedKmh,
+    source,
+    evidenceKind,
+    evidenceConfidence,
+    evidenceJson,
+    driverConfirmed,
+    locationShareConsented,
+    syncStatus,
+    verificationStatus,
+    cloudEventId,
+    lastSyncError,
+    createdAtUtc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'crowd_event_reports';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CrowdEventReport> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('report_key')) {
+      context.handle(
+        _reportKeyMeta,
+        reportKey.isAcceptableOrUnknown(data['report_key']!, _reportKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reportKeyMeta);
+    }
+    if (data.containsKey('owner_uid')) {
+      context.handle(
+        _ownerUidMeta,
+        ownerUid.isAcceptableOrUnknown(data['owner_uid']!, _ownerUidMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_ownerUidMeta);
+    }
+    if (data.containsKey('trip_id')) {
+      context.handle(
+        _tripIdMeta,
+        tripId.isAcceptableOrUnknown(data['trip_id']!, _tripIdMeta),
+      );
+    }
+    if (data.containsKey('local_review_id')) {
+      context.handle(
+        _localReviewIdMeta,
+        localReviewId.isAcceptableOrUnknown(
+          data['local_review_id']!,
+          _localReviewIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('event_type')) {
+      context.handle(
+        _eventTypeMeta,
+        eventType.isAcceptableOrUnknown(data['event_type']!, _eventTypeMeta),
+      );
+    }
+    if (data.containsKey('latitude')) {
+      context.handle(
+        _latitudeMeta,
+        latitude.isAcceptableOrUnknown(data['latitude']!, _latitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_latitudeMeta);
+    }
+    if (data.containsKey('longitude')) {
+      context.handle(
+        _longitudeMeta,
+        longitude.isAcceptableOrUnknown(data['longitude']!, _longitudeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_longitudeMeta);
+    }
+    if (data.containsKey('horizontal_accuracy_m')) {
+      context.handle(
+        _horizontalAccuracyMMeta,
+        horizontalAccuracyM.isAcceptableOrUnknown(
+          data['horizontal_accuracy_m']!,
+          _horizontalAccuracyMMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_horizontalAccuracyMMeta);
+    }
+    if (data.containsKey('observed_at_utc')) {
+      context.handle(
+        _observedAtUtcMeta,
+        observedAtUtc.isAcceptableOrUnknown(
+          data['observed_at_utc']!,
+          _observedAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_observedAtUtcMeta);
+    }
+    if (data.containsKey('heading_deg')) {
+      context.handle(
+        _headingDegMeta,
+        headingDeg.isAcceptableOrUnknown(data['heading_deg']!, _headingDegMeta),
+      );
+    }
+    if (data.containsKey('speed_kmh')) {
+      context.handle(
+        _speedKmhMeta,
+        speedKmh.isAcceptableOrUnknown(data['speed_kmh']!, _speedKmhMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('evidence_kind')) {
+      context.handle(
+        _evidenceKindMeta,
+        evidenceKind.isAcceptableOrUnknown(
+          data['evidence_kind']!,
+          _evidenceKindMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_evidenceKindMeta);
+    }
+    if (data.containsKey('evidence_confidence')) {
+      context.handle(
+        _evidenceConfidenceMeta,
+        evidenceConfidence.isAcceptableOrUnknown(
+          data['evidence_confidence']!,
+          _evidenceConfidenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('evidence_json')) {
+      context.handle(
+        _evidenceJsonMeta,
+        evidenceJson.isAcceptableOrUnknown(
+          data['evidence_json']!,
+          _evidenceJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('driver_confirmed')) {
+      context.handle(
+        _driverConfirmedMeta,
+        driverConfirmed.isAcceptableOrUnknown(
+          data['driver_confirmed']!,
+          _driverConfirmedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('location_share_consented')) {
+      context.handle(
+        _locationShareConsentedMeta,
+        locationShareConsented.isAcceptableOrUnknown(
+          data['location_share_consented']!,
+          _locationShareConsentedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('verification_status')) {
+      context.handle(
+        _verificationStatusMeta,
+        verificationStatus.isAcceptableOrUnknown(
+          data['verification_status']!,
+          _verificationStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cloud_event_id')) {
+      context.handle(
+        _cloudEventIdMeta,
+        cloudEventId.isAcceptableOrUnknown(
+          data['cloud_event_id']!,
+          _cloudEventIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_sync_error')) {
+      context.handle(
+        _lastSyncErrorMeta,
+        lastSyncError.isAcceptableOrUnknown(
+          data['last_sync_error']!,
+          _lastSyncErrorMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at_utc')) {
+      context.handle(
+        _createdAtUtcMeta,
+        createdAtUtc.isAcceptableOrUnknown(
+          data['created_at_utc']!,
+          _createdAtUtcMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtUtcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CrowdEventReport map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CrowdEventReport(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      reportKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}report_key'],
+      )!,
+      ownerUid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}owner_uid'],
+      )!,
+      tripId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}trip_id'],
+      ),
+      localReviewId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}local_review_id'],
+      ),
+      eventType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}event_type'],
+      )!,
+      latitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}latitude'],
+      )!,
+      longitude: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}longitude'],
+      )!,
+      horizontalAccuracyM: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}horizontal_accuracy_m'],
+      )!,
+      observedAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}observed_at_utc'],
+      )!,
+      headingDeg: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}heading_deg'],
+      ),
+      speedKmh: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}speed_kmh'],
+      ),
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      evidenceKind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}evidence_kind'],
+      )!,
+      evidenceConfidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}evidence_confidence'],
+      ),
+      evidenceJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}evidence_json'],
+      ),
+      driverConfirmed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}driver_confirmed'],
+      )!,
+      locationShareConsented: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}location_share_consented'],
+      )!,
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      verificationStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}verification_status'],
+      )!,
+      cloudEventId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cloud_event_id'],
+      ),
+      lastSyncError: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_sync_error'],
+      ),
+      createdAtUtc: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at_utc'],
+      )!,
+    );
+  }
+
+  @override
+  $CrowdEventReportsTable createAlias(String alias) {
+    return $CrowdEventReportsTable(attachedDatabase, alias);
+  }
+}
+
+class CrowdEventReport extends DataClass
+    implements Insertable<CrowdEventReport> {
+  final int id;
+
+  /// Stable client-generated idempotency key used by the cloud uploader.
+  final String reportKey;
+
+  /// Firebase Auth UID captured when the report is queued. Never a phone number.
+  final String ownerUid;
+  final int? tripId;
+  final int? localReviewId;
+
+  /// MVP reports deliberately use this broad label; an IMU impact alone cannot
+  /// distinguish potholes, speed bumps, or rough patches.
+  final String eventType;
+  final double latitude;
+  final double longitude;
+  final double horizontalAccuracyM;
+  final DateTime observedAtUtc;
+  final double? headingDeg;
+  final double? speedKmh;
+
+  /// ml | camera | voice | manual
+  final String source;
+  final String evidenceKind;
+  final double? evidenceConfidence;
+  final String? evidenceJson;
+  final bool driverConfirmed;
+  final bool locationShareConsented;
+
+  /// queued | uploading | uploaded | failed
+  final String syncStatus;
+
+  /// candidate | corroborated | verified | disputed; server-authoritative.
+  final String verificationStatus;
+  final String? cloudEventId;
+  final String? lastSyncError;
+  final DateTime createdAtUtc;
+  const CrowdEventReport({
+    required this.id,
+    required this.reportKey,
+    required this.ownerUid,
+    this.tripId,
+    this.localReviewId,
+    required this.eventType,
+    required this.latitude,
+    required this.longitude,
+    required this.horizontalAccuracyM,
+    required this.observedAtUtc,
+    this.headingDeg,
+    this.speedKmh,
+    required this.source,
+    required this.evidenceKind,
+    this.evidenceConfidence,
+    this.evidenceJson,
+    required this.driverConfirmed,
+    required this.locationShareConsented,
+    required this.syncStatus,
+    required this.verificationStatus,
+    this.cloudEventId,
+    this.lastSyncError,
+    required this.createdAtUtc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['report_key'] = Variable<String>(reportKey);
+    map['owner_uid'] = Variable<String>(ownerUid);
+    if (!nullToAbsent || tripId != null) {
+      map['trip_id'] = Variable<int>(tripId);
+    }
+    if (!nullToAbsent || localReviewId != null) {
+      map['local_review_id'] = Variable<int>(localReviewId);
+    }
+    map['event_type'] = Variable<String>(eventType);
+    map['latitude'] = Variable<double>(latitude);
+    map['longitude'] = Variable<double>(longitude);
+    map['horizontal_accuracy_m'] = Variable<double>(horizontalAccuracyM);
+    map['observed_at_utc'] = Variable<DateTime>(observedAtUtc);
+    if (!nullToAbsent || headingDeg != null) {
+      map['heading_deg'] = Variable<double>(headingDeg);
+    }
+    if (!nullToAbsent || speedKmh != null) {
+      map['speed_kmh'] = Variable<double>(speedKmh);
+    }
+    map['source'] = Variable<String>(source);
+    map['evidence_kind'] = Variable<String>(evidenceKind);
+    if (!nullToAbsent || evidenceConfidence != null) {
+      map['evidence_confidence'] = Variable<double>(evidenceConfidence);
+    }
+    if (!nullToAbsent || evidenceJson != null) {
+      map['evidence_json'] = Variable<String>(evidenceJson);
+    }
+    map['driver_confirmed'] = Variable<bool>(driverConfirmed);
+    map['location_share_consented'] = Variable<bool>(locationShareConsented);
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['verification_status'] = Variable<String>(verificationStatus);
+    if (!nullToAbsent || cloudEventId != null) {
+      map['cloud_event_id'] = Variable<String>(cloudEventId);
+    }
+    if (!nullToAbsent || lastSyncError != null) {
+      map['last_sync_error'] = Variable<String>(lastSyncError);
+    }
+    map['created_at_utc'] = Variable<DateTime>(createdAtUtc);
+    return map;
+  }
+
+  CrowdEventReportsCompanion toCompanion(bool nullToAbsent) {
+    return CrowdEventReportsCompanion(
+      id: Value(id),
+      reportKey: Value(reportKey),
+      ownerUid: Value(ownerUid),
+      tripId: tripId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(tripId),
+      localReviewId: localReviewId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localReviewId),
+      eventType: Value(eventType),
+      latitude: Value(latitude),
+      longitude: Value(longitude),
+      horizontalAccuracyM: Value(horizontalAccuracyM),
+      observedAtUtc: Value(observedAtUtc),
+      headingDeg: headingDeg == null && nullToAbsent
+          ? const Value.absent()
+          : Value(headingDeg),
+      speedKmh: speedKmh == null && nullToAbsent
+          ? const Value.absent()
+          : Value(speedKmh),
+      source: Value(source),
+      evidenceKind: Value(evidenceKind),
+      evidenceConfidence: evidenceConfidence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(evidenceConfidence),
+      evidenceJson: evidenceJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(evidenceJson),
+      driverConfirmed: Value(driverConfirmed),
+      locationShareConsented: Value(locationShareConsented),
+      syncStatus: Value(syncStatus),
+      verificationStatus: Value(verificationStatus),
+      cloudEventId: cloudEventId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(cloudEventId),
+      lastSyncError: lastSyncError == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastSyncError),
+      createdAtUtc: Value(createdAtUtc),
+    );
+  }
+
+  factory CrowdEventReport.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CrowdEventReport(
+      id: serializer.fromJson<int>(json['id']),
+      reportKey: serializer.fromJson<String>(json['reportKey']),
+      ownerUid: serializer.fromJson<String>(json['ownerUid']),
+      tripId: serializer.fromJson<int?>(json['tripId']),
+      localReviewId: serializer.fromJson<int?>(json['localReviewId']),
+      eventType: serializer.fromJson<String>(json['eventType']),
+      latitude: serializer.fromJson<double>(json['latitude']),
+      longitude: serializer.fromJson<double>(json['longitude']),
+      horizontalAccuracyM: serializer.fromJson<double>(
+        json['horizontalAccuracyM'],
+      ),
+      observedAtUtc: serializer.fromJson<DateTime>(json['observedAtUtc']),
+      headingDeg: serializer.fromJson<double?>(json['headingDeg']),
+      speedKmh: serializer.fromJson<double?>(json['speedKmh']),
+      source: serializer.fromJson<String>(json['source']),
+      evidenceKind: serializer.fromJson<String>(json['evidenceKind']),
+      evidenceConfidence: serializer.fromJson<double?>(
+        json['evidenceConfidence'],
+      ),
+      evidenceJson: serializer.fromJson<String?>(json['evidenceJson']),
+      driverConfirmed: serializer.fromJson<bool>(json['driverConfirmed']),
+      locationShareConsented: serializer.fromJson<bool>(
+        json['locationShareConsented'],
+      ),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      verificationStatus: serializer.fromJson<String>(
+        json['verificationStatus'],
+      ),
+      cloudEventId: serializer.fromJson<String?>(json['cloudEventId']),
+      lastSyncError: serializer.fromJson<String?>(json['lastSyncError']),
+      createdAtUtc: serializer.fromJson<DateTime>(json['createdAtUtc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'reportKey': serializer.toJson<String>(reportKey),
+      'ownerUid': serializer.toJson<String>(ownerUid),
+      'tripId': serializer.toJson<int?>(tripId),
+      'localReviewId': serializer.toJson<int?>(localReviewId),
+      'eventType': serializer.toJson<String>(eventType),
+      'latitude': serializer.toJson<double>(latitude),
+      'longitude': serializer.toJson<double>(longitude),
+      'horizontalAccuracyM': serializer.toJson<double>(horizontalAccuracyM),
+      'observedAtUtc': serializer.toJson<DateTime>(observedAtUtc),
+      'headingDeg': serializer.toJson<double?>(headingDeg),
+      'speedKmh': serializer.toJson<double?>(speedKmh),
+      'source': serializer.toJson<String>(source),
+      'evidenceKind': serializer.toJson<String>(evidenceKind),
+      'evidenceConfidence': serializer.toJson<double?>(evidenceConfidence),
+      'evidenceJson': serializer.toJson<String?>(evidenceJson),
+      'driverConfirmed': serializer.toJson<bool>(driverConfirmed),
+      'locationShareConsented': serializer.toJson<bool>(locationShareConsented),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'verificationStatus': serializer.toJson<String>(verificationStatus),
+      'cloudEventId': serializer.toJson<String?>(cloudEventId),
+      'lastSyncError': serializer.toJson<String?>(lastSyncError),
+      'createdAtUtc': serializer.toJson<DateTime>(createdAtUtc),
+    };
+  }
+
+  CrowdEventReport copyWith({
+    int? id,
+    String? reportKey,
+    String? ownerUid,
+    Value<int?> tripId = const Value.absent(),
+    Value<int?> localReviewId = const Value.absent(),
+    String? eventType,
+    double? latitude,
+    double? longitude,
+    double? horizontalAccuracyM,
+    DateTime? observedAtUtc,
+    Value<double?> headingDeg = const Value.absent(),
+    Value<double?> speedKmh = const Value.absent(),
+    String? source,
+    String? evidenceKind,
+    Value<double?> evidenceConfidence = const Value.absent(),
+    Value<String?> evidenceJson = const Value.absent(),
+    bool? driverConfirmed,
+    bool? locationShareConsented,
+    String? syncStatus,
+    String? verificationStatus,
+    Value<String?> cloudEventId = const Value.absent(),
+    Value<String?> lastSyncError = const Value.absent(),
+    DateTime? createdAtUtc,
+  }) => CrowdEventReport(
+    id: id ?? this.id,
+    reportKey: reportKey ?? this.reportKey,
+    ownerUid: ownerUid ?? this.ownerUid,
+    tripId: tripId.present ? tripId.value : this.tripId,
+    localReviewId: localReviewId.present
+        ? localReviewId.value
+        : this.localReviewId,
+    eventType: eventType ?? this.eventType,
+    latitude: latitude ?? this.latitude,
+    longitude: longitude ?? this.longitude,
+    horizontalAccuracyM: horizontalAccuracyM ?? this.horizontalAccuracyM,
+    observedAtUtc: observedAtUtc ?? this.observedAtUtc,
+    headingDeg: headingDeg.present ? headingDeg.value : this.headingDeg,
+    speedKmh: speedKmh.present ? speedKmh.value : this.speedKmh,
+    source: source ?? this.source,
+    evidenceKind: evidenceKind ?? this.evidenceKind,
+    evidenceConfidence: evidenceConfidence.present
+        ? evidenceConfidence.value
+        : this.evidenceConfidence,
+    evidenceJson: evidenceJson.present ? evidenceJson.value : this.evidenceJson,
+    driverConfirmed: driverConfirmed ?? this.driverConfirmed,
+    locationShareConsented:
+        locationShareConsented ?? this.locationShareConsented,
+    syncStatus: syncStatus ?? this.syncStatus,
+    verificationStatus: verificationStatus ?? this.verificationStatus,
+    cloudEventId: cloudEventId.present ? cloudEventId.value : this.cloudEventId,
+    lastSyncError: lastSyncError.present
+        ? lastSyncError.value
+        : this.lastSyncError,
+    createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+  );
+  CrowdEventReport copyWithCompanion(CrowdEventReportsCompanion data) {
+    return CrowdEventReport(
+      id: data.id.present ? data.id.value : this.id,
+      reportKey: data.reportKey.present ? data.reportKey.value : this.reportKey,
+      ownerUid: data.ownerUid.present ? data.ownerUid.value : this.ownerUid,
+      tripId: data.tripId.present ? data.tripId.value : this.tripId,
+      localReviewId: data.localReviewId.present
+          ? data.localReviewId.value
+          : this.localReviewId,
+      eventType: data.eventType.present ? data.eventType.value : this.eventType,
+      latitude: data.latitude.present ? data.latitude.value : this.latitude,
+      longitude: data.longitude.present ? data.longitude.value : this.longitude,
+      horizontalAccuracyM: data.horizontalAccuracyM.present
+          ? data.horizontalAccuracyM.value
+          : this.horizontalAccuracyM,
+      observedAtUtc: data.observedAtUtc.present
+          ? data.observedAtUtc.value
+          : this.observedAtUtc,
+      headingDeg: data.headingDeg.present
+          ? data.headingDeg.value
+          : this.headingDeg,
+      speedKmh: data.speedKmh.present ? data.speedKmh.value : this.speedKmh,
+      source: data.source.present ? data.source.value : this.source,
+      evidenceKind: data.evidenceKind.present
+          ? data.evidenceKind.value
+          : this.evidenceKind,
+      evidenceConfidence: data.evidenceConfidence.present
+          ? data.evidenceConfidence.value
+          : this.evidenceConfidence,
+      evidenceJson: data.evidenceJson.present
+          ? data.evidenceJson.value
+          : this.evidenceJson,
+      driverConfirmed: data.driverConfirmed.present
+          ? data.driverConfirmed.value
+          : this.driverConfirmed,
+      locationShareConsented: data.locationShareConsented.present
+          ? data.locationShareConsented.value
+          : this.locationShareConsented,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      verificationStatus: data.verificationStatus.present
+          ? data.verificationStatus.value
+          : this.verificationStatus,
+      cloudEventId: data.cloudEventId.present
+          ? data.cloudEventId.value
+          : this.cloudEventId,
+      lastSyncError: data.lastSyncError.present
+          ? data.lastSyncError.value
+          : this.lastSyncError,
+      createdAtUtc: data.createdAtUtc.present
+          ? data.createdAtUtc.value
+          : this.createdAtUtc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrowdEventReport(')
+          ..write('id: $id, ')
+          ..write('reportKey: $reportKey, ')
+          ..write('ownerUid: $ownerUid, ')
+          ..write('tripId: $tripId, ')
+          ..write('localReviewId: $localReviewId, ')
+          ..write('eventType: $eventType, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('horizontalAccuracyM: $horizontalAccuracyM, ')
+          ..write('observedAtUtc: $observedAtUtc, ')
+          ..write('headingDeg: $headingDeg, ')
+          ..write('speedKmh: $speedKmh, ')
+          ..write('source: $source, ')
+          ..write('evidenceKind: $evidenceKind, ')
+          ..write('evidenceConfidence: $evidenceConfidence, ')
+          ..write('evidenceJson: $evidenceJson, ')
+          ..write('driverConfirmed: $driverConfirmed, ')
+          ..write('locationShareConsented: $locationShareConsented, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('verificationStatus: $verificationStatus, ')
+          ..write('cloudEventId: $cloudEventId, ')
+          ..write('lastSyncError: $lastSyncError, ')
+          ..write('createdAtUtc: $createdAtUtc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    id,
+    reportKey,
+    ownerUid,
+    tripId,
+    localReviewId,
+    eventType,
+    latitude,
+    longitude,
+    horizontalAccuracyM,
+    observedAtUtc,
+    headingDeg,
+    speedKmh,
+    source,
+    evidenceKind,
+    evidenceConfidence,
+    evidenceJson,
+    driverConfirmed,
+    locationShareConsented,
+    syncStatus,
+    verificationStatus,
+    cloudEventId,
+    lastSyncError,
+    createdAtUtc,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CrowdEventReport &&
+          other.id == this.id &&
+          other.reportKey == this.reportKey &&
+          other.ownerUid == this.ownerUid &&
+          other.tripId == this.tripId &&
+          other.localReviewId == this.localReviewId &&
+          other.eventType == this.eventType &&
+          other.latitude == this.latitude &&
+          other.longitude == this.longitude &&
+          other.horizontalAccuracyM == this.horizontalAccuracyM &&
+          other.observedAtUtc == this.observedAtUtc &&
+          other.headingDeg == this.headingDeg &&
+          other.speedKmh == this.speedKmh &&
+          other.source == this.source &&
+          other.evidenceKind == this.evidenceKind &&
+          other.evidenceConfidence == this.evidenceConfidence &&
+          other.evidenceJson == this.evidenceJson &&
+          other.driverConfirmed == this.driverConfirmed &&
+          other.locationShareConsented == this.locationShareConsented &&
+          other.syncStatus == this.syncStatus &&
+          other.verificationStatus == this.verificationStatus &&
+          other.cloudEventId == this.cloudEventId &&
+          other.lastSyncError == this.lastSyncError &&
+          other.createdAtUtc == this.createdAtUtc);
+}
+
+class CrowdEventReportsCompanion extends UpdateCompanion<CrowdEventReport> {
+  final Value<int> id;
+  final Value<String> reportKey;
+  final Value<String> ownerUid;
+  final Value<int?> tripId;
+  final Value<int?> localReviewId;
+  final Value<String> eventType;
+  final Value<double> latitude;
+  final Value<double> longitude;
+  final Value<double> horizontalAccuracyM;
+  final Value<DateTime> observedAtUtc;
+  final Value<double?> headingDeg;
+  final Value<double?> speedKmh;
+  final Value<String> source;
+  final Value<String> evidenceKind;
+  final Value<double?> evidenceConfidence;
+  final Value<String?> evidenceJson;
+  final Value<bool> driverConfirmed;
+  final Value<bool> locationShareConsented;
+  final Value<String> syncStatus;
+  final Value<String> verificationStatus;
+  final Value<String?> cloudEventId;
+  final Value<String?> lastSyncError;
+  final Value<DateTime> createdAtUtc;
+  const CrowdEventReportsCompanion({
+    this.id = const Value.absent(),
+    this.reportKey = const Value.absent(),
+    this.ownerUid = const Value.absent(),
+    this.tripId = const Value.absent(),
+    this.localReviewId = const Value.absent(),
+    this.eventType = const Value.absent(),
+    this.latitude = const Value.absent(),
+    this.longitude = const Value.absent(),
+    this.horizontalAccuracyM = const Value.absent(),
+    this.observedAtUtc = const Value.absent(),
+    this.headingDeg = const Value.absent(),
+    this.speedKmh = const Value.absent(),
+    this.source = const Value.absent(),
+    this.evidenceKind = const Value.absent(),
+    this.evidenceConfidence = const Value.absent(),
+    this.evidenceJson = const Value.absent(),
+    this.driverConfirmed = const Value.absent(),
+    this.locationShareConsented = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.verificationStatus = const Value.absent(),
+    this.cloudEventId = const Value.absent(),
+    this.lastSyncError = const Value.absent(),
+    this.createdAtUtc = const Value.absent(),
+  });
+  CrowdEventReportsCompanion.insert({
+    this.id = const Value.absent(),
+    required String reportKey,
+    required String ownerUid,
+    this.tripId = const Value.absent(),
+    this.localReviewId = const Value.absent(),
+    this.eventType = const Value.absent(),
+    required double latitude,
+    required double longitude,
+    required double horizontalAccuracyM,
+    required DateTime observedAtUtc,
+    this.headingDeg = const Value.absent(),
+    this.speedKmh = const Value.absent(),
+    required String source,
+    required String evidenceKind,
+    this.evidenceConfidence = const Value.absent(),
+    this.evidenceJson = const Value.absent(),
+    this.driverConfirmed = const Value.absent(),
+    this.locationShareConsented = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.verificationStatus = const Value.absent(),
+    this.cloudEventId = const Value.absent(),
+    this.lastSyncError = const Value.absent(),
+    required DateTime createdAtUtc,
+  }) : reportKey = Value(reportKey),
+       ownerUid = Value(ownerUid),
+       latitude = Value(latitude),
+       longitude = Value(longitude),
+       horizontalAccuracyM = Value(horizontalAccuracyM),
+       observedAtUtc = Value(observedAtUtc),
+       source = Value(source),
+       evidenceKind = Value(evidenceKind),
+       createdAtUtc = Value(createdAtUtc);
+  static Insertable<CrowdEventReport> custom({
+    Expression<int>? id,
+    Expression<String>? reportKey,
+    Expression<String>? ownerUid,
+    Expression<int>? tripId,
+    Expression<int>? localReviewId,
+    Expression<String>? eventType,
+    Expression<double>? latitude,
+    Expression<double>? longitude,
+    Expression<double>? horizontalAccuracyM,
+    Expression<DateTime>? observedAtUtc,
+    Expression<double>? headingDeg,
+    Expression<double>? speedKmh,
+    Expression<String>? source,
+    Expression<String>? evidenceKind,
+    Expression<double>? evidenceConfidence,
+    Expression<String>? evidenceJson,
+    Expression<bool>? driverConfirmed,
+    Expression<bool>? locationShareConsented,
+    Expression<String>? syncStatus,
+    Expression<String>? verificationStatus,
+    Expression<String>? cloudEventId,
+    Expression<String>? lastSyncError,
+    Expression<DateTime>? createdAtUtc,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (reportKey != null) 'report_key': reportKey,
+      if (ownerUid != null) 'owner_uid': ownerUid,
+      if (tripId != null) 'trip_id': tripId,
+      if (localReviewId != null) 'local_review_id': localReviewId,
+      if (eventType != null) 'event_type': eventType,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
+      if (horizontalAccuracyM != null)
+        'horizontal_accuracy_m': horizontalAccuracyM,
+      if (observedAtUtc != null) 'observed_at_utc': observedAtUtc,
+      if (headingDeg != null) 'heading_deg': headingDeg,
+      if (speedKmh != null) 'speed_kmh': speedKmh,
+      if (source != null) 'source': source,
+      if (evidenceKind != null) 'evidence_kind': evidenceKind,
+      if (evidenceConfidence != null) 'evidence_confidence': evidenceConfidence,
+      if (evidenceJson != null) 'evidence_json': evidenceJson,
+      if (driverConfirmed != null) 'driver_confirmed': driverConfirmed,
+      if (locationShareConsented != null)
+        'location_share_consented': locationShareConsented,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (verificationStatus != null) 'verification_status': verificationStatus,
+      if (cloudEventId != null) 'cloud_event_id': cloudEventId,
+      if (lastSyncError != null) 'last_sync_error': lastSyncError,
+      if (createdAtUtc != null) 'created_at_utc': createdAtUtc,
+    });
+  }
+
+  CrowdEventReportsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? reportKey,
+    Value<String>? ownerUid,
+    Value<int?>? tripId,
+    Value<int?>? localReviewId,
+    Value<String>? eventType,
+    Value<double>? latitude,
+    Value<double>? longitude,
+    Value<double>? horizontalAccuracyM,
+    Value<DateTime>? observedAtUtc,
+    Value<double?>? headingDeg,
+    Value<double?>? speedKmh,
+    Value<String>? source,
+    Value<String>? evidenceKind,
+    Value<double?>? evidenceConfidence,
+    Value<String?>? evidenceJson,
+    Value<bool>? driverConfirmed,
+    Value<bool>? locationShareConsented,
+    Value<String>? syncStatus,
+    Value<String>? verificationStatus,
+    Value<String?>? cloudEventId,
+    Value<String?>? lastSyncError,
+    Value<DateTime>? createdAtUtc,
+  }) {
+    return CrowdEventReportsCompanion(
+      id: id ?? this.id,
+      reportKey: reportKey ?? this.reportKey,
+      ownerUid: ownerUid ?? this.ownerUid,
+      tripId: tripId ?? this.tripId,
+      localReviewId: localReviewId ?? this.localReviewId,
+      eventType: eventType ?? this.eventType,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      horizontalAccuracyM: horizontalAccuracyM ?? this.horizontalAccuracyM,
+      observedAtUtc: observedAtUtc ?? this.observedAtUtc,
+      headingDeg: headingDeg ?? this.headingDeg,
+      speedKmh: speedKmh ?? this.speedKmh,
+      source: source ?? this.source,
+      evidenceKind: evidenceKind ?? this.evidenceKind,
+      evidenceConfidence: evidenceConfidence ?? this.evidenceConfidence,
+      evidenceJson: evidenceJson ?? this.evidenceJson,
+      driverConfirmed: driverConfirmed ?? this.driverConfirmed,
+      locationShareConsented:
+          locationShareConsented ?? this.locationShareConsented,
+      syncStatus: syncStatus ?? this.syncStatus,
+      verificationStatus: verificationStatus ?? this.verificationStatus,
+      cloudEventId: cloudEventId ?? this.cloudEventId,
+      lastSyncError: lastSyncError ?? this.lastSyncError,
+      createdAtUtc: createdAtUtc ?? this.createdAtUtc,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (reportKey.present) {
+      map['report_key'] = Variable<String>(reportKey.value);
+    }
+    if (ownerUid.present) {
+      map['owner_uid'] = Variable<String>(ownerUid.value);
+    }
+    if (tripId.present) {
+      map['trip_id'] = Variable<int>(tripId.value);
+    }
+    if (localReviewId.present) {
+      map['local_review_id'] = Variable<int>(localReviewId.value);
+    }
+    if (eventType.present) {
+      map['event_type'] = Variable<String>(eventType.value);
+    }
+    if (latitude.present) {
+      map['latitude'] = Variable<double>(latitude.value);
+    }
+    if (longitude.present) {
+      map['longitude'] = Variable<double>(longitude.value);
+    }
+    if (horizontalAccuracyM.present) {
+      map['horizontal_accuracy_m'] = Variable<double>(
+        horizontalAccuracyM.value,
+      );
+    }
+    if (observedAtUtc.present) {
+      map['observed_at_utc'] = Variable<DateTime>(observedAtUtc.value);
+    }
+    if (headingDeg.present) {
+      map['heading_deg'] = Variable<double>(headingDeg.value);
+    }
+    if (speedKmh.present) {
+      map['speed_kmh'] = Variable<double>(speedKmh.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (evidenceKind.present) {
+      map['evidence_kind'] = Variable<String>(evidenceKind.value);
+    }
+    if (evidenceConfidence.present) {
+      map['evidence_confidence'] = Variable<double>(evidenceConfidence.value);
+    }
+    if (evidenceJson.present) {
+      map['evidence_json'] = Variable<String>(evidenceJson.value);
+    }
+    if (driverConfirmed.present) {
+      map['driver_confirmed'] = Variable<bool>(driverConfirmed.value);
+    }
+    if (locationShareConsented.present) {
+      map['location_share_consented'] = Variable<bool>(
+        locationShareConsented.value,
+      );
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (verificationStatus.present) {
+      map['verification_status'] = Variable<String>(verificationStatus.value);
+    }
+    if (cloudEventId.present) {
+      map['cloud_event_id'] = Variable<String>(cloudEventId.value);
+    }
+    if (lastSyncError.present) {
+      map['last_sync_error'] = Variable<String>(lastSyncError.value);
+    }
+    if (createdAtUtc.present) {
+      map['created_at_utc'] = Variable<DateTime>(createdAtUtc.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CrowdEventReportsCompanion(')
+          ..write('id: $id, ')
+          ..write('reportKey: $reportKey, ')
+          ..write('ownerUid: $ownerUid, ')
+          ..write('tripId: $tripId, ')
+          ..write('localReviewId: $localReviewId, ')
+          ..write('eventType: $eventType, ')
+          ..write('latitude: $latitude, ')
+          ..write('longitude: $longitude, ')
+          ..write('horizontalAccuracyM: $horizontalAccuracyM, ')
+          ..write('observedAtUtc: $observedAtUtc, ')
+          ..write('headingDeg: $headingDeg, ')
+          ..write('speedKmh: $speedKmh, ')
+          ..write('source: $source, ')
+          ..write('evidenceKind: $evidenceKind, ')
+          ..write('evidenceConfidence: $evidenceConfidence, ')
+          ..write('evidenceJson: $evidenceJson, ')
+          ..write('driverConfirmed: $driverConfirmed, ')
+          ..write('locationShareConsented: $locationShareConsented, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('verificationStatus: $verificationStatus, ')
+          ..write('cloudEventId: $cloudEventId, ')
+          ..write('lastSyncError: $lastSyncError, ')
+          ..write('createdAtUtc: $createdAtUtc')
           ..write(')'))
         .toString();
   }
@@ -12106,6 +13484,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LiveEventReviewsTable liveEventReviews = $LiveEventReviewsTable(
     this,
   );
+  late final $CrowdEventReportsTable crowdEventReports =
+      $CrowdEventReportsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -12123,6 +13503,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     unknownEvents,
     cameraCaptures,
     liveEventReviews,
+    crowdEventReports,
   ];
   @override
   DriftDatabaseOptions get options =>
@@ -17071,6 +18452,7 @@ typedef $$LiveEventReviewsTableCreateCompanionBuilder =
       required DateTime detectedAtUtc,
       Value<double?> latitude,
       Value<double?> longitude,
+      Value<double?> gpsAccuracyM,
       required double confidence,
       required String sensorFeaturesJson,
       Value<String?> confirmationReply,
@@ -17088,6 +18470,7 @@ typedef $$LiveEventReviewsTableUpdateCompanionBuilder =
       Value<DateTime> detectedAtUtc,
       Value<double?> latitude,
       Value<double?> longitude,
+      Value<double?> gpsAccuracyM,
       Value<double> confidence,
       Value<String> sensorFeaturesJson,
       Value<String?> confirmationReply,
@@ -17138,6 +18521,11 @@ class $$LiveEventReviewsTableFilterComposer
 
   ColumnFilters<double> get longitude => $composableBuilder(
     column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get gpsAccuracyM => $composableBuilder(
+    column: $table.gpsAccuracyM,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -17221,6 +18609,11 @@ class $$LiveEventReviewsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get gpsAccuracyM => $composableBuilder(
+    column: $table.gpsAccuracyM,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<double> get confidence => $composableBuilder(
     column: $table.confidence,
     builder: (column) => ColumnOrderings(column),
@@ -17288,6 +18681,11 @@ class $$LiveEventReviewsTableAnnotationComposer
 
   GeneratedColumn<double> get longitude =>
       $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<double> get gpsAccuracyM => $composableBuilder(
+    column: $table.gpsAccuracyM,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<double> get confidence => $composableBuilder(
     column: $table.confidence,
@@ -17365,6 +18763,7 @@ class $$LiveEventReviewsTableTableManager
                 Value<DateTime> detectedAtUtc = const Value.absent(),
                 Value<double?> latitude = const Value.absent(),
                 Value<double?> longitude = const Value.absent(),
+                Value<double?> gpsAccuracyM = const Value.absent(),
                 Value<double> confidence = const Value.absent(),
                 Value<String> sensorFeaturesJson = const Value.absent(),
                 Value<String?> confirmationReply = const Value.absent(),
@@ -17380,6 +18779,7 @@ class $$LiveEventReviewsTableTableManager
                 detectedAtUtc: detectedAtUtc,
                 latitude: latitude,
                 longitude: longitude,
+                gpsAccuracyM: gpsAccuracyM,
                 confidence: confidence,
                 sensorFeaturesJson: sensorFeaturesJson,
                 confirmationReply: confirmationReply,
@@ -17397,6 +18797,7 @@ class $$LiveEventReviewsTableTableManager
                 required DateTime detectedAtUtc,
                 Value<double?> latitude = const Value.absent(),
                 Value<double?> longitude = const Value.absent(),
+                Value<double?> gpsAccuracyM = const Value.absent(),
                 required double confidence,
                 required String sensorFeaturesJson,
                 Value<String?> confirmationReply = const Value.absent(),
@@ -17412,6 +18813,7 @@ class $$LiveEventReviewsTableTableManager
                 detectedAtUtc: detectedAtUtc,
                 latitude: latitude,
                 longitude: longitude,
+                gpsAccuracyM: gpsAccuracyM,
                 confidence: confidence,
                 sensorFeaturesJson: sensorFeaturesJson,
                 confirmationReply: confirmationReply,
@@ -17445,6 +18847,583 @@ typedef $$LiveEventReviewsTableProcessedTableManager =
       LiveEventReview,
       PrefetchHooks Function()
     >;
+typedef $$CrowdEventReportsTableCreateCompanionBuilder =
+    CrowdEventReportsCompanion Function({
+      Value<int> id,
+      required String reportKey,
+      required String ownerUid,
+      Value<int?> tripId,
+      Value<int?> localReviewId,
+      Value<String> eventType,
+      required double latitude,
+      required double longitude,
+      required double horizontalAccuracyM,
+      required DateTime observedAtUtc,
+      Value<double?> headingDeg,
+      Value<double?> speedKmh,
+      required String source,
+      required String evidenceKind,
+      Value<double?> evidenceConfidence,
+      Value<String?> evidenceJson,
+      Value<bool> driverConfirmed,
+      Value<bool> locationShareConsented,
+      Value<String> syncStatus,
+      Value<String> verificationStatus,
+      Value<String?> cloudEventId,
+      Value<String?> lastSyncError,
+      required DateTime createdAtUtc,
+    });
+typedef $$CrowdEventReportsTableUpdateCompanionBuilder =
+    CrowdEventReportsCompanion Function({
+      Value<int> id,
+      Value<String> reportKey,
+      Value<String> ownerUid,
+      Value<int?> tripId,
+      Value<int?> localReviewId,
+      Value<String> eventType,
+      Value<double> latitude,
+      Value<double> longitude,
+      Value<double> horizontalAccuracyM,
+      Value<DateTime> observedAtUtc,
+      Value<double?> headingDeg,
+      Value<double?> speedKmh,
+      Value<String> source,
+      Value<String> evidenceKind,
+      Value<double?> evidenceConfidence,
+      Value<String?> evidenceJson,
+      Value<bool> driverConfirmed,
+      Value<bool> locationShareConsented,
+      Value<String> syncStatus,
+      Value<String> verificationStatus,
+      Value<String?> cloudEventId,
+      Value<String?> lastSyncError,
+      Value<DateTime> createdAtUtc,
+    });
+
+class $$CrowdEventReportsTableFilterComposer
+    extends Composer<_$AppDatabase, $CrowdEventReportsTable> {
+  $$CrowdEventReportsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reportKey => $composableBuilder(
+    column: $table.reportKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get ownerUid => $composableBuilder(
+    column: $table.ownerUid,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get localReviewId => $composableBuilder(
+    column: $table.localReviewId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get horizontalAccuracyM => $composableBuilder(
+    column: $table.horizontalAccuracyM,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get observedAtUtc => $composableBuilder(
+    column: $table.observedAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get headingDeg => $composableBuilder(
+    column: $table.headingDeg,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get speedKmh => $composableBuilder(
+    column: $table.speedKmh,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get evidenceKind => $composableBuilder(
+    column: $table.evidenceKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get evidenceConfidence => $composableBuilder(
+    column: $table.evidenceConfidence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get evidenceJson => $composableBuilder(
+    column: $table.evidenceJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get driverConfirmed => $composableBuilder(
+    column: $table.driverConfirmed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get locationShareConsented => $composableBuilder(
+    column: $table.locationShareConsented,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get verificationStatus => $composableBuilder(
+    column: $table.verificationStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get cloudEventId => $composableBuilder(
+    column: $table.cloudEventId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$CrowdEventReportsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CrowdEventReportsTable> {
+  $$CrowdEventReportsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reportKey => $composableBuilder(
+    column: $table.reportKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get ownerUid => $composableBuilder(
+    column: $table.ownerUid,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get tripId => $composableBuilder(
+    column: $table.tripId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get localReviewId => $composableBuilder(
+    column: $table.localReviewId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get eventType => $composableBuilder(
+    column: $table.eventType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get latitude => $composableBuilder(
+    column: $table.latitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get longitude => $composableBuilder(
+    column: $table.longitude,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get horizontalAccuracyM => $composableBuilder(
+    column: $table.horizontalAccuracyM,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get observedAtUtc => $composableBuilder(
+    column: $table.observedAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get headingDeg => $composableBuilder(
+    column: $table.headingDeg,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get speedKmh => $composableBuilder(
+    column: $table.speedKmh,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get evidenceKind => $composableBuilder(
+    column: $table.evidenceKind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get evidenceConfidence => $composableBuilder(
+    column: $table.evidenceConfidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get evidenceJson => $composableBuilder(
+    column: $table.evidenceJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get driverConfirmed => $composableBuilder(
+    column: $table.driverConfirmed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get locationShareConsented => $composableBuilder(
+    column: $table.locationShareConsented,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get verificationStatus => $composableBuilder(
+    column: $table.verificationStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get cloudEventId => $composableBuilder(
+    column: $table.cloudEventId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$CrowdEventReportsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CrowdEventReportsTable> {
+  $$CrowdEventReportsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get reportKey =>
+      $composableBuilder(column: $table.reportKey, builder: (column) => column);
+
+  GeneratedColumn<String> get ownerUid =>
+      $composableBuilder(column: $table.ownerUid, builder: (column) => column);
+
+  GeneratedColumn<int> get tripId =>
+      $composableBuilder(column: $table.tripId, builder: (column) => column);
+
+  GeneratedColumn<int> get localReviewId => $composableBuilder(
+    column: $table.localReviewId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get eventType =>
+      $composableBuilder(column: $table.eventType, builder: (column) => column);
+
+  GeneratedColumn<double> get latitude =>
+      $composableBuilder(column: $table.latitude, builder: (column) => column);
+
+  GeneratedColumn<double> get longitude =>
+      $composableBuilder(column: $table.longitude, builder: (column) => column);
+
+  GeneratedColumn<double> get horizontalAccuracyM => $composableBuilder(
+    column: $table.horizontalAccuracyM,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get observedAtUtc => $composableBuilder(
+    column: $table.observedAtUtc,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get headingDeg => $composableBuilder(
+    column: $table.headingDeg,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get speedKmh =>
+      $composableBuilder(column: $table.speedKmh, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get evidenceKind => $composableBuilder(
+    column: $table.evidenceKind,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get evidenceConfidence => $composableBuilder(
+    column: $table.evidenceConfidence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get evidenceJson => $composableBuilder(
+    column: $table.evidenceJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get driverConfirmed => $composableBuilder(
+    column: $table.driverConfirmed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get locationShareConsented => $composableBuilder(
+    column: $table.locationShareConsented,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get verificationStatus => $composableBuilder(
+    column: $table.verificationStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get cloudEventId => $composableBuilder(
+    column: $table.cloudEventId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastSyncError => $composableBuilder(
+    column: $table.lastSyncError,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAtUtc => $composableBuilder(
+    column: $table.createdAtUtc,
+    builder: (column) => column,
+  );
+}
+
+class $$CrowdEventReportsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CrowdEventReportsTable,
+          CrowdEventReport,
+          $$CrowdEventReportsTableFilterComposer,
+          $$CrowdEventReportsTableOrderingComposer,
+          $$CrowdEventReportsTableAnnotationComposer,
+          $$CrowdEventReportsTableCreateCompanionBuilder,
+          $$CrowdEventReportsTableUpdateCompanionBuilder,
+          (
+            CrowdEventReport,
+            BaseReferences<
+              _$AppDatabase,
+              $CrowdEventReportsTable,
+              CrowdEventReport
+            >,
+          ),
+          CrowdEventReport,
+          PrefetchHooks Function()
+        > {
+  $$CrowdEventReportsTableTableManager(
+    _$AppDatabase db,
+    $CrowdEventReportsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CrowdEventReportsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CrowdEventReportsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CrowdEventReportsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> reportKey = const Value.absent(),
+                Value<String> ownerUid = const Value.absent(),
+                Value<int?> tripId = const Value.absent(),
+                Value<int?> localReviewId = const Value.absent(),
+                Value<String> eventType = const Value.absent(),
+                Value<double> latitude = const Value.absent(),
+                Value<double> longitude = const Value.absent(),
+                Value<double> horizontalAccuracyM = const Value.absent(),
+                Value<DateTime> observedAtUtc = const Value.absent(),
+                Value<double?> headingDeg = const Value.absent(),
+                Value<double?> speedKmh = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<String> evidenceKind = const Value.absent(),
+                Value<double?> evidenceConfidence = const Value.absent(),
+                Value<String?> evidenceJson = const Value.absent(),
+                Value<bool> driverConfirmed = const Value.absent(),
+                Value<bool> locationShareConsented = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<String> verificationStatus = const Value.absent(),
+                Value<String?> cloudEventId = const Value.absent(),
+                Value<String?> lastSyncError = const Value.absent(),
+                Value<DateTime> createdAtUtc = const Value.absent(),
+              }) => CrowdEventReportsCompanion(
+                id: id,
+                reportKey: reportKey,
+                ownerUid: ownerUid,
+                tripId: tripId,
+                localReviewId: localReviewId,
+                eventType: eventType,
+                latitude: latitude,
+                longitude: longitude,
+                horizontalAccuracyM: horizontalAccuracyM,
+                observedAtUtc: observedAtUtc,
+                headingDeg: headingDeg,
+                speedKmh: speedKmh,
+                source: source,
+                evidenceKind: evidenceKind,
+                evidenceConfidence: evidenceConfidence,
+                evidenceJson: evidenceJson,
+                driverConfirmed: driverConfirmed,
+                locationShareConsented: locationShareConsented,
+                syncStatus: syncStatus,
+                verificationStatus: verificationStatus,
+                cloudEventId: cloudEventId,
+                lastSyncError: lastSyncError,
+                createdAtUtc: createdAtUtc,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String reportKey,
+                required String ownerUid,
+                Value<int?> tripId = const Value.absent(),
+                Value<int?> localReviewId = const Value.absent(),
+                Value<String> eventType = const Value.absent(),
+                required double latitude,
+                required double longitude,
+                required double horizontalAccuracyM,
+                required DateTime observedAtUtc,
+                Value<double?> headingDeg = const Value.absent(),
+                Value<double?> speedKmh = const Value.absent(),
+                required String source,
+                required String evidenceKind,
+                Value<double?> evidenceConfidence = const Value.absent(),
+                Value<String?> evidenceJson = const Value.absent(),
+                Value<bool> driverConfirmed = const Value.absent(),
+                Value<bool> locationShareConsented = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<String> verificationStatus = const Value.absent(),
+                Value<String?> cloudEventId = const Value.absent(),
+                Value<String?> lastSyncError = const Value.absent(),
+                required DateTime createdAtUtc,
+              }) => CrowdEventReportsCompanion.insert(
+                id: id,
+                reportKey: reportKey,
+                ownerUid: ownerUid,
+                tripId: tripId,
+                localReviewId: localReviewId,
+                eventType: eventType,
+                latitude: latitude,
+                longitude: longitude,
+                horizontalAccuracyM: horizontalAccuracyM,
+                observedAtUtc: observedAtUtc,
+                headingDeg: headingDeg,
+                speedKmh: speedKmh,
+                source: source,
+                evidenceKind: evidenceKind,
+                evidenceConfidence: evidenceConfidence,
+                evidenceJson: evidenceJson,
+                driverConfirmed: driverConfirmed,
+                locationShareConsented: locationShareConsented,
+                syncStatus: syncStatus,
+                verificationStatus: verificationStatus,
+                cloudEventId: cloudEventId,
+                lastSyncError: lastSyncError,
+                createdAtUtc: createdAtUtc,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$CrowdEventReportsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CrowdEventReportsTable,
+      CrowdEventReport,
+      $$CrowdEventReportsTableFilterComposer,
+      $$CrowdEventReportsTableOrderingComposer,
+      $$CrowdEventReportsTableAnnotationComposer,
+      $$CrowdEventReportsTableCreateCompanionBuilder,
+      $$CrowdEventReportsTableUpdateCompanionBuilder,
+      (
+        CrowdEventReport,
+        BaseReferences<
+          _$AppDatabase,
+          $CrowdEventReportsTable,
+          CrowdEventReport
+        >,
+      ),
+      CrowdEventReport,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -17473,4 +19452,6 @@ class $AppDatabaseManager {
       $$CameraCapturesTableTableManager(_db, _db.cameraCaptures);
   $$LiveEventReviewsTableTableManager get liveEventReviews =>
       $$LiveEventReviewsTableTableManager(_db, _db.liveEventReviews);
+  $$CrowdEventReportsTableTableManager get crowdEventReports =>
+      $$CrowdEventReportsTableTableManager(_db, _db.crowdEventReports);
 }

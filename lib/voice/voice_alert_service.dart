@@ -122,11 +122,13 @@ class VoiceAlertService {
     bool Function()? shouldSpeak,
     String Function()? textProvider,
   }) async {
-    if (!_isCurrent(generation) || (shouldSpeak != null && !shouldSpeak()))
+    if (!_isCurrent(generation) || (shouldSpeak != null && !shouldSpeak())) {
       return false;
+    }
     await _stopFuture;
-    if (!_isCurrent(generation) || (shouldSpeak != null && !shouldSpeak()))
+    if (!_isCurrent(generation) || (shouldSpeak != null && !shouldSpeak())) {
       return false;
+    }
     final ready = await ensureInitialized();
     if (!_isCurrent(generation)) return false;
     if (!ready) {

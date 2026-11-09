@@ -1098,7 +1098,7 @@ class _PreCodedHazardsSection extends ConsumerWidget {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: hazards.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                separatorBuilder: (_, _) => const SizedBox(width: 8),
                 itemBuilder: (context, idx) {
                   final h = hazards[idx];
                   final (color, icon) = HazardInspectSheet.getEventStyle(h.eventType);

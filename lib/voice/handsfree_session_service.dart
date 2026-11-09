@@ -255,8 +255,9 @@ class HandsfreeSessionService {
         final spoken = await _speakOnly(
           PreAlertMessageBuilder.build(decision, distanceOverride: remaining),
         );
-        if (!result.isCompleted)
+        if (!result.isCompleted) {
           result.complete(spoken ? 'delivered' : 'failed');
+        }
         if (_isCurrentVoiceAction(generation)) _resumeListening();
       } catch (_) {
         if (!result.isCompleted) result.complete('failed');
@@ -304,8 +305,9 @@ class HandsfreeSessionService {
   static bool? confirmationFrom(String? reply) {
     if (reply == null) return null;
     final words = reply.toLowerCase().replaceAll(RegExp(r"[^a-z\s]"), ' ');
-    if (RegExp(r'\b(no|nope|nah|not|incorrect)\b').hasMatch(words))
+    if (RegExp(r'\b(no|nope|nah|not|incorrect)\b').hasMatch(words)) {
       return false;
+    }
     if (RegExp(r'\b(yes|yeah|yep|correct|sure)\b').hasMatch(words)) return true;
     return null;
   }

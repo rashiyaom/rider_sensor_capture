@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function validCrowdReport(reportId) {
+      let d = request.resource.data;
+      return d.keys().hasOnly([
+          'reportKey', 'ownerUid', 'tripId', 'localReviewId', 'eventType',
+          'latitude', 'longitude', 'horizontalAccuracyM', 'observedAtUtc',
+          'headingDeg', 'speedKmh', 'source', 'evidenceKind',
+          'evidenceConfidence', 'evidence', 'driverConfirmed',
+          'locationShareConsented'
+        ])
+        && d.keys().hasAll([
+          'reportKey', 'ownerUid', 'eventType', 'latitude', 'longitude',
+          'horizontalAccuracyM', 'observedAtUtc', 'source', 'evidenceKind',
+          'driverConfirmed', 'locationShareConsented'
+        ])
+        && d.reportKey == reportId
+        && d.ownerUid == request.auth.uid
+        && d.eventType == 'road_impact'
+        && d.latitude is number && d.latitude >= -90 && d.latitude <= 90
+        && d.longitude is number && d.longitude >= -180 && d.longitude <= 180
+        && d.horizontalAccuracyM is number
+        && d.horizontalAccuracyM > 0 && d.horizontalAccuracyM <= 15
+        && d.observedAtUtc is timestamp
+        && d.source in ['ml', 'camera', 'voice', 'manual']
+        && d.evidenceKind is string
+        && d.driverConfirmed == true
+        && d.locationShareConsented == true;
+    }
+
+    match /crowdReports/{reportId} {
+      allow create: if signedIn() && validCrowdReport(reportId);
+      allow get: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow list: if false;
+      // Permit idempotent retries only. The app cannot revise or delete evidence.
+      allow update: if signedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data == resource.data;
+      allow delete: if false;
+    }
+
+    match /sharedRoadEvents/{eventId} {
+      allow read: if signedIn();
+      // Shared event creation, verification and changes are server-authoritative.
+      allow write: if false;
+    }
+
+    match /crowdReportResults/{reportId} {
+      // Cloud Functions copy the report owner onto the private result document.
+      allow get: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow list: if false;
+      allow write: if false;
+    }
+
+    match /userProfiles/{uid} {
+      function validProfile() {
+        let d = request.resource.data;
+        return d.keys().hasOnly([
+            'uid', 'name', 'email', 'ageBand', 'ridingExperience',
+            'vehicleDescription', 'profileConsent', 'profileConsentVersion',
+            'profileConsentedAt', 'createdAt', 'updatedAt'
+          ])
+          && d.keys().hasAll([
+            'uid', 'name', 'email', 'ageBand', 'ridingExperience',
+            'vehicleDescription', 'profileConsent', 'profileConsentVersion',
+            'profileConsentedAt', 'createdAt', 'updatedAt'
+          ])
+          && d.uid == uid
+          && d.name is string && d.name.size() >= 2 && d.name.size() <= 100
+          && d.email is string && d.email.size() <= 254
+          && request.auth.token.email is string
+          && d.email == request.auth.token.email
+          && d.ageBand in [
+            '18–24', '25–34', '35–44', '45–54', '55+', 'Prefer not to say'
+          ]
+          && d.ridingExperience in [
+            'Less than 1 year', '1–3 years', '4–7 years', '8+ years',
+            'Prefer not to say'
+          ]
+          && d.vehicleDescription is string
+          && d.vehicleDescription.size() >= 2
+          && d.vehicleDescription.size() <= 120
+          && d.profileConsent == true
+          && d.profileConsentVersion == 'profile-v1'
+          && d.profileConsentedAt is timestamp
+          && d.createdAt is timestamp
+          && d.updatedAt is timestamp;
+      }
+
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && validProfile();
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && validProfile()
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.profileConsent == resource.data.profileConsent
+        && request.resource.data.profileConsentVersion == resource.data.profileConsentVersion
+        && request.resource.data.profileConsentedAt == resource.data.profileConsentedAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'ageBand', 'ridingExperience', 'vehicleDescription', 'updatedAt'
+        ]);
+      allow delete: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -13,6 +13,7 @@ import 'tables/unknown_events_table.dart';
 import 'tables/camera_captures_table.dart';
 import 'connection/connection.dart';
 import 'tables/live_event_reviews_table.dart';
+import 'tables/crowd_event_reports_table.dart';
 
 part 'database.g.dart';
 
@@ -30,6 +31,7 @@ part 'database.g.dart';
     UnknownEvents,
     CameraCaptures,
     LiveEventReviews,
+    CrowdEventReports,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -38,7 +40,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -244,6 +246,18 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
           "UPDATE pre_alerts SET delivery_status = 'unknown_legacy' WHERE delivery_status = 'queued'",
         );
+      }
+      if (from < 18) {
+        await m.createTable(crowdEventReports);
+      }
+      if (from < 19) {
+        final columns = await customSelect(
+          'PRAGMA table_info(live_event_reviews)',
+        ).get();
+        final names = columns.map((row) => row.read<String>('name')).toSet();
+        if (!names.contains('gps_accuracy_m')) {
+          await m.addColumn(liveEventReviews, liveEventReviews.gpsAccuracyM);
+        }
       }
     },
     beforeOpen: (details) async {

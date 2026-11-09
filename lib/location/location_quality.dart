@@ -17,17 +17,21 @@ class LocationQuality {
     if (!latitude.isFinite ||
         latitude.abs() > 90 ||
         !longitude.isFinite ||
-        longitude.abs() > 180)
+        longitude.abs() > 180) {
       return false;
+    }
     final age = now.difference(timestamp);
-    if (age > const Duration(seconds: 10) || age < const Duration(seconds: -2))
+    if (age > const Duration(seconds: 10) || age < const Duration(seconds: -2)) {
       return false;
+    }
     if (accuracy != null &&
-        (!accuracy.isFinite || accuracy < 0 || accuracy > 50))
+        (!accuracy.isFinite || accuracy < 0 || accuracy > 50)) {
       return false;
+    }
     if (speedMps != null &&
-        (!speedMps.isFinite || speedMps < 0 || speedMps > 90))
+        (!speedMps.isFinite || speedMps < 0 || speedMps > 90)) {
       return false;
+    }
     if (previousTime != null &&
         previousLatitude != null &&
         previousLongitude != null) {
@@ -41,8 +45,9 @@ class LocationQuality {
                 lat2: latitude,
                 lon2: longitude,
               ) >
-              90 * dt + 100)
+              90 * dt + 100) {
         return false;
+      }
     }
     return true;
   }

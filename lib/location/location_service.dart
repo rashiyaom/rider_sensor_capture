@@ -171,8 +171,9 @@ class LocationService {
       previousLatitude: _lastFix?.latitude,
       previousLongitude: _lastFix?.longitude,
       previousTime: _lastFix?.timestampUtc,
-    ))
+    )) {
       return;
+    }
     lastError = null;
     _recentFixes.add(fix);
     if (_recentFixes.length > _windowSize) {

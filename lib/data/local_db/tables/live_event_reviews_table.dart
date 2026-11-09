@@ -9,12 +9,15 @@ class LiveEventReviews extends Table {
   DateTimeColumn get detectedAtUtc => dateTime()();
   RealColumn get latitude => real().nullable()();
   RealColumn get longitude => real().nullable()();
+  RealColumn get gpsAccuracyM => real().nullable()();
   RealColumn get confidence => real()();
   TextColumn get sensorFeaturesJson => text()();
   TextColumn get confirmationReply => text().nullable()();
   BoolColumn get confirmed => boolean().nullable()();
   TextColumn get feedback => text().nullable()();
+
   /// pending | saved | discarded
-  TextColumn get reviewStatus => text().withDefault(const Constant('pending'))();
+  TextColumn get reviewStatus =>
+      text().withDefault(const Constant('pending'))();
   IntColumn get roadEventId => integer().nullable()();
 }

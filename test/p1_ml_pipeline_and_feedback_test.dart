@@ -59,7 +59,8 @@ void main() {
       expect(script.contains('import numpy as np'), isTrue);
       expect(script.contains('RandomForestClassifier'), isTrue);
       expect(script.contains('HistGradientBoostingClassifier'), isTrue);
-      expect(script.contains('from scipy import signal, stats'), isTrue);
+      expect(script.contains('from scipy import signal'), isTrue);
+      expect(script.contains('from collections import Counter'), isTrue);
       expect(script.contains('import joblib'), isTrue);
 
       // Verify default CSV embedding
@@ -78,7 +79,7 @@ void main() {
 
       // Verify model artifact persistence
       expect(script.contains('trained_ride_classifier.joblib'), isTrue);
-      expect(script.contains('dataset_features_windowed_1s.csv'), isTrue);
+      expect(script.contains('baseline_features_windowed.csv'), isTrue);
     });
   });
 

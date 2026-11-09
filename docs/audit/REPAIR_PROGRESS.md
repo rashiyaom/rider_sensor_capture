@@ -74,6 +74,12 @@ On controller startup, open trip rows are recovered transactionally and closed a
 
 Validation: two recovery-specific cases plus trip aggregate regression pass; the complete current suite after platform wiring passes **283 tests**. Static analysis has no errors (34 warning/info findings remain); the iOS plist passes `plutil -lint`, and `git diff --check` passes. Android Kotlin compilation and manifest merge both pass when Flutter asset generation is excluded. A full APK build still fails before Flutter source compilation: Gradle invokes `xcrun` from an x86_64 Temurin 17 runtime, while the installed Command Line Tools are arm64-only; the arm64 JDK 21 Homebrew link is dangling. Platform code is therefore only partly build-validated, and continuous BLE/GPS/Dart capture during lock/suspension is not device-validated. Continue AUD-09 until a full Android build and lock/battery-saver/process-kill tests pass; iOS needs a device background test too.
 
+Update 8 November 2026: installed native ARM Java 21 and configured Flutter to use it. A full debug APK now builds through the normal `flutter build apk --debug` command. The full Flutter suite passes **296 tests**, and `flutter analyze --no-pub` reports **no issues** after mechanical lint cleanup. This clears the host build gate; physical-device lock, battery-saver, process-kill and iOS background tests remain open.
+
+## Generated Python trainer — labeled-event smoke test
+
+The bundled trainer previously called SciPy `stats.mode` on string event labels, which raises `TypeError` with the installed SciPy 1.18.1 whenever an event occupies the label threshold of a window. It now uses `collections.Counter` and an exact 30% ceiling. `docs/audit/generated_training_smoke_test.dart` executes the generated Python against a labeled synthetic fixture and passes. The script's row-count-based windows and within-ride model evaluation still do not establish parity with Dart's time-based features or generalization to unseen riders.
+
 ## Next unresolved work
 
 Continue AUD-09 with platform background lifetime and physical-device checks, then the remaining audit backlog. AUD-04's Python feature-extraction parity also remains open. Do not mark the whole mobile system repaired or road-validated based on this software-only batch.

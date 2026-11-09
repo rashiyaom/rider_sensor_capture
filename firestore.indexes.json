@@ -1,0 +1,22 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "sharedRoadEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "geohash", "order": "ASCENDING"},
+        {"fieldPath": "lastObservedAt", "order": "ASCENDING"}
+      ]
+    },
+    {
+      "collectionGroup": "sharedRoadEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {"fieldPath": "latitude", "order": "ASCENDING"},
+        {"fieldPath": "longitude", "order": "ASCENDING"},
+        {"fieldPath": "lastObservedAt", "order": "DESCENDING"}
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

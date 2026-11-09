@@ -154,7 +154,6 @@ class MapOfflineCacheService extends StateNotifier<MapCacheStats> {
 
       if (!await file.exists()) {
         try {
-          final sub = ['a', 'b', 'c', 'd'][tile.x % 4];
           final url = 'https://basemaps.cartocdn.com/rastertiles/dark_all/${tile.z}/${tile.x}/${tile.y}.png';
           final response = await _dio.get<List<int>>(
             url,

@@ -75,6 +75,7 @@ class LiveEventRepository {
             sensorFeaturesJson: features,
             latitude: Value(fix?.latitude),
             longitude: Value(fix?.longitude),
+            gpsAccuracyM: Value(fix?.gpsAccuracyM),
           ),
         );
   });
@@ -128,29 +129,30 @@ class LiveEventRepository {
         await refreshTripEventTotals(db, row.tripId);
       });
 
-  Future<void> recordFeedback(int id, String? feedback) => db.transaction(
-    () async {
-      final row = await get(id);
-      await (db.update(db.liveEventReviews)..where((t) => t.id.equals(id)))
-          .write(LiveEventReviewsCompanion(feedback: Value(feedback)));
-      if (row.confirmed != true || feedback == null || feedback.trim().isEmpty) {
-        return;
-      }
-      await db
-          .into(db.eventFeedbacks)
-          .insert(
-            EventFeedbacksCompanion.insert(
-              eventId: Value(row.eventId),
-              tripId: Value(row.tripId),
-              eventType: row.eventType,
-              prompt: 'How was it?',
-              responseText: feedback,
-              responseSource: 'voice',
-              createdAtUtc: DateTime.now().toUtc(),
-            ),
-          );
-    },
-  );
+  Future<void> recordFeedback(int id, String? feedback) =>
+      db.transaction(() async {
+        final row = await get(id);
+        await (db.update(db.liveEventReviews)..where((t) => t.id.equals(id)))
+            .write(LiveEventReviewsCompanion(feedback: Value(feedback)));
+        if (row.confirmed != true ||
+            feedback == null ||
+            feedback.trim().isEmpty) {
+          return;
+        }
+        await db
+            .into(db.eventFeedbacks)
+            .insert(
+              EventFeedbacksCompanion.insert(
+                eventId: Value(row.eventId),
+                tripId: Value(row.tripId),
+                eventType: row.eventType,
+                prompt: 'How was it?',
+                responseText: feedback,
+                responseSource: 'voice',
+                createdAtUtc: DateTime.now().toUtc(),
+              ),
+            );
+      });
 
   /// This is the only live-detection path that enables future location alerts.
   Future<void> saveLocation(int id) => db.transaction(() async {

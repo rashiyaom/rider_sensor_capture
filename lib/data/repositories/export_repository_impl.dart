@@ -11,7 +11,6 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/utils/angular_units.dart';
 import '../local_db/database.dart';
 import '../models/event_parameters.dart';
-import '../services/hr_event_gate.dart';
 import '../services/ml_starter_script_generator.dart';
 import '../services/windowed_feature_extractor_service.dart';
 import '../../features/export/models/export_options.dart';
@@ -643,51 +642,16 @@ class ExportRepositoryImpl implements ExportRepository {
     final buffer = StringBuffer();
     buffer.write(_buildTimeseriesCsvHeader());
 
-    final recentHrs = <int>[];
-    final lastReadingByDevice = <String, SensorReading>{};
     final eventMap = <int, EventRecord>{for (var e in events) e.id: e};
     int gpsSearchIdx = 0;
 
     for (final r in readings) {
-      // HR baseline calculation
-      if (r.heartRate != null && r.heartRate! > 30 && r.heartRate! < 220) {
-        recentHrs.add(r.heartRate!);
-        if (recentHrs.length > 60) recentHrs.removeAt(0);
-      }
-      final hrBaseline = recentHrs.isNotEmpty
-          ? HrEventGate.computeBaseline(recentHrs)
-          : null;
-      final hrDelta = (r.heartRate != null && hrBaseline != null)
-          ? (r.heartRate! - hrBaseline)
-          : null;
-
       // Accel magnitude
       double? accelMag;
       if (r.accelX != null && r.accelY != null && r.accelZ != null) {
         accelMag = math.sqrt(
           r.accelX! * r.accelX! + r.accelY! * r.accelY! + r.accelZ! * r.accelZ!,
         );
-      }
-
-      // Jerk strictly per physical device
-      double? jx, jy, jz, jMag;
-      final prevReading = lastReadingByDevice[r.deviceId];
-      lastReadingByDevice[r.deviceId] = r;
-      if (prevReading != null) {
-        final dt =
-            r.timestampUtc.difference(prevReading.timestampUtc).inMilliseconds /
-            1000.0;
-        if (dt > 0.005 && dt < 0.2) {
-          if (r.accelX != null && prevReading.accelX != null)
-            jx = (r.accelX! - prevReading.accelX!) / dt;
-          if (r.accelY != null && prevReading.accelY != null)
-            jy = (r.accelY! - prevReading.accelY!) / dt;
-          if (r.accelZ != null && prevReading.accelZ != null)
-            jz = (r.accelZ! - prevReading.accelZ!) / dt;
-          if (jx != null && jy != null && jz != null) {
-            jMag = math.sqrt(jx * jx + jy * jy + jz * jz);
-          }
-        }
       }
 
       // Roll & pitch angles
@@ -1409,7 +1373,7 @@ class ExportRepositoryImpl implements ExportRepository {
   //   • EVENT_START / EVENT_END bounding-box sentinel rows
   //   • CONTEXT_PRE / CONTEXT_POST tags for ±3s context window around each event
   //   • High-frequency GPS telemetry synchronization
-  //   • Per-device jerk & acceleration magnitude derivation
+  //   • Acceleration magnitude derivation
   //   • O(n + m) time complexity using a sorted event pointer
   // ─────────────────────────────────────────────────────────────────────────
   static const Duration _contextWindow = Duration(seconds: 3);
@@ -1423,8 +1387,6 @@ class ExportRepositoryImpl implements ExportRepository {
     List<LocationReading> gpsFixes = const [],
   }) {
     final buffer = StringBuffer();
-    final fmt = DateFormat('yyyy-MM-dd HH:mm:ss.SSS');
-
     // ── Header (22 standardized ML dataset fields) ──
     buffer.write(_buildTimeseriesCsvHeader());
 
@@ -1467,7 +1429,6 @@ class ExportRepositoryImpl implements ExportRepository {
       );
     }
 
-    final lastReadingByDevice = <String, SensorReading>{};
     int gpsSearchIdx = 0;
 
     // ── Main pass: O(n) readings, O(m) event pointer advances ──
@@ -1483,31 +1444,12 @@ class ExportRepositoryImpl implements ExportRepository {
         }
       }
 
-      // 2. Accel & Jerk Magnitude per physical device
+      // 2. Acceleration magnitude
       double? accelMag;
       if (r.accelX != null && r.accelY != null && r.accelZ != null) {
         accelMag = math.sqrt(
           r.accelX! * r.accelX! + r.accelY! * r.accelY! + r.accelZ! * r.accelZ!,
         );
-      }
-
-      double? jMag;
-      final prevR = lastReadingByDevice[r.deviceId];
-      lastReadingByDevice[r.deviceId] = r;
-      if (prevR != null &&
-          r.accelX != null &&
-          prevR.accelX != null &&
-          r.accelY != null &&
-          prevR.accelY != null &&
-          r.accelZ != null &&
-          prevR.accelZ != null) {
-        final dt = rTime.difference(prevR.timestampUtc).inMilliseconds / 1000.0;
-        if (dt > 0.005 && dt < 0.2) {
-          final jx = (r.accelX! - prevR.accelX!) / dt;
-          final jy = (r.accelY! - prevR.accelY!) / dt;
-          final jz = (r.accelZ! - prevR.accelZ!) / dt;
-          jMag = math.sqrt(jx * jx + jy * jy + jz * jz);
-        }
       }
 
       // 3. Nearest GPS fix within 2.0s tolerance
@@ -1539,10 +1481,6 @@ class ExportRepositoryImpl implements ExportRepository {
       // 4. Determine this reading's bbox_marker
       String bboxMarker = '';
       String rowEventType = '';
-      String rowClassification = '';
-      double? rowPeakMetric;
-      bool rowCrossConfirmed = false;
-      String rowParamSummary = '';
 
       final attachedEvt = r.eventId != null ? eventMap[r.eventId] : null;
       EventRecord? matchingEvt = attachedEvt;
@@ -1579,18 +1517,10 @@ class ExportRepositoryImpl implements ExportRepository {
         }
       }
 
-      // Populate event metadata for attached or window-matched event
+      // Populate the event type for attached or window-matched events.
       final effectiveEvt = attachedEvt ?? matchingEvt;
       if (effectiveEvt != null) {
         rowEventType = effectiveEvt.eventType;
-        rowClassification = effectiveEvt.classification ?? '';
-        rowPeakMetric = effectiveEvt.peakMetric;
-        rowCrossConfirmed = effectiveEvt.crossConfirmed;
-        rowParamSummary = effectiveEvt.computedParameters != null
-            ? (EventParameters.fromJsonString(effectiveEvt.computedParameters)
-                      ?.summary ??
-                  '')
-            : '';
       }
 
       // 5. Write sensor data row (28 fields)
@@ -1865,9 +1795,10 @@ class ExportRepositoryImpl implements ExportRepository {
 
       // Pre-computed rolling ML Feature Table (features_windowed_trip_X.csv)
       final windowedCsv = await buildWindowedFeaturesCsvExport(tripId: tripId);
+      final windowedFilename = 'features_windowed_$fileBase.csv';
       if (windowedCsv.isNotEmpty) {
         final windowedFile = File(
-          p.join(exportDir.path, 'features_windowed_$fileBase.csv'),
+          p.join(exportDir.path, windowedFilename),
         );
         await windowedFile.writeAsString(windowedCsv);
         createdFiles.add(windowedFile);
@@ -1875,7 +1806,7 @@ class ExportRepositoryImpl implements ExportRepository {
 
       // Bundle ML Starter script directly with exported trip dataset
       final pyScript = MlStarterScriptGenerator.generateTrainBaselineScript(
-        defaultCsvFilename: csvFilename,
+        defaultCsvFilename: windowedFilename,
       );
       final pyFile = File(
         p.join(exportDir.path, 'train_baseline_${tripId}_$timestampStr.py'),

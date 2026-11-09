@@ -61,12 +61,11 @@ class PreAlertService {
     this.locationService,
     DateTime Function()? clock,
     this.reAlertCooldown = const Duration(minutes: 2),
-    HandsfreeSessionService? handsfreeService,
+    this._handsfreeService,
   }) : now = clock ?? DateTime.now,
        registry = RoadEventRegistry(db),
        voiceService = voiceService ?? VoiceAlertService(),
-       engine = engine ?? const PreAlertEngine(),
-       _handsfreeService = handsfreeService;
+       engine = engine ?? const PreAlertEngine();
 
   /// Optional hands-free orchestrator — when set, spoken alerts are routed
   /// through it (which pauses the mic, speaks, then resumes listening).
@@ -142,8 +141,9 @@ class PreAlertService {
       now: now().toUtc(),
       accuracy: fix.gpsAccuracyM,
       speedMps: fix.gpsSpeedMps,
-    ))
+    )) {
       return;
+    }
     final speedKmh = fix.speedKmh ?? 0.0;
     if (!speedKmh.isFinite || speedKmh <= 0) return;
     if (fix.gpsAccuracyM != null && fix.gpsAccuracyM! > 50) return;
@@ -205,13 +205,15 @@ class PreAlertService {
         if (_inFlightEventIds.contains(roadEventId)) return;
         final lastDelivered = _lastAlertAt[roadEventId];
         if (lastDelivered != null &&
-            fix.timestampUtc.difference(lastDelivered) < reAlertCooldown)
+            fix.timestampUtc.difference(lastDelivered) < reAlertCooldown) {
           return;
+        }
         final lastAttempt = _lastAttemptAt[roadEventId];
         if (lastAttempt != null &&
             fix.timestampUtc.difference(lastAttempt) <
-                const Duration(seconds: 5))
+                const Duration(seconds: 5)) {
           return;
+        }
         _inFlightEventIds.add(roadEventId);
         _lastAttemptAt[roadEventId] = fix.timestampUtc;
       }
@@ -236,7 +238,7 @@ class PreAlertService {
   Future<int?> issueAlert(PreAlertDecision decision) async {
     final message = _messageFor(decision);
     var spokenMessage = message;
-    final isStillRelevant = () => _remainingMeters(decision) > 0;
+    bool isStillRelevant() => _remainingMeters(decision) > 0;
     final roadEventId = decision.candidate.id;
     int? rowId;
     try {
@@ -261,8 +263,9 @@ class PreAlertService {
           );
     } catch (error) {
       lastDeliveryError = 'Could not record warning attempt: $error';
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint('PreAlertService: failed to create delivery log ($error)');
+      }
     }
 
     var delivery = 'failed';
@@ -340,8 +343,9 @@ class PreAlertService {
       if (!_alertController.isClosed) _alertController.add(decision);
     } else {
       lastDeliveryError = failure;
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint('PreAlertService: warning $delivery ($failure)');
+      }
     }
     return rowId;
   }
