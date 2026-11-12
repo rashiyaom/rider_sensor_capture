@@ -14,7 +14,7 @@ class _PhoneOtpSignInScreenState extends State<PhoneOtpSignInScreen> {
   final _auth = FirebaseAuth.instance;
   final _phone = TextEditingController();
   final _code = TextEditingController();
-  final _email = TextEditingController();
+  final _email = TextEditingController(text: 'rashiyaom@gmail.com');
   final _password = TextEditingController();
   String? _verificationId;
   String? _error;
@@ -164,11 +164,12 @@ class _PhoneOtpSignInScreenState extends State<PhoneOtpSignInScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -193,6 +194,7 @@ class _PhoneOtpSignInScreenState extends State<PhoneOtpSignInScreen> {
                   const SizedBox(height: 24),
                   if (_passwordMode) ...[
                     TextField(
+                      key: const ValueKey('password-sign-in-email'),
                       controller: _email,
                       keyboardType: TextInputType.emailAddress,
                       autofillHints: const [AutofillHints.email],
@@ -200,6 +202,7 @@ class _PhoneOtpSignInScreenState extends State<PhoneOtpSignInScreen> {
                     ),
                     const SizedBox(height: 12),
                     TextField(
+                      key: const ValueKey('password-sign-in-password'),
                       controller: _password,
                       obscureText: _obscurePassword,
                       autofillHints: const [AutofillHints.password],
@@ -226,6 +229,7 @@ class _PhoneOtpSignInScreenState extends State<PhoneOtpSignInScreen> {
                     ),
                   ] else if (!awaitingCode)
                     TextField(
+                      key: const ValueKey('phone-sign-in-number'),
                       controller: _phone,
                       keyboardType: TextInputType.phone,
                       autofillHints: const [AutofillHints.telephoneNumber],
@@ -239,6 +243,7 @@ class _PhoneOtpSignInScreenState extends State<PhoneOtpSignInScreen> {
                     Text('Verification code sent to ${_phone.text.trim()}'),
                     const SizedBox(height: 12),
                     TextField(
+                      key: const ValueKey('phone-sign-in-code'),
                       controller: _code,
                       keyboardType: TextInputType.number,
                       maxLength: 6,
